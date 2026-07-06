@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { createPayoutOnboardingLink } from '@urban-assist/server-lib';
+import { createPayoutOnboardingLink } from '@urban-assist/integrations/stripe';
 
 export async function POST(req: NextRequest) {
   const db = getSupabaseServer();

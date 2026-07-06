@@ -44,9 +44,18 @@ importers:
       '@urban-assist/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@urban-assist/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@urban-assist/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@urban-assist/lib':
         specifier: workspace:*
         version: link:../../packages/lib
+      '@urban-assist/server-lib':
+        specifier: workspace:*
+        version: link:../../packages/server-lib
       '@urban-assist/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -120,6 +129,12 @@ importers:
       '@urban-assist/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@urban-assist/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@urban-assist/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@urban-assist/lib':
         specifier: workspace:*
         version: link:../../packages/lib
@@ -199,6 +214,12 @@ importers:
       '@urban-assist/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@urban-assist/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@urban-assist/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@urban-assist/lib':
         specifier: workspace:*
         version: link:../../packages/lib
@@ -258,6 +279,28 @@ importers:
         specifier: ^5.4.5
         version: 5.9.3
 
+  packages/auth:
+    dependencies:
+      '@urban-assist/db':
+        specifier: workspace:*
+        version: link:../db
+      '@urban-assist/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.45.0
+        version: 2.109.0
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+
+  packages/config:
+    devDependencies:
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+
   packages/db:
     dependencies:
       '@supabase/ssr':
@@ -274,7 +317,70 @@ importers:
         specifier: ^5.4.5
         version: 5.9.3
 
+  packages/domain:
+    dependencies:
+      '@urban-assist/db':
+        specifier: workspace:*
+        version: link:../db
+      '@urban-assist/integrations':
+        specifier: workspace:*
+        version: link:../integrations
+      '@urban-assist/types':
+        specifier: workspace:*
+        version: link:../types
+      '@urban-assist/utils':
+        specifier: workspace:*
+        version: link:../utils
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.45.0
+        version: 2.109.0
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+
+  packages/integrations:
+    dependencies:
+      '@upstash/ratelimit':
+        specifier: ^2.0.0
+        version: 2.0.8(@upstash/redis@1.38.0)
+      '@upstash/redis':
+        specifier: ^1.34.0
+        version: 1.38.0
+      '@urban-assist/db':
+        specifier: workspace:*
+        version: link:../db
+      '@urban-assist/types':
+        specifier: workspace:*
+        version: link:../types
+      '@urban-assist/utils':
+        specifier: workspace:*
+        version: link:../utils
+      stripe:
+        specifier: ^16.0.0
+        version: 16.12.0
+    devDependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.45.0
+        version: 2.109.0
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+
   packages/lib:
+    dependencies:
+      '@urban-assist/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@urban-assist/integrations':
+        specifier: workspace:*
+        version: link:../integrations
+      '@urban-assist/utils':
+        specifier: workspace:*
+        version: link:../utils
     devDependencies:
       typescript:
         specifier: ^5.4.5
@@ -294,12 +400,24 @@ importers:
       '@urban-assist/db':
         specifier: workspace:*
         version: link:../db
+      '@urban-assist/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@urban-assist/integrations':
+        specifier: workspace:*
+        version: link:../integrations
       stripe:
         specifier: ^16.0.0
         version: 16.12.0
       zod:
         specifier: ^3.23.8
         version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+
+  packages/types:
     devDependencies:
       typescript:
         specifier: ^5.4.5
@@ -338,6 +456,12 @@ importers:
       tailwindcss:
         specifier: ^3.4.4
         version: 3.4.19
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+
+  packages/utils:
+    devDependencies:
       typescript:
         specifier: ^5.4.5
         version: 5.9.3

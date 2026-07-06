@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@urban-assist/db": "workspace:*",
+    "@urban-assist/domain": "workspace:*",
+    "@urban-assist/integrations": "workspace:*",
     "@urban-assist/lib": "workspace:*",
     "@urban-assist/server-lib": "workspace:*",
     "@urban-assist/ui": "workspace:*",

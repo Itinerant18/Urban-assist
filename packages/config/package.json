@@ -1,0 +1,12 @@
+{
+  "name": "@urban-assist/config",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "echo 'config OK'",
+    "lint": "echo 'lint OK'"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

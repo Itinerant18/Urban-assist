@@ -1,7 +1,7 @@
 // Start OTP — rate-limited via Upstash if configured.
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { otpRateLimit } from '@urban-assist/server-lib';
+import { otpRateLimit } from '@urban-assist/integrations/redis';
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? 'anon';

@@ -6,13 +6,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./matching": "./src/matching.ts",
-    "./stripe": "./src/stripe/index.ts",
-    "./redis": "./src/redis.ts",
-    "./fcm": "./src/fcm.ts",
-    "./analytics": "./src/analytics.ts",
-    "./kyc": "./src/kyc.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -20,6 +14,8 @@
   },
   "dependencies": {
     "@urban-assist/db": "workspace:*",
+    "@urban-assist/domain": "workspace:*",
+    "@urban-assist/integrations": "workspace:*",
     "@supabase/supabase-js": "^2.45.0",
     "@upstash/ratelimit": "^2.0.1",
     "@upstash/redis": "^1.31.0",

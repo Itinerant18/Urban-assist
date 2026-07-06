@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { transferToProvider } from '@urban-assist/server-lib';
+import { transferToProvider } from '@urban-assist/integrations/stripe';
 import { z } from 'zod';
 
 const Schema = z.object({

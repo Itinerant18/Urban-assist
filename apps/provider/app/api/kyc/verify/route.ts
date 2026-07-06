@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { verifyProviderDocuments } from '@urban-assist/server-lib';
+import { verifyProviderDocuments } from '@urban-assist/domain/providers';
 
 export async function POST(req: NextRequest) {
   const db = getSupabaseServer();

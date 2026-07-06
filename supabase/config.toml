@@ -1,8 +1,17 @@
-project_id = "homeease"
+project_id = "xouanfmyieodnqmmkuxi"
 
 [functions.match-cascade]
 verify_jwt = false
 
-# Tick every minute to expire stale offers.
-# [[functions.match-cascade.schedules]]
-# schedule = "* * * * *"
+# Expire stale offers every minute.
+[[functions.match-cascade.schedules]]
+schedule = "* * * * *"
+
+[functions.notification-dispatch]
+verify_jwt = false
+
+# Attempt to dispatch pending notifications every 30 seconds.
+[[functions.notification-dispatch.schedules]]
+schedule = "* * * * *"
+[[functions.notification-dispatch.schedules]]
+schedule = "*/30 * * * * *"
