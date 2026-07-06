@@ -3,15 +3,5 @@ project_id = "xouanfmyieodnqmmkuxi"
 [functions.match-cascade]
 verify_jwt = false
 
-# Expire stale offers every minute.
-[[functions.match-cascade.schedules]]
-schedule = "* * * * *"
-
 [functions.notification-dispatch]
 verify_jwt = false
-
-# Attempt to dispatch pending notifications every 30 seconds.
-[[functions.notification-dispatch.schedules]]
-schedule = "* * * * *"
-[[functions.notification-dispatch.schedules]]
-schedule = "*/30 * * * * *"
