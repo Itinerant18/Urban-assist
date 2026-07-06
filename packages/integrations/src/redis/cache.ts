@@ -24,3 +24,19 @@ export async function setActiveOffer(
 export async function clearActiveOffer(bookingId: string) {
   await redis().del(offerKey(bookingId));
 }
+
+import { Redis } from '@upstash/redis';
+
+const NOTIF_PENDING = 'notif:pending';
+
+export function enqueueNotification(n: {
+  id: string;
+  profile_id: string;
+  type: string;
+  payload: Record<string, unknown>;
+}) {
+  const r = redis();
+  if (r instanceof Redis) {
+    (r as Redis).lpush(NOTIF_PENDING, JSON.stringify(n));
+  }
+}

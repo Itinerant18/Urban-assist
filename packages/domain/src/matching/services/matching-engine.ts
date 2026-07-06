@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { OFFER_TTL_SECONDS } from '@urban-assist/utils/constants';
-import { setActiveOffer, clearActiveOffer } from '@urban-assist/integrations/redis';
+import { setActiveOffer, clearActiveOffer, enqueueNotification } from '@urban-assist/integrations/redis';
 
 interface Candidate {
   provider_id: string;
@@ -111,6 +111,12 @@ export async function sendNextOffer(db: SupabaseClient, bookingId: string) {
     type: 'offer.new',
     payload: { booking_id: bookingId, offer_id: offer.id, responds_by: respondsBy },
   });
+  enqueueNotification({
+    id: offer.id,
+    profile_id: next.provider_id,
+    type: 'offer.new',
+    payload: { booking_id: bookingId, offer_id: offer.id, responds_by: respondsBy },
+  });
 
   return offer;
 }
@@ -160,6 +166,12 @@ export async function respondToOffer(
       .single();
     if (booking) {
       await db.from('notifications').insert({
+        profile_id: booking.customer_id,
+        type: 'booking.matched',
+        payload: { booking_id: offer.booking_id, provider_id: providerId },
+      });
+      enqueueNotification({
+        id: offer.id,
         profile_id: booking.customer_id,
         type: 'booking.matched',
         payload: { booking_id: offer.booking_id, provider_id: providerId },
