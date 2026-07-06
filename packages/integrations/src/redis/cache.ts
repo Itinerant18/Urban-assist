@@ -1,33 +1,33 @@
 import { redis } from './client';
+import { Redis } from '@upstash/redis';
+import {
+  searchCacheKey as buildSearchKey,
+  offerKey as buildOfferKey,
+  notificationPendingKey,
+  TTL,
+} from './keys';
 
-export const searchCacheKey = (categorySlug: string, postcode: string) =>
-  `cache:search:${categorySlug}:${postcode.replace(/\s+/g, '').toUpperCase()}`;
+export { searchCacheKey, offerKey, bookingLockKey, providerOnlineKey, providerLocKey, providerActiveKey, postcodeCacheKey, notificationPendingKey, notificationDispatchedKey, acquireLock, releaseLock } from './keys';
 
 export async function getCached<T>(key: string): Promise<T | null> {
   return (await redis().get<T>(key)) ?? null;
 }
 
-export async function setCached<T>(key: string, value: T, ttlSeconds = 60) {
+export async function setCached<T>(key: string, value: T, ttlSeconds: number = TTL.SEARCH_CACHE) {
   await redis().set(key, value, { ex: ttlSeconds });
 }
-
-export const offerKey = (bookingId: string) => `offer:active:${bookingId}`;
 
 export async function setActiveOffer(
   bookingId: string,
   payload: { offer_id: string; provider_id: string; rank: number },
   ttlSeconds: number,
 ) {
-  await redis().set(offerKey(bookingId), payload, { ex: ttlSeconds });
+  await redis().set(buildOfferKey(bookingId), payload, { ex: ttlSeconds });
 }
 
 export async function clearActiveOffer(bookingId: string) {
-  await redis().del(offerKey(bookingId));
+  await redis().del(buildOfferKey(bookingId));
 }
-
-import { Redis } from '@upstash/redis';
-
-const NOTIF_PENDING = 'notif:pending';
 
 export function enqueueNotification(n: {
   id: string;
@@ -37,6 +37,6 @@ export function enqueueNotification(n: {
 }) {
   const r = redis();
   if (r instanceof Redis) {
-    (r as Redis).lpush(NOTIF_PENDING, JSON.stringify(n));
+    (r as Redis).lpush(notificationPendingKey, JSON.stringify(n));
   }
 }

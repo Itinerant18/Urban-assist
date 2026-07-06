@@ -1,4 +1,5 @@
 import { UK_POSTCODE_RE } from '@urban-assist/utils';
+import { getCached, setCached, postcodeCacheKey, TTL } from '@urban-assist/integrations/redis';
 
 export interface PostcodeResult {
   postcode: string;
@@ -12,6 +13,10 @@ export interface PostcodeResult {
 export async function lookupPostcode(raw: string): Promise<PostcodeResult | null> {
   const pc = raw.replace(/\s+/g, '').toUpperCase();
   if (!UK_POSTCODE_RE.test(pc)) return null;
+
+  const cacheKey = postcodeCacheKey(pc);
+  const cached = await getCached<PostcodeResult>(cacheKey);
+  if (cached) return cached;
 
   const r = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(pc)}`);
   if (!r.ok) return null;
@@ -43,5 +48,7 @@ export async function lookupPostcode(raw: string): Promise<PostcodeResult | null
       /* premium lookup is optional */
     }
   }
+
+  await setCached(cacheKey, base, TTL.POSTCODE_CACHE);
   return base;
 }

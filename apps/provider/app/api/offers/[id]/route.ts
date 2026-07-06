@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { createServiceRole } from '@urban-assist/db/server';
 import { respondToOffer, track } from '@urban-assist/domain';
+import { offerRespondRateLimit } from '@urban-assist/integrations/redis';
 
 const Schema = z.object({
   accept: z.boolean(),
@@ -12,6 +13,12 @@ const Schema = z.object({
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const { data: { user } } = await getSupabaseServer().auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+  const rl = offerRespondRateLimit();
+  if (rl) {
+    const { success } = await rl.limit(user.id);
+    if (!success) return NextResponse.json({ error: 'too_many_requests' }, { status: 429 });
+  }
 
   const parsed = Schema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

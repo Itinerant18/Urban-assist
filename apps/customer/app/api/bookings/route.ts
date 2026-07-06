@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { createServiceRole } from '@urban-assist/db/server';
 import { createBooking } from '@urban-assist/domain';
+import { bookingCreateRateLimit } from '@urban-assist/integrations/redis';
 
 const Schema = z.object({
   provider_service_id: z.string().uuid(),
@@ -16,6 +17,12 @@ const Schema = z.object({
 export async function POST(req: NextRequest) {
   const user = await getSupabaseServer().auth.getUser();
   if (!user.data.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+  const rl = bookingCreateRateLimit();
+  if (rl) {
+    const { success } = await rl.limit(user.data.user.id);
+    if (!success) return NextResponse.json({ error: 'too_many_requests' }, { status: 429 });
+  }
 
   const parsed = Schema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
