@@ -1,4 +1,4 @@
-import { Wrench, Sparkles, PaintBucket, Bug, Zap, Shirt, Wind, Shovel, ArrowRight } from 'lucide-react';
+import { Wrench, Sparkles, PaintBucket, Bug, Zap, Shirt, Wind, Shovel, Grid3X3, ArrowRight } from 'lucide-react';
 
 const categories = [
   { name: "Women's Salon & Spa", icon: Sparkles, tag: 'Trending', color: '#C1622E' },
@@ -8,6 +8,7 @@ const categories = [
   { name: 'AC & Appliance Repair', icon: Wind, tag: 'Trending', color: '#C1622E' },
   { name: 'Electrician, Plumber & More', icon: Zap, tag: 'Popular', color: '#D9A441' },
   { name: 'Native Smart Products', icon: Wrench, tag: 'New', color: '#1F3A4D' },
+  { name: 'All Services', icon: Grid3X3, tag: 'Browse', color: '#1F3A4D' },
 ];
 
 export function CategoryGrid() {

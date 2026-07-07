@@ -20,7 +20,7 @@ export function FeaturedServices() {
       <div className="mx-auto max-w-page px-6">
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Native Smart Products */}
-          <div className="card rounded-2xl p-6" style={{ background: '#F5F1EB', borderColor: '#ECE6D9' }}>
+          <div className="rounded-2xl p-6" style={{ background: '#EEEAFF', border: '1px solid #E2DACB' }}>
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-[20px] font-extrabold text-ink">Native Smart Products</h3>
               <a href="/services?category=smart-products" className="text-[13px] font-semibold text-accent">
@@ -50,7 +50,7 @@ export function FeaturedServices() {
           </div>
 
           {/* Trending Services */}
-          <div className="card rounded-2xl p-6" style={{ background: '#F5F1EB', borderColor: '#ECE6D9' }}>
+          <div className="rounded-2xl p-6" style={{ background: '#E8F0E8', border: '1px solid #E2DACB' }}>
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-[20px] font-extrabold text-ink">Trending Services</h3>
               <a href="/services" className="text-[13px] font-semibold text-accent">
