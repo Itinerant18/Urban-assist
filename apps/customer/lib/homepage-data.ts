@@ -1,7 +1,19 @@
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { Sparkles, Wrench, Zap, Leaf, Settings, Hammer, Paintbrush, Lock } from 'lucide-react';
+import {
+  Sparkles,
+  Wrench,
+  Zap,
+  Leaf,
+  Settings,
+  Hammer,
+  Paintbrush,
+  Lock,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-const iconMap: Record<string, typeof Sparkles> = {
+/* ── Icon mapping: DB icon string → lucide component ──── */
+
+const iconMap: Record<string, LucideIcon> = {
   sparkles: Sparkles,
   wrench: Wrench,
   zap: Zap,
@@ -12,7 +24,7 @@ const iconMap: Record<string, typeof Sparkles> = {
   lock: Lock,
 };
 
-export function getCategoryIcon(iconName: string) {
+export function getCategoryIcon(iconName: string): LucideIcon {
   return iconMap[iconName] ?? Wrench;
 }
 

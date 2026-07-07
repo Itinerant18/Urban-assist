@@ -1,5 +1,5 @@
 'use client';
-import { MapPin, Search, ChevronDown, Grid3X3, Star, ArrowRight, Gift, Home, CalendarClock, Wallet, User, ChevronUp } from 'lucide-react';
+import { MapPin, Search, ChevronDown, Wrench, Sparkles, PaintBucket, Bug, Zap, Shirt, Wind, Shovel, Grid3X3, Star, ArrowRight, Gift, ChevronRight, Home, CalendarClock, Wallet, User, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import type { HomepageData, HomepageCategory, HomepageService, HomepageReview } from '../lib/homepage-data';
@@ -180,7 +180,7 @@ function Spotlight() {
           </span>
           <h4 className="mt-2 text-[18px] font-extrabold text-ink">Upgrade to Luxe for 15% more</h4>
           <div className="my-3 h-28 w-full rounded-xl bg-hairline/50" />
-          <a href="#" className="inline-block rounded-lg bg-accent px-5 py-2.5 text-[13px] font-bold text-white">
+          <a href="/coming-soon" className="inline-block rounded-lg bg-accent px-5 py-2.5 text-[13px] font-bold text-white">
             Book Now
           </a>
         </div>
@@ -213,7 +213,7 @@ function StackedPromos() {
             )}
             <h4 className="mt-2 text-[16px] font-extrabold text-ink max-w-[70%]">{card.title}</h4>
             <div className="mt-2 h-20 w-full rounded-xl bg-hairline/40" />
-            <a href="#" className="mt-3 inline-block rounded-lg bg-accent px-4 py-2 text-[12px] font-bold text-white">
+            <a href="/coming-soon" className="mt-3 inline-block rounded-lg bg-accent px-4 py-2 text-[12px] font-bold text-white">
               {card.cta}
             </a>
           </div>
@@ -273,7 +273,7 @@ function ReferralCard() {
           <div className="flex-1">
             <h3 className="text-[15px] font-extrabold text-ink">Great service deserves to be shared</h3>
             <p className="mt-1 text-[12px] text-muted">Invite your friends to try Urban Assist!</p>
-            <a href="#" className="mt-3 inline-block rounded-lg bg-accent px-4 py-2 text-[12px] font-bold text-white">
+            <a href="/coming-soon" className="mt-3 inline-block rounded-lg bg-accent px-4 py-2 text-[12px] font-bold text-white">
               Invite Now
             </a>
           </div>
@@ -346,7 +346,7 @@ function MobileFooter() {
                 <ul className="space-y-2 pb-3">
                   {links.map((link) => (
                     <li key={link}>
-                      <a href="#" className="text-[12px] text-[#9FB1BC]">{link}</a>
+                      <a href="/coming-soon" className="text-[12px] text-[#9FB1BC]">{link}</a>
                     </li>
                   ))}
                 </ul>
@@ -357,17 +357,17 @@ function MobileFooter() {
 
         <div className="mt-6 flex gap-4">
           {['f', 't', 'i', 'in'].map((s) => (
-            <a key={s} href="#" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[11px] font-bold text-white/70">
+            <a key={s} href="/coming-soon" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[11px] font-bold text-white/70">
               {s}
             </a>
           ))}
         </div>
 
         <div className="mt-4 flex gap-3">
-          <a href="#" className="flex-1 rounded-xl bg-white/10 px-4 py-2.5 text-center text-[12px] font-bold text-white backdrop-blur">
+          <a href="/coming-soon" className="flex-1 rounded-xl bg-white/10 px-4 py-2.5 text-center text-[12px] font-bold text-white backdrop-blur">
             App Store
           </a>
-          <a href="#" className="flex-1 rounded-xl bg-white/10 px-4 py-2.5 text-center text-[12px] font-bold text-white backdrop-blur">
+          <a href="/coming-soon" className="flex-1 rounded-xl bg-white/10 px-4 py-2.5 text-center text-[12px] font-bold text-white backdrop-blur">
             Google Play
           </a>
         </div>

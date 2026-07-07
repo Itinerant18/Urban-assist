@@ -12,13 +12,13 @@ export function AppCTA() {
         </div>
         <div className="flex gap-4">
           <a
-            href="#"
+            href="/coming-soon"
             className="rounded-xl bg-white/10 px-5 py-3 text-[13px] font-bold text-white backdrop-blur transition hover:bg-white/20"
           >
             App Store
           </a>
           <a
-            href="#"
+            href="/coming-soon"
             className="rounded-xl bg-white/10 px-5 py-3 text-[13px] font-bold text-white backdrop-blur transition hover:bg-white/20"
           >
             Google Play

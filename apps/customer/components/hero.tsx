@@ -1,3 +1,4 @@
+import { MapPin } from 'lucide-react';
 import type { HomepageCategory, HomepageData } from '../lib/homepage-data';
 import { getCategoryIcon } from '../lib/homepage-data';
 import { pence } from '@urban-assist/lib';

@@ -1,6 +1,5 @@
 import { Grid3X3, ArrowRight } from 'lucide-react';
 import type { HomepageCategory } from '../lib/homepage-data';
-import { getCategoryIcon } from '../lib/homepage-data';
 
 interface CategoryGridProps {
   categories: HomepageCategory[];
@@ -33,7 +32,6 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {categories.slice(0, 7).map((cat) => {
-            const Icon = getCategoryIcon(cat.icon);
             const badge = badgeColors[cat.icon];
             return (
               <a
