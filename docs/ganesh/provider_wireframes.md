@@ -14,7 +14,7 @@ This screen handles new user registration and authentication using a clean, sing
 ├────────────────────────────────────────────────────────────┤
 │                                                            │
 │  Welcome to Urban Assist Professional                      │  ◄── Primary Title
-│  Earn on your terms. Flexible hours. Standardized rates.  │  ◄── Subtitle
+│  Earn on your terms. Flexible hours. Standardized rates.   │  ◄── Subtitle
 │                                                            │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │ Mobile Number                                        │  │  ◄── Mobile Field
@@ -54,21 +54,21 @@ Locked screen displayed to providers during document collection or when onboardi
 │  Step 1 of 2: Get Verified                                 │  ◄── Active Stage
 │  Upload mandatory documents to activate your account.      │
 │                                                            │
-│  ┌─ Documents Checklist ─────────────────────────────────┐  │
-│  │                                                       │  │
-│  │ 1. Proof of Identity                                  │  │
-│  │    Passport or UK Driving Licence      [ Uploaded ✔ ] │  │  ◄── Success State
+│  ┌─ Documents Checklist ─────────────────────────────────┐ │
+│  │                                                       │ │
+│  │ 1. Proof of Identity                                  │ │
+│  │    Passport or UK Driving Licence      [ Uploaded ✔ ]  │  ◄── Success State
 │  │                                                       │  │
 │  │ 2. Public Liability Insurance                         │  │
 │  │    Minimum £1M coverage required        [ Missing ✖ ] │  │  ◄── Action Required
 │  │                                                       │  │
 │  │ 3. Trade Certifications (Optional)                    │  │
-│  │    e.g. Gas Safe / ECS cards            [ 0 Uploaded ]│  │  ◄── Optional State
+│  │    e.g. Gas Safe / ECS cards            [ 0 Uploaded ]   │  ◄── Optional State
 │  │                                                       │  │
 │  └───────────────────────────────────────────────────────┘  │
-│                                                            │
+│                                                             │
 │  ┌─ File Uploader ───────────────────────────────────────┐  │
-│  │ Select Type: [ Public Liability Insurance   ] [v]    │  │  ◄── Select Dropdown
+│  │ Select Type: [ Public Liability Insurance   ] [v]   b │  │  ◄── Select Dropdown
 │  │                                                       │  │
 │  │  ┌─────────────────────────────────────────────────┐  │  │
 │  │  │   [Drag & Drop your Image or PDF here]          │  │  │  ◄── File Drag Drop Box
