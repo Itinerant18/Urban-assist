@@ -3,13 +3,5 @@ project_id = "xouanfmyieodnqmmkuxi"
 [functions.match-cascade]
 verify_jwt = false
 
-[[functions.match-cascade.schedules]]
-schedule = "* * * * *"
-
 [functions.notification-dispatch]
 verify_jwt = false
-
-[[functions.notification-dispatch.schedules]]
-schedule = "* * * * *"
-[[functions.notification-dispatch.schedules]]
-schedule = "*/30 * * * * *"
