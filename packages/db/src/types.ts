@@ -41,6 +41,18 @@ export interface Profile {
   last_seen_at: string | null;
   stripe_account_id: string | null;
   created_at: string;
+  // Provider registration (0009_provider_registration_fields)
+  date_of_birth: string | null;
+  business_name: string | null;
+  nino: string | null;
+  utr_number: string | null;
+  years_experience: number;
+  bio: string | null;
+  bank_account_holder_name: string | null;
+  bank_sort_code: string | null;
+  bank_account_number: string | null;
+  travel_radius_miles: number;
+  registration_completed: boolean;
 }
 
 export interface Address {
