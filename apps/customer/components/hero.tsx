@@ -1,6 +1,7 @@
 import type { HomepageCategory, HomepageData } from '../lib/homepage-data';
 import { getCategoryIcon } from '../lib/homepage-data';
 import { pence } from '@urban-assist/lib';
+import { PostcodeGate } from './postcode-gate';
 
 interface HeroProps {
   categories: HomepageCategory[];
@@ -69,8 +70,11 @@ export function Hero({ categories, promoCode }: HeroProps) {
             </div>
           </div>
 
-          <div className="hidden w-full max-w-md lg:block">
-            <div className="flex h-[420px] w-full items-center justify-center rounded-[18px] bg-hairline/40" />
+          <div className="hidden w-full max-w-md lg:flex lg:flex-col lg:items-start lg:justify-center lg:gap-6">
+            <PostcodeGate variant="hero" placeholder="e.g. EC1A 1BB" />
+            <p className="text-[12px] text-muted">
+              Enter your postcode to see services and pricing in your area.
+            </p>
           </div>
         </div>
       </div>

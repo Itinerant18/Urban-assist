@@ -1,10 +1,11 @@
 'use client';
-import { MapPin, Search, ChevronDown, Grid3X3, Star, ArrowRight, Gift, Home, CalendarClock, Wallet, User, ChevronUp } from 'lucide-react';
+import { MapPin, ChevronDown, Grid3X3, Star, ArrowRight, Gift, Home, CalendarClock, Wallet, User, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import type { HomepageData, HomepageCategory, HomepageService, HomepageReview } from '../lib/homepage-data';
 import { getCategoryIcon } from '../lib/homepage-data';
 import { pence } from '@urban-assist/lib';
+import { PostcodeGate } from './postcode-gate';
 
 /* ── Props ──────────────────────────────────────────────── */
 
@@ -58,14 +59,7 @@ function MobileHeader() {
           </div>
         </div>
         <p className="mb-3 text-[11px] text-white/60">Select Delivery/Service Address...</p>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input
-            placeholder="Search for services..."
-            className="w-full rounded-xl border-0 bg-white py-2.5 pl-10 pr-4 text-[13px] text-ink placeholder:text-muted focus:outline-none"
-            style={{ minHeight: 40 }}
-          />
-        </div>
+        <PostcodeGate variant="compact" placeholder="Enter your postcode…" />
       </div>
     </header>
   );
