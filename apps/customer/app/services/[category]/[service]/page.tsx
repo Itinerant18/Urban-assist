@@ -64,7 +64,7 @@ export default async function ServiceDetailPage({ params }: { params: { category
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-page px-4 pb-16 pt-6 lg:px-6">
+      <main className="mx-auto max-w-page px-4 pb-28 pt-6 lg:px-6 lg:pb-16">
         <Link
           href={`/services/${category.slug}`}
           className="inline-flex items-center gap-1 text-[13px] font-semibold text-muted hover:text-ink"
@@ -158,8 +158,8 @@ export default async function ServiceDetailPage({ params }: { params: { category
             )}
           </div>
 
-          {/* Booking sidebar */}
-          <aside className="lg:w-80 lg:shrink-0">
+          {/* Booking sidebar (desktop) */}
+          <aside className="hidden lg:block lg:w-80 lg:shrink-0">
             <div className="card-shadow rounded-2xl border border-hairline bg-white p-5 lg:sticky lg:top-20">
               <div className="text-[13px] text-muted">Typical price</div>
               <div className="text-[22px] font-extrabold text-ink">
@@ -181,6 +181,23 @@ export default async function ServiceDetailPage({ params }: { params: { category
           </aside>
         </div>
       </main>
+
+      {/* Sticky book bar (mobile) — thumb-zone CTA */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white/95 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
+          <div>
+            <div className="text-[11px] text-muted">From</div>
+            <div className="text-[17px] font-extrabold leading-tight text-ink">{pence(service.minPricePence)}</div>
+          </div>
+          <Link
+            href={`/browse?category=${category.slug}&q=${encodeURIComponent(service.name)}`}
+            className="rounded-xl bg-accent px-8 py-3 text-[14px] font-bold text-white transition hover:bg-accent-hover"
+          >
+            Book now
+          </Link>
+        </div>
+      </div>
+
       <Footer />
     </>
   );

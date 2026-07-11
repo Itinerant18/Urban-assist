@@ -1,5 +1,5 @@
 'use client';
-import { MapPin, ChevronDown, Grid3X3, Star, ArrowRight, Gift, Home, CalendarClock, Wallet, User, ChevronUp } from 'lucide-react';
+import { MapPin, ChevronDown, Grid3X3, Star, ArrowRight, Gift, Home, CalendarClock, HelpCircle, User, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import type { HomepageData, HomepageCategory, HomepageService, HomepageReview } from '../lib/homepage-data';
@@ -17,12 +17,12 @@ interface MobileHomeProps {
 
 function BottomNav() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-white lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
       <ul className="mx-auto flex max-w-lg items-center justify-around py-1.5">
         {[
           { icon: Home, label: 'Home', href: '/', active: true },
           { icon: CalendarClock, label: 'Bookings', href: '/bookings' },
-          { icon: Wallet, label: 'Wallet', href: '#' },
+          { icon: HelpCircle, label: 'Help', href: '/help' },
           { icon: User, label: 'Profile', href: '/account' },
         ].map((item) => (
           <li key={item.label}>

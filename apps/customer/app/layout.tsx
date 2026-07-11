@@ -13,6 +13,8 @@ export const viewport: Viewport = {
   themeColor: '#F5F1EB',
   width: 'device-width',
   initialScale: 1,
+  // Let fixed bottom bars extend under the iPhone home indicator (safe-area insets).
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

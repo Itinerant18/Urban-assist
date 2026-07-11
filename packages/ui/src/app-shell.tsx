@@ -42,7 +42,7 @@ export function AppShell({
 
       {/* Mobile bottom tab bar */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-bg/95 backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
         aria-label="Primary"
       >
         <ul className="mx-auto flex max-w-xl items-stretch justify-around">
