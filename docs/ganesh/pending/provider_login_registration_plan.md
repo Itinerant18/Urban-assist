@@ -2,6 +2,36 @@
 
 This document outlines the execution plan to build the provider authentication flow using **UK-specific phone-based SMS OTP login** and a comprehensive **onboarding registration flow for individual self-employed professionals (Sole Traders)**. It incorporates the visual styles and themes of the Urban Assist design system.
 
+> **Decision (confirmed):** Email-based OTP login is **fully removed** from the provider app. Phone number + SMS OTP is the **only** authentication method. Email is still collected during registration for contact and invoicing purposes, but is never used to sign in.
+
+---
+
+## 0. Phase 0: Pre-requisites (Manual Setup — Do Before Any Code)
+
+These steps must be completed in external dashboards before implementation begins.
+
+### 0.1. Enable Supabase Phone Auth Provider
+1. Go to **Supabase Dashboard → Authentication → Providers → Phone**.
+2. Toggle **Phone** to enabled.
+3. Select **Twilio** as the SMS provider.
+4. Enter Twilio credentials (see 0.2).
+
+### 0.2. Create Twilio Account & Get Credentials
+1. Sign up at [twilio.com](https://www.twilio.com).
+2. Purchase a UK phone number (`+44...`) with SMS capability.
+3. From the Twilio Console copy:
+   - **Account SID**
+   - **Auth Token**
+   - **Phone Number** (the `+44` number)
+4. Paste these into Supabase dashboard under the Phone provider settings (step 0.1).
+
+### 0.3. Link Supabase CLI to Project
+Run in terminal:
+```bash
+supabase link --project-ref <your-project-ref>
+```
+Project ref is in the Supabase dashboard URL: `app.supabase.com/project/YOUR_REF`.
+
 ---
 
 ## 1. Phase 1: Database Schema Modifications
@@ -52,13 +82,13 @@ This updates `packages/db/src/types.ts` with the new columns.
 We need two new API endpoints in the Provider Next.js app to handle phone verification kickoff and registration data submission.
 
 ### 2.1. Auth Start API: `apps/provider/app/api/auth/start/route.ts`
-- **Purpose**: Kickoff Supabase Phone OTP.
+- **Purpose**: Server-side kickoff for Supabase Phone OTP. Replaces all client-side email auth calls previously in `login-form.tsx`.
 - **Rules**:
-  1. Extract phone number and check for UK mobile format: `+447` or `07` followed by 9 digits.
-  2. Normalize format to E.164 (e.g. `07123456789` -> `+447123456789`).
-  3. Reject any non-UK numbers.
-  4. Invoke `supabase.auth.signInWithOtp` with the phone number, specifying the role `provider` in `options.data`.
-  5. Include Upstash rate limiting protection by adapting the `otpRateLimit()` integration.
+  1. Extract phone number from request body.
+  2. Validate UK mobile format: `+447` or `07` followed by exactly 9 digits. Reject all non-UK numbers with a `400` error.
+  3. Normalize to E.164 (e.g. `07123456789` → `+447123456789`).
+  4. Invoke `supabase.auth.signInWithOtp({ phone })` with `options.data = { role: 'provider' }` so the DB trigger creates the profile with the correct role.
+  5. Apply Upstash rate limiting via the existing `otpRateLimit()` integration (max 5 OTP requests per phone per 15 minutes).
 
 ### 2.2. Register Profile API: `apps/provider/app/api/register/route.ts`
 - **Purpose**: Submit and validate the registration details post-authentication.
@@ -102,12 +132,19 @@ To ensure visual consistency with the customer app, we will use the styles defin
 - **Interactive Targets**: Minimum `44px` height (`tap`).
 
 ### 3.2. Refactor Login Form: `apps/provider/app/login/login-form.tsx`
-- **Refactor**: Replace the email-based inputs with a UK phone validation input.
-- **UX Controls**:
-  - Prepend a fixed `🇬🇧 +44` prefix selector (locked to prevent changing to other countries).
-  - Enforce telephone numeric-only inputs.
-  - Verification screen: Enter 6-digit OTP code received via SMS, calling `supabase.auth.verifyOtp` (type: `'sms'`).
-  - Upon successful auth, query the user profile. If `registration_completed` is `false`, redirect to `/register`, else redirect to the dashboard (`/`).
+- **Action**: Delete all existing email OTP code. Rewrite the file entirely — phone OTP is the only auth method.
+- **Two-phase UI**:
+  - **Phase 1 — Phone entry:**
+    - Fixed `🇬🇧 +44` prefix label (not a dropdown — UK only, locked).
+    - Numeric-only input for the 10-digit local number (e.g. `07700 900000`).
+    - On submit: POST to `/api/auth/start` with the normalised number. Show inline error if non-UK format or rate limit hit.
+  - **Phase 2 — OTP entry:**
+    - 6-digit SMS code input (`inputMode="numeric"`, `maxLength={6}`).
+    - On submit: call `supabase.auth.verifyOtp({ phone, token, type: 'sms' })` directly from the client.
+    - On success: fetch `profiles.registration_completed` for the authenticated user.
+      - If `false` → `redirect('/register')`
+      - If `true` → `redirect('/')`
+- **No email input anywhere in this file.**
 
 ### 3.3. Create Registration Form: `apps/provider/app/register/page.tsx`
 - **Purpose**: A multi-step form to collect information before allowing access to the dashboard.
@@ -158,8 +195,11 @@ Prevent already-registered providers from re-entering the registration flow:
    ```
 2. **Auth Verification**:
    - Navigate to `http://localhost:3001/login`.
-   - Attempt login with a non-UK number (verify it is rejected).
-   - Enter a valid UK phone number, verify OTP, and ensure it registers a new Supabase user.
+   - Confirm the page shows phone input only — no email field present anywhere.
+   - Attempt login with a non-UK number (e.g. `+1 555 000 0000`) — verify it is rejected with a clear error.
+   - Enter a valid UK mobile number (e.g. `07700 900000`) — verify OTP SMS is received via Twilio.
+   - Enter the 6-digit SMS code — verify successful authentication and Supabase user creation.
+   - **Confirm email login is gone**: there must be no way to authenticate with an email address on the provider app.
 3. **Onboarding Guard Verification**:
    - Once authenticated, verify the system automatically redirects the browser to the `/register` screen.
    - Try navigating to `/schedule` or `/earnings` manually and verify the layout guard redirects you back to `/register`.
