@@ -1,28 +1,34 @@
 'use client';
+// Provider sign-in — UK phone number + SMS OTP only (no email auth).
+// Phase 1: enter UK mobile → POST /api/auth/start (validates + sends SMS).
+// Phase 2: enter 6-digit code → verifyOtp(type 'sms') → route by registration state.
+
 import * as React from 'react';
-import { Button, Card, Field, Input } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { useRouter } from 'next/navigation';
 
 export function LoginForm() {
   const router = useRouter();
-  const [phase, setPhase] = React.useState<'enter' | 'otp'>('enter');
-  const [email, setEmail] = React.useState('');
+  const [phase, setPhase] = React.useState<'phone' | 'otp'>('phone');
+  const [local, setLocal] = React.useState(''); // digits after +44, e.g. 7700900000
+  const [e164, setE164] = React.useState('');
   const [otp, setOtp] = React.useState('');
   const [err, setErr] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
 
-  async function send(e: React.FormEvent) {
+  async function sendCode(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setBusy(true);
     try {
-      // signInWithOtp with metadata.role=provider so the trigger creates the right profile.
-      const { error } = await supabase().auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: true, data: { role: 'provider' } },
+      const res = await fetch('/api/auth/start', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: `+44${local}` }),
       });
-      if (error) throw error;
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error ?? 'Could not send code');
+      setE164(j.phone ?? `+44${local}`);
       setPhase('otp');
     } catch (e: any) {
       setErr(e.message);
@@ -36,14 +42,20 @@ export function LoginForm() {
     setErr(null);
     setBusy(true);
     try {
-      const { error } = await supabase().auth.verifyOtp({ email, token: otp, type: 'email' });
+      const sb = supabase();
+      const { error } = await sb.auth.verifyOtp({ phone: e164, token: otp, type: 'sms' });
       if (error) throw error;
-      // Ensure role is provider (in case profile was pre-existing as customer).
-      const { data: { user } } = await supabase().auth.getUser();
-      if (user) {
-        await supabase().from('profiles').update({ role: 'provider' }).eq('id', user.id);
-      }
-      router.replace('/');
+
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) throw new Error('Sign-in failed — try again.');
+
+      const { data: profile } = await sb
+        .from('profiles')
+        .select('registration_completed')
+        .eq('id', user.id)
+        .single();
+
+      router.replace(profile?.registration_completed ? '/' : '/register');
     } catch (e: any) {
       setErr(e.message ?? 'Invalid code');
     } finally {
@@ -52,43 +64,78 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="space-y-3">
-      {phase === 'enter' ? (
-        <form onSubmit={send} className="space-y-3">
-          <Field label="Work email">
-            <Input
-              type="email"
-              autoFocus
-              required
-              placeholder="you@yourtrade.co.uk"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </Field>
+    <div className="rounded-xl border border-hairline bg-white p-5 shadow-card">
+      {phase === 'phone' ? (
+        <form onSubmit={sendCode} className="space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="phone" className="text-xs font-medium text-muted">
+              UK mobile number
+            </label>
+            <div className="tap flex items-stretch overflow-hidden rounded-xl border border-input-border bg-white focus-within:border-ink">
+              <span className="flex select-none items-center gap-1 border-r border-input-border bg-bg px-3 text-sm font-medium text-ink">
+                🇬🇧 +44
+              </span>
+              <input
+                id="phone"
+                autoFocus
+                required
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                placeholder="7700 900000"
+                maxLength={10}
+                className="w-full bg-white px-3.5 py-2.5 text-sm text-charcoal placeholder:text-muted focus:outline-none"
+                value={local}
+                onChange={(e) => setLocal(e.target.value.replace(/\D/g, '').replace(/^0+/, ''))}
+              />
+            </div>
+            <p className="text-xs text-muted">We&apos;ll text you a 6-digit code to sign in.</p>
+          </div>
           {err && <p className="text-xs text-danger">{err}</p>}
-          <Button size="block" type="submit" disabled={busy}>
+          <button
+            type="submit"
+            disabled={busy || local.length !== 10}
+            className="tap w-full rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
+          >
             {busy ? 'Sending…' : 'Send code'}
-          </Button>
+          </button>
         </form>
       ) : (
-        <form onSubmit={verify} className="space-y-3">
-          <Field label="6-digit code" hint={`Sent to ${email}`}>
-            <Input
+        <form onSubmit={verify} className="space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="otp" className="text-xs font-medium text-muted">
+              6-digit code
+            </label>
+            <input
+              id="otp"
               autoFocus
               required
               inputMode="numeric"
+              autoComplete="one-time-code"
               maxLength={6}
+              className="tap w-full rounded-xl border border-input-border bg-white px-3.5 py-2.5 text-center text-lg tracking-[0.4em] text-charcoal placeholder:text-muted focus:border-ink focus:outline-none"
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
             />
-          </Field>
+            <p className="text-xs text-muted">Sent to {e164}</p>
+          </div>
           {err && <p className="text-xs text-danger">{err}</p>}
-          <Button size="block" type="submit" disabled={busy || otp.length < 6}>
+          <button
+            type="submit"
+            disabled={busy || otp.length < 6}
+            className="tap w-full rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
+          >
             {busy ? 'Verifying…' : 'Verify and continue'}
-          </Button>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setPhase('phone'); setOtp(''); setErr(null); }}
+            className="tap w-full rounded-xl px-5 py-2 text-sm font-medium text-muted transition hover:text-ink"
+          >
+            Use a different number
+          </button>
         </form>
       )}
-    </Card>
+    </div>
   );
 }
-
