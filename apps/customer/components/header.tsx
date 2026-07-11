@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Search, MapPin, ShoppingCart, User, ChevronDown } from 'lucide-react';
+import { MapPin, ShoppingCart, User, ChevronDown } from 'lucide-react';
+import { ServiceSearch } from './services/service-search';
 
 export function Header() {
   return (
@@ -21,13 +22,8 @@ export function Header() {
         </button>
 
         {/* Search */}
-        <div className="relative flex-1" style={{ minWidth: 0 }}>
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input
-            placeholder="Search for services..."
-            className="w-full rounded-xl border border-input-border bg-bg py-2.5 pl-10 pr-4 text-[13px] text-ink placeholder:text-muted focus:border-accent focus:outline-none"
-            style={{ minHeight: 40 }}
-          />
+        <div className="flex-1" style={{ minWidth: 0 }}>
+          <ServiceSearch inputClassName="bg-bg" />
         </div>
 
         {/* Nav links */}
