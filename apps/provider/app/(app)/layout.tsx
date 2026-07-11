@@ -16,8 +16,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect('/login');
 
   // Provider profile sanity check.
-  const { data: profile } = await db.from('profiles').select('role,kyc_status').eq('id', user.id).single();
+  const { data: profile } = await db
+    .from('profiles')
+    .select('role,kyc_status,registration_completed')
+    .eq('id', user.id)
+    .single();
   if (!profile) redirect('/login');
+
+  // Registration wall — /register lives outside this route group, so no loop.
+  if (!profile.registration_completed) redirect('/register');
+
   if (profile.role !== 'provider') {
     // Promote (e.g. shared account).
     await db.from('profiles').update({ role: 'provider' }).eq('id', user.id);
