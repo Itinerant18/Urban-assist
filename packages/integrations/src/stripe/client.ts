@@ -22,6 +22,11 @@ export interface CreateBookingIntentParams {
   description: string;
 }
 
+/** Full refund of a payment intent (customer cancellation before service). */
+export async function refundPaymentIntent(paymentIntentId: string) {
+  return stripe().refunds.create({ payment_intent: paymentIntentId });
+}
+
 export async function createBookingIntent(params: CreateBookingIntentParams) {
   return stripe().paymentIntents.create({
     amount: params.amountPence,

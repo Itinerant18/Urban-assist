@@ -17,5 +17,12 @@ export default async function BookingPage({ params }: { params: { id: string } }
     .select('*')
     .eq('booking_id', params.id)
     .single();
-  return <BookingDetail booking={booking as any} payment={payment as any} />;
+  const { data: { user } } = await db.auth.getUser();
+  const { data: existingReview } = await db
+    .from('reviews')
+    .select('id')
+    .eq('booking_id', params.id)
+    .eq('author_id', user!.id)
+    .maybeSingle();
+  return <BookingDetail booking={booking as any} payment={payment as any} hasReview={!!existingReview} />;
 }

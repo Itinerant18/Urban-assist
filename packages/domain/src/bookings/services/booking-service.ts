@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { quote } from '@urban-assist/domain/pricing';
 import { sendNextOffer } from '@urban-assist/domain/matching';
 import { track } from '@urban-assist/domain/analytics';
-import { createBookingIntent } from '@urban-assist/integrations/stripe';
+import { createBookingIntent, refundPaymentIntent } from '@urban-assist/integrations/stripe';
 
 export interface CreateBookingInput {
   customerId: string;
@@ -165,6 +165,67 @@ export async function retryMatching(
   if (updateErr) throw new Error(updateErr.message);
 
   await sendNextOffer(admin, input.bookingId);
+}
+
+export interface CancelBookingInput {
+  bookingId: string;
+  userId: string;
+  reason?: string | null;
+}
+
+/**
+ * Customer-initiated cancellation, only before the provider is en route.
+ * Card payments that already captured are refunded in full via Stripe.
+ */
+const CANCELLABLE_STATUSES = ['pending_match', 'unmatched', 'assigned'];
+
+export async function cancelBooking(
+  admin: SupabaseClient,
+  input: CancelBookingInput,
+): Promise<void> {
+  const { data: booking, error: getErr } = await admin
+    .from('bookings')
+    .select('id, customer_id, status')
+    .eq('id', input.bookingId)
+    .single();
+  if (getErr || !booking) throw new Error('booking_not_found');
+  if (booking.customer_id !== input.userId) throw new Error('forbidden');
+  if (!CANCELLABLE_STATUSES.includes(booking.status)) throw new Error('not_cancellable');
+
+  // Withdraw any outstanding offers so providers stop seeing the job.
+  await admin.from('booking_offers').delete().eq('booking_id', input.bookingId);
+
+  const { error: updateErr } = await admin
+    .from('bookings')
+    .update({
+      status: 'cancelled',
+      cancelled_at: new Date().toISOString(),
+      cancellation_reason: input.reason ?? 'customer_cancelled',
+    })
+    .eq('id', input.bookingId)
+    // Guard against a concurrent provider status change between read and write.
+    .in('status', CANCELLABLE_STATUSES);
+  if (updateErr) throw new Error(updateErr.message);
+
+  // Refund captured card payments in full.
+  const { data: payment } = await admin
+    .from('payments')
+    .select('id, method, status, stripe_payment_intent_id')
+    .eq('booking_id', input.bookingId)
+    .single();
+  if (
+    payment?.method === 'card' &&
+    ['succeeded', 'authorized'].includes(payment.status) &&
+    payment.stripe_payment_intent_id
+  ) {
+    await refundPaymentIntent(payment.stripe_payment_intent_id);
+    await admin.from('payments').update({ status: 'refunded' }).eq('id', payment.id);
+  }
+
+  track(admin, input.userId, {
+    type: 'booking.cancelled',
+    payload: { booking_id: input.bookingId, reason: input.reason ?? null },
+  });
 }
 
 export interface UpdateJobStatusInput {

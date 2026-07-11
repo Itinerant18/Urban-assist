@@ -12,6 +12,7 @@ export {
   createBooking,
   confirmCashPayment,
   retryMatching,
+  cancelBooking,
   updateJobStatus,
 } from './bookings';
 export type {

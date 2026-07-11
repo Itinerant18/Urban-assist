@@ -9,7 +9,7 @@ import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { Banknote, Phone, MessageSquare, AlertOctagon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export function BookingDetail({ booking: initialBooking, payment: initialPayment }: { booking: any; payment: any }) {
+export function BookingDetail({ booking: initialBooking, payment: initialPayment, hasReview = false }: { booking: any; payment: any; hasReview?: boolean }) {
   const router = useRouter();
   const [booking, setBooking] = React.useState(initialBooking);
   const [payment, setPayment] = React.useState(initialPayment);
@@ -17,7 +17,7 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
   const [draft, setDraft] = React.useState('');
   const [rating, setRating] = React.useState(0);
   const [reviewComment, setReviewComment] = React.useState('');
-  const [reviewed, setReviewed] = React.useState(false);
+  const [reviewed, setReviewed] = React.useState(hasReview);
   const [busy, setBusy] = React.useState(false);
 
   // Realtime subscriptions.
@@ -95,6 +95,25 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
       setBusy(false);
     }
   }
+
+  async function cancel() {
+    if (!window.confirm('Cancel this booking? Card payments are refunded in full.')) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/bookings/${booking.id}/cancel`, { method: 'POST' });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error === 'not_cancellable' ? 'Too late to cancel — the provider is already on the way. Contact support.' : 'Could not cancel');
+      }
+      window.location.reload();
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const cancellable = ['pending_match', 'unmatched', 'assigned'].includes(booking.status);
 
   return (
     <div className="space-y-4 py-2">
@@ -228,8 +247,14 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
           <Button onClick={submitReview} disabled={rating === 0}>Submit review</Button>
         </Card>
       )}
-      {reviewed && (
+      {reviewed && !hasReview && (
         <EmptyState title="Thanks for the review" description="Your feedback helps us match better in the future." />
+      )}
+
+      {cancellable && (
+        <Button variant="outline" className="w-full text-danger border-danger/40 hover:border-danger" onClick={cancel} disabled={busy}>
+          {busy ? 'Cancelling…' : 'Cancel booking'}
+        </Button>
       )}
     </div>
   );

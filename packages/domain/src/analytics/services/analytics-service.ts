@@ -7,6 +7,7 @@ export type AnalyticsEvent =
   | { type: 'offer.declined'; payload: { booking_id: string; provider_id: string } }
   | { type: 'payment.succeeded'; payload: { booking_id: string; amount_pence: number } }
   | { type: 'cash.collected'; payload: { booking_id: string } }
+  | { type: 'booking.cancelled'; payload: { booking_id: string; reason: string | null } }
   | { type: 'review.submitted'; payload: { booking_id: string; rating: number } };
 
 export async function track(

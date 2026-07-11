@@ -2,6 +2,7 @@ export {
   createBooking,
   confirmCashPayment,
   retryMatching,
+  cancelBooking,
   updateJobStatus,
 } from './services/booking-service';
 export type {
@@ -9,5 +10,6 @@ export type {
   CreateBookingResult,
   ConfirmCashPaymentInput,
   RetryMatchingInput,
+  CancelBookingInput,
   UpdateJobStatusInput,
 } from './services/booking-service';
