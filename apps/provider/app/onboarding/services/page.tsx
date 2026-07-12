@@ -11,12 +11,14 @@ export default async function ServicesOnboarding() {
   const { data: categories } = await db.from('service_categories').select('*').order('sort_order');
   const { data: mine } = await db.from('provider_services').select('*').eq('provider_id', user.id);
   return (
-    <div className="mx-auto max-w-2xl space-y-4 px-4 py-8">
-      <header>
-        <p className="font-mono-utility text-muted">Step 2 of 2</p>
-        <h1 className="font-display text-2xl">Services & pricing</h1>
-        <p className="mt-2 text-sm text-muted">
-          Pick the categories you cover. Prices must sit within the category's min/max band.
+    <div className="mx-auto max-w-2xl space-y-6 px-4 py-10">
+      <header className="space-y-1">
+        <p className="font-mono-utility text-xs font-semibold uppercase tracking-wider text-muted">
+          Step 2 of 2
+        </p>
+        <h1 className="font-display text-2xl font-bold text-ink">Services &amp; pricing</h1>
+        <p className="text-sm text-muted">
+          Pick the categories you cover. Prices must sit within each category&apos;s allowed min/max band.
         </p>
       </header>
       <ServicesEditor categories={categories ?? []} mine={mine ?? []} />

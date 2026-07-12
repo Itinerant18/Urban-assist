@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import { Button, Card, Field } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { UploadCloud } from 'lucide-react';
@@ -11,6 +12,7 @@ const TYPES: { value: string; label: string }[] = [
 ];
 
 export function KycUploader() {
+  const router = useRouter();
   const [type, setType] = React.useState('id');
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
@@ -62,6 +64,7 @@ export function KycUploader() {
       setOk('Uploaded successfully.');
       setFileName(null);
       if (fileRef.current) fileRef.current.value = '';
+      router.refresh();
     } catch (e: any) {
       setErr(e.message);
     } finally {

@@ -296,9 +296,9 @@ export function ServicesEditor({
       )}
 
       {adding ? (
-        <Card className="space-y-3">
-          <form onSubmit={addService} className="space-y-3">
-            <h3 className="font-display text-sm font-semibold">Add a new service</h3>
+        <Card className="!p-5 space-y-4">
+          <form onSubmit={addService} className="space-y-4">
+            <h3 className="font-display text-sm font-semibold text-ink">Add a new service</h3>
             <div className="grid grid-cols-2 gap-2">
               <Field label="Category">
                 <select
@@ -308,7 +308,7 @@ export function ServicesEditor({
                     const cat = categories.find((c) => c.id === e.target.value);
                     if (cat) setTitle(cat.name);
                   }}
-                  className="tap w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm focus:border-ink focus:outline-none"
+                  className="tap w-full rounded-xl border border-input-border bg-white px-3.5 py-2.5 text-sm text-charcoal focus:border-ink focus:outline-none"
                 >
                   {availableCategories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -354,11 +354,11 @@ export function ServicesEditor({
             </div>
 
             {error && <p className="text-xs text-danger">{error}</p>}
-            <div className="flex gap-2 pt-2">
-              <Button type="submit" disabled={busy}>
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" disabled={busy} className="flex-1">
                 {busy ? 'Adding…' : 'Add service'}
               </Button>
-              <Button type="button" variant="ghost" onClick={() => setAdding(false)}>
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setAdding(false)}>
                 Cancel
               </Button>
             </div>
