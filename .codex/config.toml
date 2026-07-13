@@ -1,0 +1,29 @@
+# MCP servers for Codex CLI.
+# Codex reads ~/.codex/config.toml - merge these blocks there if project-level config is not picked up.
+
+[mcp_servers.supabase]
+url = "https://mcp.supabase.com/mcp?project_ref=xouanfmyieodnqmmkuxi&features=storage"
+
+[mcp_servers.sequential-thinking]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+
+[mcp_servers.serena]
+command = "uvx"
+args = ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--context", "ide-assistant", "--enable-web-dashboard", "false", "--enable-gui-log-window", "false"]
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
+
+[mcp_servers.tavily]
+command = "npx"
+args = ["-y", "tavily-mcp@0.1.2"]
+
+[mcp_servers.MCP_DOCKER]
+command = "docker"
+args = ["mcp", "gateway", "run", "--profile", "ai_coding"]
+[mcp_servers.MCP_DOCKER.env]
+LOCALAPPDATA = "C:\\Users\\itine\\AppData\\Local"
+ProgramData = "C:\\ProgramData"
+ProgramFiles = "C:\\Program Files"

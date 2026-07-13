@@ -7,7 +7,7 @@ export function CategorySection({ category }: { category: Category }) {
   const Icon = getCategoryIcon(category.icon);
   const tint = category.color ?? '#1F3A4D';
   return (
-    <section id={category.slug} className="scroll-mt-24">
+    <section id={category.slug} className="scroll-mt-[136px]">
       <div className="mb-5 flex items-center gap-3">
         <span
           className="grid h-11 w-11 shrink-0 place-items-center rounded-xl"
