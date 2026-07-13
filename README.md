@@ -92,6 +92,16 @@ Apps boot with console warnings for any missing SDK keys — you can start with 
 
 ---
 
+## Testing & Authentication
+
+To log in or test the **Customer** and **Provider** apps without generating real SMS charges:
+
+* **UK Test Number**: `+44 7123 456789` (Enter as country UK, number `7123456789`)
+* **India Test Number**: `+91 98765 43210` (Enter as country India, number `9876543210`)
+* **Fixed OTP Code**: `123456`
+
+---
+
 ## Available Scripts
 
 | Script | What it does |
@@ -156,8 +166,8 @@ Apps boot with console warnings for any missing SDK keys — you can start with 
 
 ## Notes vs. the Original Spec
 
-- **Stripe Connect payouts deferred** — the `payouts` table exists and the earnings UI shows balances, but the actual onboarding/transfer flow is stubbed in `packages/lib/src/stripe/payouts.ts` with a clearly marked `TODO`.
-- **Admin app** — scoped to KYC review queue + booking overview + support tickets for V1. Full assignment engine is manual via Supabase dashboard in Phase 1.
-- **No Firebase Firestore** — real-time booking status uses Supabase Realtime instead, simplifying the stack while keeping the option open for Phase 2.
+* **Stripe Connect payouts deferred** — the `payouts` table exists and the earnings UI shows balances, but the actual onboarding/transfer flow is stubbed in `packages/lib/src/stripe/payouts.ts` with a clearly marked `TODO`.
+* **Admin app** — scoped to KYC review queue + booking overview + support tickets for V1. Full assignment engine is manual via Supabase dashboard in Phase 1.
+* **No Firebase Firestore** — real-time booking status uses Supabase Realtime instead, simplifying the stack while keeping the option open for Phase 2.
 
 # Urban-assist
