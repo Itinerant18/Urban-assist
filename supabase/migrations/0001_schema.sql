@@ -110,7 +110,7 @@ create table provider_documents (
   id uuid primary key default gen_random_uuid(),
   provider_id uuid not null references profiles(id) on delete cascade,
   doc_type text not null,           -- 'id', 'insurance', 'certification'
-  storage_path text not null,       -- in supabase storage bucket 'kyc'
+  storage_path text not null,       -- in supabase storage bucket 'provider_documents'
   expires_at date,
   uploaded_at timestamptz not null default now()
 );
