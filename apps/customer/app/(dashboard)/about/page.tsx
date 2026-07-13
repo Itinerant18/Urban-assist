@@ -94,8 +94,8 @@ export default function AboutPage() {
           </Card>
 
           <Card className="border border-hairline bg-white p-4 rounded-xl text-center space-y-1 shadow-card">
-            <div className="font-display text-lg font-extrabold text-ink">5k+ Pros</div>
-            <div className="text-[10px] text-muted">Registered</div>
+            <div className="font-display text-lg font-extrabold text-ink">5k+</div>
+            <div className="text-[10px] text-muted">Providers</div>
           </Card>
         </div>
       </section>
@@ -109,12 +109,21 @@ export default function AboutPage() {
               <Briefcase className="h-5 w-5" />
             </span>
             <div>
-              <div className="font-bold text-sm text-ink">We're hiring!</div>
-              <p className="text-xs text-muted mt-0.5">Join a fast-growing team based in the heart of London.</p>
+              <div className="font-bold text-sm text-ink">
+                <span className="lg:hidden">We're hiring!</span>
+                <span className="hidden lg:inline">Join our mission</span>
+              </div>
+              <p className="text-xs text-muted mt-0.5">
+                <span className="lg:hidden">Join a fast-growing team based in the heart of London.</span>
+                <span className="hidden lg:inline">We are always looking for top talent.</span>
+              </p>
             </div>
           </div>
           <Link href="/coming-soon" className="w-full md:w-auto">
-            <Button className="w-full">VIEW OPEN ROLES</Button>
+            <Button className="w-full">
+              <span className="lg:hidden">VIEW OPEN ROLES</span>
+              <span className="hidden lg:inline">View careers</span>
+            </Button>
           </Link>
         </Card>
       </section>

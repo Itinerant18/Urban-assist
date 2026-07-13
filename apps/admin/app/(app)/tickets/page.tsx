@@ -1,13 +1,20 @@
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { TicketCheck, ChevronRight } from 'lucide-react';
+import { Badge } from '@urban-assist/ui';
 
 export const dynamic = 'force-dynamic';
+
+function statusTone(status: string) {
+  if (status === 'open') return 'accent' as const;
+  if (status === 'resolved') return 'success' as const;
+  return 'muted' as const;
+}
 
 export default async function SupportTicketsPage() {
   const db = getSupabaseServer();
   const { data: tickets } = await db
     .from('support_tickets')
-    .select('id, subject, status, created_at')
+    .select('id, category, description, status, created_at')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -35,26 +42,18 @@ export default async function SupportTicketsPage() {
               key={t.id}
               className="card flex items-center justify-between"
             >
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="font-medium text-ink text-sm">{t.subject}</p>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="min-w-0">
+                  <p className="font-medium text-ink text-sm truncate">
+                    {t.category} — {t.description}
+                  </p>
                   <p className="text-xs text-muted">
                     {new Date(t.created_at).toLocaleDateString('en-GB')}
                   </p>
                 </div>
-                <span
-                  className={`text-xs font-mono-utility px-2 py-0.5 rounded-full ${
-                    t.status === 'open'
-                      ? 'bg-amber-100 text-amber-700'
-                      : t.status === 'resolved'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {t.status}
-                </span>
+                <Badge tone={statusTone(t.status)}>{t.status}</Badge>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted" />
+              <ChevronRight className="h-4 w-4 text-muted shrink-0" />
             </div>
           ))}
         </div>

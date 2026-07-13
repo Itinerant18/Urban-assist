@@ -3,6 +3,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { Logo } from '@urban-assist/ui';
 import { ChevronDown, Plus, Minus } from 'lucide-react';
+import { StoreBadges } from './store-badges';
 
 const footerLinks = {
   COMPANY: [
@@ -70,20 +71,7 @@ export function Footer() {
               <p className="text-xs text-[#9FB1BC] max-w-md leading-relaxed">
                 Book services faster, track providers live, and manage your home with ease.
               </p>
-              <div className="hidden lg:flex gap-3 pt-1">
-                <Link
-                  href="/coming-soon"
-                  className="rounded-lg bg-[#10202B] border border-[#3A4D5C] px-3.5 py-2 text-[11px] font-bold text-[#F5F1EB] hover:bg-[#1A2D3C] transition"
-                >
-                  Download on App Store
-                </Link>
-                <Link
-                  href="/coming-soon"
-                  className="rounded-lg bg-[#10202B] border border-[#3A4D5C] px-3.5 py-2 text-[11px] font-bold text-[#F5F1EB] hover:bg-[#1A2D3C] transition"
-                >
-                  Get on Google Play
-                </Link>
-              </div>
+              <StoreBadges className="hidden lg:flex pt-1" />
             </div>
           </div>
 
@@ -99,20 +87,7 @@ export function Footer() {
           </div>
 
           {/* Mobile Download Buttons */}
-          <div className="flex lg:hidden gap-3 w-full justify-center pt-2">
-            <Link
-              href="/coming-soon"
-              className="w-1/2 text-center rounded-xl bg-[#10202B] border border-[#3A4D5C] py-2.5 text-[11px] font-bold text-[#F5F1EB]"
-            >
-              App Store
-            </Link>
-            <Link
-              href="/coming-soon"
-              className="w-1/2 text-center rounded-xl bg-[#10202B] border border-[#3A4D5C] py-2.5 text-[11px] font-bold text-[#F5F1EB]"
-            >
-              Google Play
-            </Link>
-          </div>
+          <StoreBadges className="lg:hidden w-full justify-center pt-2" />
         </div>
       </div>
 
@@ -127,6 +102,11 @@ export function Footer() {
             <p className="mt-4 text-[13px] leading-relaxed text-[#9FB1BC]">
               Your trusted platform for home services across the UK. We connect you with verified professionals
               for cleaning, repairs, installations, and more.
+            </p>
+            <p className="mt-4 text-[12px] leading-relaxed text-[#9FB1BC]">
+              128 City Road, London EC1V 2NX
+              <br />
+              Company No. 14892337
             </p>
           </div>
 

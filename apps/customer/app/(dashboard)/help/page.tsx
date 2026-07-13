@@ -4,7 +4,8 @@ import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { Card, Badge, Button, Field, Input } from '@urban-assist/ui';
 import { ukDateTime } from '@urban-assist/lib';
 import { SupportForm } from './support-form';
-import { Search, CalendarClock, CreditCard, ShieldAlert, MessageSquare, Mail, Phone, BookOpen } from 'lucide-react';
+import Link from 'next/link';
+import { Search, CalendarClock, CreditCard, ShieldAlert, MessageSquare, Mail, Phone, BookOpen, ArrowLeft, ThumbsUp, Settings } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 interface Ticket {
@@ -105,8 +106,17 @@ export default function HelpPage() {
 
   return (
     <div className="space-y-6 py-2">
+      {/* Mobile back header */}
+      <header className="flex lg:hidden items-center justify-between">
+        <Link href="/" className="tap flex items-center gap-1 text-sm font-bold text-muted hover:text-ink">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Link>
+        <h1 className="font-display text-base font-bold text-ink">Help & Support</h1>
+        <div className="w-10" />
+      </header>
+
       {/* Header */}
-      <div>
+      <div className="hidden lg:block">
         <h1 className="font-display text-xl font-bold text-ink">Help & Support</h1>
         <p className="text-xs text-muted mt-0.5">Find answers to common questions or reach our support team.</p>
       </div>
@@ -159,6 +169,28 @@ export default function HelpPage() {
             <div>
               <h4 className="font-bold text-sm text-ink">Trust & Safety</h4>
               <p className="text-xs text-muted mt-1 leading-normal">Vetting processes, coverage, & secure codes.</p>
+            </div>
+          </Card>
+
+          <Card
+            onClick={() => (window.location.href = '/reviews')}
+            className="cursor-pointer border border-hairline p-4 rounded-xl hover:border-accent transition bg-white shadow-card flex items-start gap-3"
+          >
+            <ThumbsUp className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-bold text-sm text-ink">Provider Feedback</h4>
+              <p className="text-xs text-muted mt-1 leading-normal">Leave reviews & rate your professionals.</p>
+            </div>
+          </Card>
+
+          <Card
+            onClick={() => (window.location.href = '/account')}
+            className="cursor-pointer border border-hairline p-4 rounded-xl hover:border-accent transition bg-white shadow-card flex items-start gap-3"
+          >
+            <Settings className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-bold text-sm text-ink">Account Settings</h4>
+              <p className="text-xs text-muted mt-1 leading-normal">Profile, addresses, payments, & privacy.</p>
             </div>
           </Card>
         </div>

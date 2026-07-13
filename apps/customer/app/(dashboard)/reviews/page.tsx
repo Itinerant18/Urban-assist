@@ -1,9 +1,10 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
-import { Card, Badge, RatingStars } from '@urban-assist/ui';
+import { Card, RatingStars } from '@urban-assist/ui';
 import { ArrowLeft, ChevronDown, ChevronUp, Star, Filter } from 'lucide-react';
 
+// ponytail: curated static reviews; wire to reviews table when volume exists
 const MOCK_REVIEWS = [
   {
     id: '1',
@@ -77,9 +78,9 @@ export default function ReviewsPage() {
     <div className="space-y-2 pt-2">
       {BREAKDOWN.map((row) => (
         <div key={row.stars} className="flex items-center gap-3 text-xs text-ink font-medium">
-          <span className="w-4 text-right">{row.stars}★</span>
+          <span className="w-4 text-right text-amber">{row.stars}★</span>
           <div className="flex-1 h-2 rounded-full bg-hairline overflow-hidden">
-            <div className="h-full bg-accent rounded-full" style={{ width: `${row.pct}%` }} />
+            <div className="h-full bg-amber rounded-full" style={{ width: `${row.pct}%` }} />
           </div>
           <span className="w-8 text-right font-mono-utility text-muted">{row.pct}%</span>
         </div>
@@ -179,20 +180,15 @@ export default function ReviewsPage() {
             {processedReviews.map((rev) => (
               <li key={rev.id}>
                 <Card className="border border-hairline bg-white p-5 rounded-xl shadow-card space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <RatingStars value={rev.rating} />
-                      <span className="text-xs text-muted font-mono-utility">• {rev.date}</span>
-                    </div>
-                    <Badge tone="success">Verified Booking</Badge>
+                  <div className="flex items-center gap-2">
+                    <RatingStars value={rev.rating} />
+                    <span className="text-xs text-muted font-mono-utility">• {rev.date}</span>
                   </div>
                   <p className="text-sm text-ink leading-relaxed italic">"{rev.comment}"</p>
-                  <div className="flex items-center justify-between text-xs pt-1.5 border-t border-hairline/45">
-                    <span className="font-bold text-ink">- {rev.author}</span>
-                    <span className="text-muted font-semibold bg-bg px-2.5 py-1 rounded-lg">
-                      Service: {rev.service}
-                    </span>
-                  </div>
+                  <p className="text-xs text-muted">
+                    <span className="font-bold text-ink">— {rev.author}</span>{' '}
+                    <span className="text-success">✓</span> (Verified Booking: {rev.service})
+                  </p>
                 </Card>
               </li>
             ))}

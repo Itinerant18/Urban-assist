@@ -96,11 +96,18 @@ export default async function BookingSuccessPage({ searchParams }: { searchParam
             </div>
           </li>
           <li className="flex items-start gap-3">
+            <Receipt className="h-4.5 w-4.5 text-muted mt-0.5" />
+            <div>
+              <span className="text-muted block text-xs">Total</span>
+              <span className="font-bold text-ink">{pence(booking.total_pence)}</span>
+            </div>
+          </li>
+          <li className="flex items-start gap-3">
             <CreditCard className="h-4.5 w-4.5 text-muted mt-0.5" />
             <div>
-              <span className="text-muted block text-xs">Payment & Total</span>
+              <span className="text-muted block text-xs">Payment</span>
               <span className="font-bold text-ink">
-                {pence(booking.total_pence)} ({booking.payment_method === 'card' ? 'Card' : 'Cash'})
+                {booking.payment_method === 'card' ? 'Card' : 'Cash'}
               </span>
             </div>
           </li>

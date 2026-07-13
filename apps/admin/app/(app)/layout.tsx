@@ -1,23 +1,20 @@
 import { redirect } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import Link from 'next/link';
-import {
-  LayoutDashboard,
-  Users,
-  Briefcase,
-  ShieldCheck,
-  TicketCheck,
-  LogOut,
-  Menu
-} from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import { DesktopNav, MobileNav } from './nav-links';
 
-const nav = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/bookings', label: 'Bookings', icon: Briefcase },
-  { href: '/providers', label: 'Providers', icon: Users },
-  { href: '/kyc', label: 'KYC Queue', icon: ShieldCheck },
-  { href: '/tickets', label: 'Support', icon: TicketCheck },
-];
+function SearchForm({ className }: { className?: string }) {
+  return (
+    <form action="/search" className={className}>
+      <input
+        type="search"
+        name="q"
+        placeholder="Search users, bookings, tickets…"
+        className="w-full rounded-lg border border-hairline bg-bg px-2.5 py-1.5 text-xs text-ink placeholder:text-muted focus:border-ink focus:outline-none"
+      />
+    </form>
+  );
+}
 
 export default async function AdminAppLayout({ children }: { children: React.ReactNode }) {
   const db = getSupabaseServer();
@@ -28,49 +25,48 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
   if (!user) redirect('/login');
 
   // Only allow admin-role users.
-  const { data: profile } = await db
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+  const [{ data: profile }, kycPendingRes] = await Promise.all([
+    db.from('profiles').select('role, full_name, email').eq('id', user.id).single(),
+    db
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'provider')
+      .eq('kyc_status', 'pending'),
+  ]);
 
   if (!profile || profile.role !== 'admin') redirect('/login');
+
+  const kycPending = kycPendingRes.count ?? 0;
+  const identityName = profile.full_name ?? 'Admin';
+  const identityEmail = profile.email ?? user.email ?? '';
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-bg">
       {/* MOBILE HEADER */}
-      <header className="flex lg:hidden items-center justify-between border-b border-hairline bg-white px-4 py-3 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Menu className="h-5 w-5 text-muted" />
+      <header className="lg:hidden border-b border-hairline bg-white shadow-sm">
+        <div className="flex items-center justify-between px-4 pt-3">
           <span className="font-display text-sm font-bold text-ink">Admin Dashboard</span>
+          <span className="max-w-[45%] truncate text-[11px] text-muted">{identityEmail}</span>
         </div>
-        <button
-          className="text-xs font-bold text-accent uppercase tracking-wider"
-          onClick={() => redirect('/')}
-        >
-          Sync
-        </button>
+        <SearchForm className="px-4 py-2.5" />
       </header>
 
       {/* DESKTOP SIDEBAR */}
       <aside className="hidden lg:flex flex-col w-56 border-r border-hairline px-4 py-6 gap-1 shrink-0 bg-white">
-        <div className="px-2 mb-6">
+        <div className="px-2 mb-4">
           <span className="font-display text-base font-bold text-ink">HomeEase</span>
           <span className="ml-1 text-xs text-muted font-mono-utility">ADMIN</span>
         </div>
 
-        {nav.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm text-ink hover:bg-hairline/40 transition-colors"
-          >
-            <Icon className="h-4 w-4 text-muted shrink-0" />
-            {label}
-          </Link>
-        ))}
+        <SearchForm className="px-2 mb-4" />
+
+        <DesktopNav kycPending={kycPending} />
 
         <div className="mt-auto">
+          <div className="border-t border-hairline px-2 py-3">
+            <p className="truncate text-xs font-medium text-ink">{identityName}</p>
+            <p className="truncate text-[11px] text-muted">{identityEmail}</p>
+          </div>
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
@@ -89,24 +85,7 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
 
       {/* MOBILE BOTTOM NAVIGATION BAR */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white pb-[env(safe-area-inset-bottom)] pt-2 shadow-lg lg:hidden">
-        <ul className="flex justify-around items-center">
-          {[
-            { href: '/', label: 'Home', icon: <LayoutDashboard className="h-5 w-5" /> },
-            { href: '/kyc', label: 'KYC', icon: <ShieldCheck className="h-5 w-5" /> },
-            { href: '/tickets', label: 'Tickets', icon: <TicketCheck className="h-5 w-5" /> },
-            { href: '/providers', label: 'More', icon: <Users className="h-5 w-5" /> },
-          ].map((it) => (
-            <li key={it.href}>
-              <Link
-                href={it.href}
-                className="flex flex-col items-center gap-0.5 px-3 text-[10px] font-mono-utility text-muted hover:text-ink"
-              >
-                {it.icon}
-                <span>{it.label}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <MobileNav kycPending={kycPending} />
       </nav>
     </div>
   );

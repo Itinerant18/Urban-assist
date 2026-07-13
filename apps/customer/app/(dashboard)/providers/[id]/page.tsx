@@ -28,11 +28,21 @@ export default async function ProviderPublicProfilePage({ params }: { params: { 
     .eq('is_active', true)
     .order('price_pence', { ascending: true });
 
+  // Fetch customer reviews for this provider (reviews.target_id, public read)
+  const { data: reviews } = await db
+    .from('reviews')
+    .select('id, rating, comment, author:profiles!reviews_author_id_fkey(full_name)')
+    .eq('target_id', params.id)
+    .eq('direction', 'customer_to_provider')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
   return (
     <div className="py-2">
       <ProviderProfileClient
         provider={provider as any}
         services={(services ?? []) as any}
+        reviews={(reviews ?? []) as any}
       />
     </div>
   );

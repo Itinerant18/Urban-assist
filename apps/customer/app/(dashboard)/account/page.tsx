@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import Link from 'next/link';
 import { Card, Button, Badge, Field, Input } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { formatUkPhone } from '@urban-assist/lib';
@@ -17,7 +18,8 @@ import {
   ChevronRight,
   LogOut,
   ArrowLeft,
-  Bell
+  Bell,
+  CalendarDays
 } from 'lucide-react';
 import { AddressForm } from '../../../components/address-form';
 
@@ -48,7 +50,7 @@ const MOCK_CARDS = [
 
 const GiftIllustration = () => (
   <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-2xl bg-accent/10 border border-accent/20">
-    <div className="relative h-14 w-14 bg-accent rounded-lg shadow-lg flex items-center justify-center animate-bounce" style={{ animationDuration: '3s' }}>
+    <div className="relative h-14 w-14 bg-accent rounded-lg shadow-lg flex items-center justify-center">
       {/* Ribbon */}
       <div className="absolute inset-y-0 w-3.5 bg-white" />
       <div className="absolute inset-x-0 h-3.5 bg-white" />
@@ -81,6 +83,25 @@ export default function AccountPage() {
 
   // GDPR action states
   const [gdprProgress, setGdprProgress] = React.useState<string | null>(null);
+
+  // ponytail: localStorage prefs, move to profiles table when backend field exists
+  const NOTIF_DEFAULTS: Record<string, boolean> = { booking_updates: true, offers: true, provider_messages: true };
+  const [notifPrefs, setNotifPrefs] = React.useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return NOTIF_DEFAULTS;
+    try {
+      return { ...NOTIF_DEFAULTS, ...JSON.parse(localStorage.getItem('notif_prefs') || '{}') };
+    } catch {
+      return NOTIF_DEFAULTS;
+    }
+  });
+
+  function toggleNotifPref(key: string) {
+    setNotifPrefs((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem('notif_prefs', JSON.stringify(next));
+      return next;
+    });
+  }
 
   React.useEffect(() => {
     async function loadData() {
@@ -318,7 +339,7 @@ export default function AccountPage() {
               <div>
                 <span className="font-bold text-sm text-ink block">{f.provider?.full_name}</span>
                 <span className="text-xs text-muted block mt-0.5">
-                  ★ {Number(f.provider?.rating_avg ?? 0).toFixed(1)}
+                  <span className="text-amber">★</span> {Number(f.provider?.rating_avg ?? 0).toFixed(1)}
                 </span>
               </div>
               <Button
@@ -386,11 +407,61 @@ export default function AccountPage() {
         </div>
       )}
       <div className="flex gap-2 justify-center max-w-sm mx-auto mt-4">
-        <Button className="w-full py-2.5 text-xs">Share via WhatsApp</Button>
-        <Button variant="outline" className="w-full py-2.5 text-xs">
+        <Button
+          className="w-full py-2.5 text-xs"
+          onClick={() => {
+            const msg = `Get £10 off your first Urban Assist booking with my code ${referralCode ?? ''}! Sign up at https://urbanassist.co.uk`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+          }}
+        >
+          Share via WhatsApp
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full py-2.5 text-xs"
+          onClick={() => {
+            const msg = `Get £10 off your first Urban Assist booking with my code ${referralCode ?? ''}! Sign up at https://urbanassist.co.uk`;
+            window.location.href = `mailto:?subject=${encodeURIComponent('£10 off your first Urban Assist booking')}&body=${encodeURIComponent(msg)}`;
+          }}
+        >
           Share via Email
         </Button>
       </div>
+    </Card>
+  );
+
+  const renderNotifications = () => (
+    <Card className="space-y-4 border border-hairline bg-white p-5 rounded-xl shadow-card">
+      <h3 className="font-display text-base font-bold text-ink flex items-center gap-2">
+        <Bell className="h-5 w-5 text-muted" /> Notifications
+      </h3>
+      <ul className="divide-y divide-hairline">
+        {[
+          { key: 'booking_updates', label: 'Booking updates' },
+          { key: 'offers', label: 'Offers & promotions' },
+          { key: 'provider_messages', label: 'Provider messages' },
+        ].map(({ key, label }) => (
+          <li key={key} className="flex items-center justify-between py-3">
+            <span className="text-sm font-medium text-ink">{label}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!notifPrefs[key]}
+              aria-label={label}
+              onClick={() => toggleNotifPref(key)}
+              className={`tap relative h-6 w-11 rounded-full transition ${
+                notifPrefs[key] ? 'bg-accent' : 'bg-hairline'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                  notifPrefs[key] ? 'left-[22px]' : 'left-0.5'
+                }`}
+              />
+            </button>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 
@@ -429,6 +500,8 @@ export default function AccountPage() {
         return renderCoupons();
       case 'referrals':
         return renderReferrals();
+      case 'notifications':
+        return renderNotifications();
       case 'gdpr':
         return renderGdpr();
       default:
@@ -462,6 +535,12 @@ export default function AccountPage() {
 
           {/* Navigation Links */}
           <nav className="p-3 space-y-1">
+            <Link
+              href="/bookings"
+              className="tap w-full flex items-center gap-3 px-3 py-2 text-sm rounded-xl font-medium text-ink hover:bg-bg/40 transition"
+            >
+              <CalendarDays className="h-4 w-4" /> My Bookings
+            </Link>
             {[
               { id: 'profile', label: 'Profile Settings', icon: <User className="h-4 w-4" /> },
               { id: 'addresses', label: 'Manage Addresses', icon: <MapPin className="h-4 w-4" /> },
@@ -470,6 +549,7 @@ export default function AccountPage() {
               { id: 'coupons', label: 'Promos & Coupons', icon: <Tag className="h-4 w-4" /> },
               { id: 'referrals', label: 'Refer a Friend', icon: <Gift className="h-4 w-4" /> },
               { id: 'gdpr', label: 'GDPR Privacy', icon: <Shield className="h-4 w-4" /> },
+              { id: 'notifications', label: 'Notifications', icon: <Bell className="h-4 w-4" /> },
             ].map((link) => (
               <button
                 key={link.id}
@@ -548,6 +628,15 @@ export default function AccountPage() {
                 Account
               </div>
               <Card className="divide-y divide-hairline p-0 bg-white border border-hairline rounded-xl shadow-card overflow-hidden">
+                <Link
+                  href="/bookings"
+                  className="tap w-full flex items-center justify-between px-4 py-3.5 text-sm text-ink transition hover:bg-bg/20"
+                >
+                  <span className="flex items-center gap-3">
+                    <CalendarDays className="h-4 w-4" /> My Bookings
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted" />
+                </Link>
                 {[
                   { id: 'addresses', label: 'Manage Addresses', icon: <MapPin className="h-4 w-4" /> },
                   { id: 'payments', label: 'Payment Methods', icon: <CreditCard className="h-4 w-4" /> },

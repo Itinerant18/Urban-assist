@@ -13,6 +13,13 @@ interface ServiceItem {
   duration_mins: number;
 }
 
+interface ReviewItem {
+  id: string;
+  rating: number;
+  comment: string | null;
+  author: { full_name: string | null } | null;
+}
+
 interface ProviderProfileClientProps {
   provider: {
     id: string;
@@ -24,13 +31,53 @@ interface ProviderProfileClientProps {
     acceptance_rate?: number;
   };
   services: ServiceItem[];
+  reviews?: ReviewItem[];
 }
 
-export function ProviderProfileClient({ provider, services }: ProviderProfileClientProps) {
+export function ProviderProfileClient({ provider, services, reviews = [] }: ProviderProfileClientProps) {
   const { cart, addToCart, removeFromCart } = useCart();
+
+  const reviewsCard = (
+    <Card className="border border-hairline bg-white p-5 rounded-xl shadow-card space-y-4">
+      <h3 className="font-display text-base font-bold text-ink uppercase tracking-wider border-b border-hairline pb-2">
+        Reviews ({reviews.length})
+      </h3>
+      {reviews.length === 0 ? (
+        <p className="text-sm text-muted">No reviews yet — be the first to book.</p>
+      ) : (
+        <ul className="space-y-4">
+          {reviews.map((r) => (
+            <li key={r.id} className="space-y-1.5">
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    className={`h-3.5 w-3.5 ${s <= r.rating ? 'fill-amber text-amber' : 'text-hairline'}`}
+                  />
+                ))}
+              </div>
+              {r.comment ? (
+                <p className="text-sm text-ink leading-relaxed italic">"{r.comment}"</p>
+              ) : null}
+              <p className="text-xs text-muted font-bold">— {r.author?.full_name ?? 'Customer'}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
+      {/* DESKTOP BREADCRUMB */}
+      <nav className="hidden lg:flex items-center gap-1.5 text-xs text-muted">
+        <Link href="/" className="hover:text-ink">Home</Link>
+        <span>&gt;</span>
+        <Link href="/browse" className="hover:text-ink">Browse</Link>
+        <span>&gt;</span>
+        <span className="font-semibold text-ink">{provider.full_name}</span>
+      </nav>
+
       {/* DESKTOP SPLIT VIEW */}
       <div className="hidden lg:grid grid-cols-[280px,1fr] gap-8 items-start">
         {/* Left Side: Stats and Bio */}
@@ -134,6 +181,8 @@ export function ProviderProfileClient({ provider, services }: ProviderProfileCli
               })}
             </ul>
           </Card>
+
+          {reviewsCard}
         </div>
       </div>
 
@@ -221,6 +270,8 @@ export function ProviderProfileClient({ provider, services }: ProviderProfileCli
             })}
           </ul>
         </Card>
+
+        {reviewsCard}
       </div>
 
       {/* STICKY BOTTOM CART SUMMARY CTA (Floats on mobile) */}
@@ -233,7 +284,7 @@ export function ProviderProfileClient({ provider, services }: ProviderProfileCli
               <span className="font-extrabold text-ink text-base">{pence(cart.pricePence)}</span>
             </div>
             <Link
-              href={`/book/${cart.id}`}
+              href="/cart"
               className="rounded-xl bg-accent px-8 py-3 text-[14px] font-bold text-white transition hover:bg-accent-hover"
             >
               VIEW CART
