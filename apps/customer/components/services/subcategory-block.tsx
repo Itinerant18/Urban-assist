@@ -16,11 +16,15 @@ export function SubcategoryBlock({
         <p className="text-[12px] text-muted font-medium">{subcategory.description}</p>
       </div>
       
-      {/* Services Grid - Tight spacing */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {subcategory.services.map((s) => (
-          <ServiceCard key={s.id} service={s} categorySlug={categorySlug} icon={subcategory.icon} />
-        ))}
+      {/* Services Horizontal Scroll */}
+      <div className="overflow-x-auto scrollbar-hide">
+        <div className="inline-flex gap-3 pb-2">
+          {subcategory.services.map((s) => (
+            <div key={s.id} className="w-40 shrink-0">
+              <ServiceCard service={s} categorySlug={categorySlug} icon={subcategory.icon} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
