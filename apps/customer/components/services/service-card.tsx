@@ -14,25 +14,30 @@ export function ServiceCard({ service, categorySlug, icon }: ServiceCardProps) {
   return (
     <Link
       href={`/services/${categorySlug}/${service.slug}`}
-      className="group flex flex-col rounded-xl border border-hairline bg-white p-5 transition-all hover:border-accent hover:shadow-md hover:shadow-accent/20"
+      className="group flex flex-row items-stretch rounded-xl border border-hairline bg-white transition-all hover:border-accent hover:shadow-md hover:shadow-accent/20 overflow-hidden"
     >
-      {/* Icon container with gradient background */}
-      <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-accent/10 to-accent/5 transition-all group-hover:from-accent/20 group-hover:to-accent/10">
-        <Icon className="h-5 w-5 text-accent transition-transform group-hover:scale-110" />
-      </span>
+      {/* Left: Image/Icon Area - Square */}
+      <div className="flex shrink-0 items-center justify-center w-32 h-32 bg-gradient-to-br from-accent/10 to-accent/5 transition-all group-hover:from-accent/20 group-hover:to-accent/10">
+        <Icon className="h-16 w-16 text-accent transition-transform group-hover:scale-125" />
+      </div>
       
-      {/* Content */}
-      <h4 className="mt-4 text-[14px] font-bold leading-snug text-ink group-hover:text-accent transition">{service.name}</h4>
-      <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-muted">{service.description}</p>
-      
-      {/* Footer with price and badge */}
-      <div className="mt-auto flex items-center justify-between pt-3 border-t border-hairline/50">
-        <span className="text-[13px] font-bold text-ink">From <span className="text-accent font-extrabold">{pence(service.minPricePence)}</span></span>
-        {service.isPopular && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-accent">
-            ⭐ Popular
-          </span>
-        )}
+      {/* Right: Content Area */}
+      <div className="flex flex-col flex-1 justify-between p-5">
+        {/* Title and Description */}
+        <div>
+          <h4 className="text-[14px] font-bold leading-snug text-ink group-hover:text-accent transition line-clamp-2">{service.name}</h4>
+          <p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-muted">{service.description}</p>
+        </div>
+        
+        {/* Footer with price and badge */}
+        <div className="mt-3 flex items-center justify-between gap-2 pt-3 border-t border-hairline/50">
+          <span className="text-[13px] font-bold text-ink">From <span className="text-accent font-extrabold">{pence(service.minPricePence)}</span></span>
+          {service.isPopular && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-accent shrink-0">
+              ⭐ Popular
+            </span>
+          )}
+        </div>
       </div>
     </Link>
   );
