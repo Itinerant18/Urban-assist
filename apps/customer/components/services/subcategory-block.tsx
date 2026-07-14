@@ -11,13 +11,13 @@ export function SubcategoryBlock({
   return (
     <div id={subcategory.slug} className="scroll-mt-28">
       {/* Subcategory Header */}
-      <div className="mb-5 flex items-baseline gap-3">
-        <h3 className="text-[16px] font-bold text-ink">{subcategory.name}</h3>
-        <p className="text-[13px] text-muted font-medium">{subcategory.description}</p>
+      <div className="mb-3 flex items-baseline gap-3">
+        <h3 className="text-[15px] font-bold text-ink">{subcategory.name}</h3>
+        <p className="text-[12px] text-muted font-medium">{subcategory.description}</p>
       </div>
       
-      {/* Services Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Services Grid - Tight spacing */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {subcategory.services.map((s) => (
           <ServiceCard key={s.id} service={s} categorySlug={categorySlug} icon={subcategory.icon} />
         ))}

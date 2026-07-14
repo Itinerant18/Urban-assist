@@ -31,7 +31,7 @@ export function CategorySection({ category }: { category: Category }) {
       </div>
       
       {/* Subcategories */}
-      <div className="space-y-10">
+      <div className="space-y-7">
         {category.subcategories.map((sub) => (
           <SubcategoryBlock key={sub.id} subcategory={sub} categorySlug={category.slug} />
         ))}
