@@ -54,13 +54,6 @@
     min-height: 44px;
     min-width: 44px;
   }
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
