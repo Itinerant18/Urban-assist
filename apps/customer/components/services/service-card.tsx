@@ -14,29 +14,29 @@ export function ServiceCard({ service, categorySlug, icon }: ServiceCardProps) {
   return (
     <Link
       href={`/services/${categorySlug}/${service.slug}`}
-      className="group flex flex-col rounded-xl border border-hairline bg-white transition-all hover:border-accent hover:shadow-md hover:shadow-accent/20 overflow-hidden"
+      className="group flex flex-col rounded-lg border border-hairline bg-white transition-all hover:border-accent hover:shadow-sm hover:shadow-accent/20 overflow-hidden"
     >
-      {/* Top: Square Image/Icon Area - Full Width */}
+      {/* Top: Square Image/Icon Area - Compact */}
       <div className="relative aspect-square w-full flex items-center justify-center bg-gradient-to-br from-accent/10 to-accent/5 transition-all group-hover:from-accent/20 group-hover:to-accent/10">
-        <Icon className="h-20 w-20 text-accent transition-transform group-hover:scale-110" />
+        <Icon className="h-16 w-16 text-accent transition-transform group-hover:scale-105" />
       </div>
       
-      {/* Bottom: Content Area */}
-      <div className="flex flex-col flex-1 justify-between p-5">
+      {/* Bottom: Content Area - Compact */}
+      <div className="flex flex-col flex-1 justify-between p-3">
         {/* Title and Description */}
         <div>
-          <h4 className="text-[14px] font-bold leading-snug text-ink group-hover:text-accent transition line-clamp-2">{service.name}</h4>
-          <p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-muted">{service.description}</p>
+          <h4 className="text-[13px] font-bold leading-tight text-ink group-hover:text-accent transition line-clamp-1">{service.name}</h4>
+          <p className="mt-1 line-clamp-1 text-[11px] leading-snug text-muted">{service.description}</p>
         </div>
         
-        {/* Divider */}
-        <div className="my-3 h-px bg-hairline/50" />
+        {/* Divider - Thinner */}
+        <div className="my-2 h-px bg-hairline/50" />
         
         {/* Footer with price and badge */}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[13px] font-bold text-ink">From <span className="text-accent font-extrabold">{pence(service.minPricePence)}</span></span>
+          <span className="text-[12px] font-bold text-ink">From <span className="text-accent font-extrabold">{pence(service.minPricePence)}</span></span>
           {service.isPopular && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-accent shrink-0">
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-accent/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent shrink-0">
               ⭐ Popular
             </span>
           )}
