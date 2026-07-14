@@ -1,5 +1,5 @@
 // Self-service support tickets. With no admin inbox in V1,
-// also fire a webhook/email if configured (placeholder).
+// a webhook is fired via pg_net trigger on the database level.
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseServer } from '@urban-assist/db/server';
@@ -8,6 +8,7 @@ const Schema = z.object({
   booking_id: z.string().uuid().optional().nullable(),
   category: z.string().min(2).max(60),
   description: z.string().min(10).max(2000),
+  evidence_url: z.string().url().optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {
@@ -25,18 +26,13 @@ export async function POST(req: NextRequest) {
       booking_id: parsed.data.booking_id ?? null,
       category: parsed.data.category,
       description: parsed.data.description,
+      evidence_url: parsed.data.evidence_url ?? null,
     })
     .select()
     .single();
+    
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  const hook = process.env.SUPPORT_NOTIFICATION_WEBHOOK;
-  if (hook) {
-    fetch(hook, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ticket: data, user: user.email }),
-    }).catch(() => null);
-  }
+  // Webhook is now handled by Edge Function via pg_net database trigger
   return NextResponse.json(data);
 }

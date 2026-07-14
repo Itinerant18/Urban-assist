@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { Briefcase, Users, Search, ScrollText, ChevronRight } from 'lucide-react';
+import { Briefcase, Users, Search, ScrollText, ChevronRight, ShieldAlert } from 'lucide-react';
 
 const links = [
   { href: '/bookings', label: 'Bookings', icon: Briefcase },
   { href: '/providers', label: 'Users & Providers', icon: Users },
+  { href: '/staff', label: 'Staff Roles', icon: ShieldAlert },
   { href: '/search', label: 'Search', icon: Search },
   { href: '/audit', label: 'Audit Logs', icon: ScrollText },
 ];

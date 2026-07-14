@@ -22,9 +22,12 @@ export interface CreateBookingIntentParams {
   description: string;
 }
 
-/** Full refund of a payment intent (customer cancellation before service). */
-export async function refundPaymentIntent(paymentIntentId: string) {
-  return stripe().refunds.create({ payment_intent: paymentIntentId });
+/** Refund of a payment intent (full or partial). */
+export async function refundPaymentIntent(paymentIntentId: string, amountPence?: number) {
+  return stripe().refunds.create({
+    payment_intent: paymentIntentId,
+    ...(amountPence !== undefined ? { amount: amountPence } : {}),
+  });
 }
 
 export async function createBookingIntent(params: CreateBookingIntentParams) {
@@ -36,6 +39,29 @@ export async function createBookingIntent(params: CreateBookingIntentParams) {
     metadata: {
       booking_id: params.bookingId,
       customer_profile_id: params.customerId,
+    },
+  });
+}
+
+export async function createTipIntent(params: {
+  bookingId: string;
+  customerId: string;
+  providerStripeAccountId: string;
+  amountPence: number;
+}) {
+  return stripe().paymentIntents.create({
+    amount: params.amountPence,
+    currency: 'gbp',
+    description: `Tip for booking #${params.bookingId}`,
+    automatic_payment_methods: { enabled: true },
+    application_fee_amount: 0,
+    transfer_data: {
+      destination: params.providerStripeAccountId,
+    },
+    metadata: {
+      booking_id: params.bookingId,
+      customer_profile_id: params.customerId,
+      is_tip: 'true',
     },
   });
 }

@@ -35,7 +35,7 @@ export function Dashboard({
           // Fetch the offer fresh so we have booking + address.
           const { data } = await sb
             .from('booking_offers')
-            .select('id, booking_id, responds_by, booking:bookings(id,short_code,scheduled_at,total_pence,category:service_categories(name),address:addresses(line1,postcode))')
+            .select('id, booking_id, responds_by, booking:bookings(id,short_code,scheduled_at,total_pence,category:service_categories(name),address:addresses(line1,postcode,lat,lng))')
             .eq('id', n.payload.offer_id)
             .single();
           if (data) setOffer(data as any);

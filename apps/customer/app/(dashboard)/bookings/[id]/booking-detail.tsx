@@ -6,8 +6,9 @@ import * as React from 'react';
 import { Card, Badge, Button, LiveStatusTrack, statusToStage, RatingInput, EmptyState, Field, Textarea } from '@urban-assist/ui';
 import { pence, ukDateTime, getBookingOtp } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { Banknote, Phone, MessageSquare, AlertOctagon } from 'lucide-react';
+import { Banknote, Phone, MessageSquare, AlertOctagon, Heart, CalendarClock, Home, UserRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { loadStripe } from '@stripe/stripe-js';
 
 export function BookingDetail({ booking: initialBooking, payment: initialPayment, hasReview = false }: { booking: any; payment: any; hasReview?: boolean }) {
   const router = useRouter();
@@ -22,6 +23,49 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
   const [dismissedReview, setDismissedReview] = React.useState(false);
   const [selectedTip, setSelectedTip] = React.useState<string | null>(null);
   const [customTip, setCustomTip] = React.useState<string>('');
+  const [providerLoc, setProviderLoc] = React.useState<{ lat: number; lng: number } | null>(null);
+
+  const [selectedTags, setSelectedTags] = React.useState<string[]>([]);
+  const [stripePromise] = React.useState(() =>
+    loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder')
+  );
+  const [cardElement, setCardElement] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    if (selectedTip && typeof window !== 'undefined') {
+      let active = true;
+      async function initStripe() {
+        const stripe = await stripePromise;
+        if (!stripe || !active) return;
+        
+        // Check if container element is mounted
+        const el = document.getElementById('tip-card-element');
+        if (el) {
+          el.innerHTML = '';
+          const elements = stripe.elements();
+          const card = elements.create('card', {
+            style: {
+              base: {
+                fontSize: '14px',
+                color: '#1f2937',
+                '::placeholder': { color: '#9ca3af' },
+              },
+            },
+          });
+          card.mount('#tip-card-element');
+          setCardElement(card);
+        }
+      }
+      // Delay mounting slightly to allow DOM to render container
+      const timer = setTimeout(initStripe, 100);
+      return () => {
+        active = false;
+        clearTimeout(timer);
+      };
+    } else {
+      setCardElement(null);
+    }
+  }, [selectedTip, stripePromise]);
 
   // Realtime subscriptions.
   React.useEffect(() => {
@@ -42,8 +86,26 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'payments', filter: `booking_id=eq.${booking.id}` },
         (p) => setPayment((cur: any) => ({ ...cur, ...p.new })),
-      )
-      .subscribe();
+      );
+
+    if (booking.provider_id) {
+      ch.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'provider_location', filter: `provider_id=eq.${booking.provider_id}` },
+        (p) => {
+          const loc = p.new as any;
+          if (loc && loc.lat && loc.lng) {
+            setProviderLoc({ lat: loc.lat, lng: loc.lng });
+          }
+        }
+      );
+      // Backfill provider location
+      sb.from('provider_location').select('lat, lng').eq('provider_id', booking.provider_id).single().then(({ data }) => {
+        if (data) setProviderLoc({ lat: data.lat, lng: data.lng });
+      });
+    }
+
+    ch.subscribe();
     // Backfill messages.
     sb.from('messages').select('*').eq('booking_id', booking.id).order('created_at').then(({ data }) => {
       setMessages(data ?? []);
@@ -51,7 +113,7 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
     return () => {
       sb.removeChannel(ch);
     };
-  }, [booking.id]);
+  }, [booking.id, booking.provider_id]);
 
   const stage = statusToStage(booking.status);
 
@@ -76,12 +138,66 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
   }
 
   async function submitReview() {
-    await fetch('/api/reviews', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ booking_id: booking.id, rating, comment: reviewComment || null }),
-    });
-    setReviewed(true);
+    setBusy(true);
+    try {
+      // 1. Submit review
+      const tagsString = selectedTags.length > 0 ? ` [Stood out: ${selectedTags.join(', ')}]` : '';
+      const fullComment = `${reviewComment}${tagsString}`;
+
+      const reviewRes = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: booking.id,
+          rating,
+          comment: fullComment.trim() || null,
+        }),
+      });
+      if (!reviewRes.ok) throw new Error('Could not submit review');
+
+      // 2. Process Tip Payment via Connect if added
+      let tipAmount = 0;
+      if (selectedTip === 'other') {
+        tipAmount = Math.round(parseFloat(customTip) * 100);
+      } else if (selectedTip) {
+        tipAmount = Math.round(parseFloat(selectedTip.replace('£', '')) * 100);
+      }
+
+      if (tipAmount > 0 && cardElement) {
+        const stripe = await stripePromise;
+        if (!stripe) throw new Error('Stripe failed to load');
+
+        const tipRes = await fetch('/api/tips', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            booking_id: booking.id,
+            amount_pence: tipAmount,
+          }),
+        });
+        if (!tipRes.ok) {
+          const j = await tipRes.json().catch(() => ({}));
+          throw new Error(j.error || 'Failed to create tip intent');
+        }
+        const { clientSecret } = await tipRes.json();
+
+        const { error: payErr } = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: cardElement,
+            billing_details: { name: booking.customer?.full_name || 'Customer' },
+          },
+        });
+        if (payErr) {
+          throw new Error(payErr.message || 'Payment confirmation failed');
+        }
+      }
+
+      setReviewed(true);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function retryMatching() {
@@ -99,11 +215,17 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
     }
   }
 
+  const [cancelOpen, setCancelOpen] = React.useState(false);
+  const [cancelReason, setCancelReason] = React.useState('Schedule changed');
+
   async function cancel() {
-    if (!window.confirm('Cancel this booking? Card payments are refunded in full.')) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/bookings/${booking.id}/cancel`, { method: 'POST' });
+      const res = await fetch(`/api/bookings/${booking.id}/cancel`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reason: cancelReason }),
+      });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error === 'not_cancellable' ? 'Too late to cancel — the provider is already on the way. Contact support.' : 'Could not cancel');
@@ -113,6 +235,7 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
       alert(e.message);
     } finally {
       setBusy(false);
+      setCancelOpen(false);
     }
   }
 
@@ -166,6 +289,40 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
             <Button variant="ghost" size="sm">Notify me when available</Button>
           </div>
         </Card>
+      ) : (booking.status === 'on_the_way' || booking.status === 'in_progress') ? (
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="lg:w-2/3">
+            <Card className="p-0 overflow-hidden h-64 lg:h-96 relative">
+              {providerLoc ? (
+                <iframe
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${providerLoc.lat},${providerLoc.lng}&zoom=15`}
+                />
+              ) : (
+                <div className="h-full w-full bg-hairline/30 flex items-center justify-center text-muted text-sm">
+                  Waiting for location…
+                </div>
+              )}
+            </Card>
+          </div>
+          <div className="lg:w-1/3">
+            <Card className="h-full">
+              {/* Desktop version - vertical */}
+              <div className="hidden lg:block h-full">
+                <LiveStatusTrack stage={stage} orientation="vertical" />
+              </div>
+              {/* Mobile version - horizontal */}
+              <div className="lg:hidden">
+                <LiveStatusTrack stage={stage} orientation="horizontal" />
+              </div>
+            </Card>
+          </div>
+        </div>
       ) : (
         <Card>
           <LiveStatusTrack stage={stage} />
@@ -222,21 +379,7 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
             <Button variant="outline" size="sm" onClick={() => setReschedOpen(true)}>Reschedule</Button>
           )}
         </div>
-        {reschedOpen && (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-hairline p-3">
-            <input
-              type="datetime-local"
-              className="tap rounded-xl border border-hairline bg-white px-3 py-2 text-sm"
-              min={new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16)}
-              value={reschedAt}
-              onChange={(e) => setReschedAt(e.target.value)}
-            />
-            <Button size="sm" onClick={reschedule} disabled={busy || !reschedAt}>
-              {busy ? 'Saving…' : 'Confirm new time'}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setReschedOpen(false)}>Cancel</Button>
-          </div>
-        )}
+
         <p className="text-sm text-muted">
           {[booking.address?.line1, booking.address?.line2, booking.address?.city, booking.address?.postcode]
             .filter(Boolean)
@@ -318,7 +461,7 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
               onClick={() => setDismissedReview(true)}
               className="text-sm font-semibold text-muted hover:text-ink"
             >
-              ✕ Close
+              Skip
             </button>
             <h2 className="font-display text-lg font-bold text-ink">Rate Provider</h2>
             <div className="w-12" />
@@ -335,18 +478,47 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
               </div>
             </div>
 
-            <Field label="Leave a comment (optional)">
-              <Textarea
+            {/* Tags Selection */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted">What stood out? (Optional)</label>
+              <div className="flex flex-wrap gap-2">
+                {['Punctual', 'Friendly', 'Attention to Detail', 'Went Above & Beyond'].map((tag) => {
+                  const isSelected = selectedTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTags((cur) =>
+                          isSelected ? cur.filter((t) => t !== tag) : [...cur, tag]
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                        isSelected
+                          ? 'border-ink bg-ink text-bg'
+                          : 'border-hairline bg-white text-ink hover:bg-bg'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Field label="Leave a comment (Optional)">
+              <textarea
                 rows={3}
-                placeholder="Share your experience..."
+                placeholder="Great service, highly recommend..."
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}
+                className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none"
               />
             </Field>
 
             {/* Tip Section */}
             <div className="space-y-3">
-              <label className="text-xs font-medium text-muted">Tip Provider</label>
+              <label className="text-xs font-medium text-muted">Add a tip? (100% goes to the provider)</label>
               <div className="grid grid-cols-4 gap-2">
                 {['£2', '£5', '£10'].map((tip) => (
                   <button
@@ -374,7 +546,7 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
                       : 'border-hairline bg-white text-ink hover:bg-bg'
                   }`}
                 >
-                  Other
+                  Custom
                 </button>
               </div>
 
@@ -390,6 +562,17 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
                   />
                 </Field>
               )}
+
+              {/* Stripe Card Input */}
+              {selectedTip && (
+                <div className="space-y-2 border-t border-hairline pt-3 mt-2">
+                  <label className="text-xs font-medium text-muted">Card Payment Details</label>
+                  <div
+                    id="tip-card-element"
+                    className="p-3 border border-hairline rounded-xl bg-white focus-within:border-ink"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -397,87 +580,207 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
           <div className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-white/95 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur">
             <Button
               onClick={submitReview}
-              disabled={rating === 0}
+              disabled={rating === 0 || busy}
               size="block"
             >
-              SUBMIT REVIEW
+              {busy ? 'Submitting…' : 'SUBMIT REVIEW & TIP'}
             </Button>
           </div>
         </div>
       )}
 
-      {/* Desktop review card */}
+      {/* Desktop review card (Centered focused modal overlay) */}
       {booking.status === 'completed' && !reviewed && !dismissedReview && (
-        <Card className="hidden lg:block space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-mono-utility text-muted">Rate your provider</div>
+        <div className="fixed inset-0 z-50 hidden lg:flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl space-y-5 relative">
             <button
               onClick={() => setDismissedReview(true)}
-              className="text-xs font-semibold text-muted hover:text-ink"
+              className="absolute right-4 top-4 text-xs font-semibold text-muted hover:text-ink cursor-pointer"
             >
-              ✕ Close
+              ✕ Skip for now
             </button>
-          </div>
-          <div className="font-display font-bold">
-            How was your service with {booking.provider?.full_name ?? 'your provider'}?
-          </div>
-          <RatingInput value={rating} onChange={setRating} />
-          <Field label="Comment (optional)">
-            <Textarea rows={3} value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} />
-          </Field>
-          
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted">Tip Provider</label>
-            <div className="flex gap-2">
-              {['£2', '£5', '£10'].map((tip) => (
+            
+            <div className="space-y-1">
+              <h2 className="font-display text-xl font-bold text-ink">HOW WAS YOUR SERVICE?</h2>
+              <p className="text-xs text-muted">Standard Clean · #{booking.short_code} · Pro: {booking.provider?.full_name}</p>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-ink block">Tap to Rate:</label>
+              <RatingInput value={rating} onChange={setRating} />
+            </div>
+
+            {/* Tags Selection */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted block">What stood out? (Optional)</label>
+              <div className="flex flex-wrap gap-2">
+                {['Punctual', 'Friendly', 'Attention to Detail', 'Went Above & Beyond'].map((tag) => {
+                  const isSelected = selectedTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTags((cur) =>
+                          isSelected ? cur.filter((t) => t !== tag) : [...cur, tag]
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                        isSelected
+                          ? 'border-ink bg-ink text-bg'
+                          : 'border-hairline bg-white text-ink hover:bg-bg'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Field label="Leave a comment (Optional)">
+              <textarea
+                rows={3}
+                placeholder="Share your experience..."
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none"
+              />
+            </Field>
+
+            {/* Tip Section */}
+            <div className="space-y-3 pt-2 border-t border-hairline">
+              <label className="text-xs font-bold text-ink block">Leave a tip (100% goes to the professional)</label>
+              <div className="flex gap-2">
+                {['£2', '£5', '£10'].map((tip) => (
+                  <button
+                    key={tip}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTip(tip);
+                      setCustomTip('');
+                    }}
+                    className={`tap rounded-xl border px-4 py-2 text-sm font-medium transition ${
+                      selectedTip === tip ? 'border-ink bg-ink text-white' : 'border-hairline bg-white text-ink'
+                    }`}
+                  >
+                    {tip}
+                  </button>
+                ))}
                 <button
-                  key={tip}
                   type="button"
-                  onClick={() => {
-                    setSelectedTip(tip);
-                    setCustomTip('');
-                  }}
-                  className={`tap rounded-xl border px-3 py-1.5 text-sm font-medium transition ${
-                    selectedTip === tip ? 'border-ink bg-ink text-white' : 'border-hairline bg-white text-ink'
+                  onClick={() => setSelectedTip('other')}
+                  className={`tap rounded-xl border px-4 py-2 text-sm font-medium transition ${
+                    selectedTip === 'other' ? 'border-ink bg-ink text-white' : 'border-hairline bg-white text-ink'
                   }`}
                 >
-                  {tip}
+                  Custom
                 </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setSelectedTip('other')}
-                className={`tap rounded-xl border px-3 py-1.5 text-sm font-medium transition ${
-                  selectedTip === 'other' ? 'border-ink bg-ink text-white' : 'border-hairline bg-white text-ink'
-                }`}
-              >
-                Other
-              </button>
-            </div>
-            {selectedTip === 'other' && (
-              <input
-                type="number"
-                placeholder="Amount (£)"
-                value={customTip}
-                onChange={(e) => setCustomTip(e.target.value)}
-                className="tap rounded-xl border border-hairline px-3 py-1.5 text-sm mt-2 focus:border-ink focus:outline-none"
-              />
-            )}
-          </div>
+              </div>
 
-          <Button onClick={submitReview} disabled={rating === 0} className="w-full">
-            Submit review
-          </Button>
-        </Card>
+              {selectedTip === 'other' && (
+                <input
+                  type="number"
+                  placeholder="Amount (£)"
+                  value={customTip}
+                  onChange={(e) => setCustomTip(e.target.value)}
+                  className="tap rounded-xl border border-hairline px-3.5 py-2 text-sm mt-2 focus:border-ink focus:outline-none w-full"
+                />
+              )}
+
+              {/* Stripe Card Input */}
+              {selectedTip && (
+                <div className="space-y-2 border-t border-hairline pt-3 mt-2">
+                  <label className="text-xs font-medium text-muted">Card Payment Details</label>
+                  <div
+                    id="tip-card-element"
+                    className="p-3 border border-hairline rounded-xl bg-white focus-within:border-ink"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-2 justify-end">
+              <Button variant="ghost" onClick={() => setDismissedReview(true)} disabled={busy}>
+                SKIP FOR NOW
+              </Button>
+              <Button onClick={submitReview} disabled={rating === 0 || busy} className="px-6">
+                {busy ? 'Submitting…' : 'SUBMIT REVIEW & TIP'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
       {reviewed && !hasReview && (
         <EmptyState title="Thanks for the review" description="Your feedback helps us match better in the future." />
       )}
 
       {cancellable && (
-        <Button variant="outline" className="w-full text-danger border-danger/40 hover:border-danger" onClick={cancel} disabled={busy}>
+        <Button variant="outline" className="w-full text-danger border-danger/40 hover:border-danger" onClick={() => setCancelOpen(true)} disabled={busy}>
           {busy ? 'Cancelling…' : 'Cancel booking'}
         </Button>
+      )}
+
+      {/* Reschedule Modal */}
+      {reschedOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
+          <div className="w-full rounded-t-2xl bg-white p-6 shadow-xl sm:max-w-md sm:rounded-2xl space-y-4">
+            <h3 className="font-display text-lg font-bold text-ink">Reschedule Booking</h3>
+            <p className="text-xs text-muted">Please select a new date and time for your service. Tapping reschedule will notify the provider or queue the job again.</p>
+            
+            <Field label="New Date & Time">
+              <input
+                type="datetime-local"
+                className="w-full tap rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none"
+                min={new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16)}
+                value={reschedAt}
+                onChange={(e) => setReschedAt(e.target.value)}
+              />
+            </Field>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="ghost" className="flex-1" onClick={() => setReschedOpen(false)}>Cancel</Button>
+              <Button className="flex-1" onClick={reschedule} disabled={busy || !reschedAt}>
+                {busy ? 'Rescheduling…' : 'Confirm New Time'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancellation Modal / Bottom Sheet */}
+      {cancelOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
+          <div className="w-full rounded-t-2xl bg-white p-6 shadow-xl sm:max-w-md sm:rounded-2xl space-y-4">
+            <h3 className="font-display text-lg font-bold text-ink">Cancel Booking</h3>
+            <div className="rounded-xl bg-danger/10 border border-danger/20 p-3 text-xs text-danger leading-relaxed">
+              <strong>Cancellation Policy:</strong> Free cancellation up to 24 hours before the service. Cancellations made within 24 hours will incur a £10.00 fee.
+            </div>
+            
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-ink block">Please select a reason:</span>
+              {['Schedule changed', 'Booked by mistake', 'Found another provider'].map((reason) => (
+                <label key={reason} className="flex items-center gap-3 py-2 px-3 border border-hairline rounded-xl cursor-pointer hover:bg-bg/10">
+                  <input
+                    type="radio"
+                    name="cancel_reason"
+                    checked={cancelReason === reason}
+                    onChange={() => setCancelReason(reason)}
+                    className="accent-danger"
+                  />
+                  <span className="text-sm font-medium text-ink">{reason}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="ghost" className="flex-1" onClick={() => setCancelOpen(false)}>NEVERMIND</Button>
+              <Button variant="danger" className="flex-1" onClick={cancel} disabled={busy}>
+                {busy ? 'Cancelling…' : 'CONFIRM CANCEL'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

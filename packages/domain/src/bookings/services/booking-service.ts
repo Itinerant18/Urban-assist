@@ -186,7 +186,7 @@ export async function cancelBooking(
 ): Promise<void> {
   const { data: booking, error: getErr } = await admin
     .from('bookings')
-    .select('id, customer_id, provider_id, status')
+    .select('id, customer_id, provider_id, status, scheduled_at')
     .eq('id', input.bookingId)
     .single();
   if (getErr || !booking) throw new Error('booking_not_found');
@@ -208,10 +208,10 @@ export async function cancelBooking(
     .in('status', CANCELLABLE_STATUSES);
   if (updateErr) throw new Error(updateErr.message);
 
-  // Refund captured card payments in full.
+  // Refund captured card payments (minus fee if within 24h).
   const { data: payment } = await admin
     .from('payments')
-    .select('id, method, status, stripe_payment_intent_id')
+    .select('id, method, status, stripe_payment_intent_id, amount_pence')
     .eq('booking_id', input.bookingId)
     .single();
   if (
@@ -219,8 +219,23 @@ export async function cancelBooking(
     ['succeeded', 'authorized'].includes(payment.status) &&
     payment.stripe_payment_intent_id
   ) {
-    await refundPaymentIntent(payment.stripe_payment_intent_id);
-    await admin.from('payments').update({ status: 'refunded' }).eq('id', payment.id);
+    const scheduledTime = new Date(booking.scheduled_at).getTime();
+    const timeDiff = scheduledTime - Date.now();
+    const within24Hours = timeDiff < 24 * 60 * 60 * 1000;
+
+    if (within24Hours) {
+      const feePence = 1000; // £10.00 fee
+      const refundAmount = payment.amount_pence - feePence;
+      if (refundAmount > 0) {
+        await refundPaymentIntent(payment.stripe_payment_intent_id, refundAmount);
+        await admin.from('payments').update({ status: 'refunded' }).eq('id', payment.id);
+      } else {
+        // Fee eats entire amount; status remains succeeded
+      }
+    } else {
+      await refundPaymentIntent(payment.stripe_payment_intent_id);
+      await admin.from('payments').update({ status: 'refunded' }).eq('id', payment.id);
+    }
   }
 
   track(admin, input.userId, {

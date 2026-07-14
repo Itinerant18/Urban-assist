@@ -1,13 +1,15 @@
 import { AppShell, NavItem } from '@urban-assist/ui';
-import { Home, CalendarClock, ShoppingCart, UserRound } from 'lucide-react';
+import { Home, CalendarClock, ShoppingCart, UserRound, Heart, Gift } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { getSupabaseServer } from '@urban-assist/db/server';
+import { NotificationBell } from './notification-bell';
 
 const nav: NavItem[] = [
   { href: '/browse', label: 'Home', icon: <Home className="h-4 w-4" /> },
   { href: '/bookings', label: 'Bookings', icon: <CalendarClock className="h-4 w-4" /> },
-  { href: '/cart', label: 'Cart', icon: <ShoppingCart className="h-4 w-4" /> },
+  { href: '/saved', label: 'Saved', icon: <Heart className="h-4 w-4" /> },
+  { href: '/referrals', label: 'Referrals', icon: <Gift className="h-4 w-4" /> },
   { href: '/account', label: 'Menu', icon: <UserRound className="h-4 w-4" /> },
 ];
 
@@ -20,5 +22,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const pathname = headersList.get('x-next-pathname') || headersList.get('x-invoke-path') || '/';
     redirect(`/login?redirect=${encodeURIComponent(pathname)}`);
   }
-  return <AppShell nav={nav} brand="Urban Assist">{children}</AppShell>;
+
+  const { count } = await db
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('profile_id', user.id)
+    .is('read_at', null);
+
+  return (
+    <AppShell 
+      nav={nav} 
+      brand="Urban Assist"
+      headerRight={<NotificationBell initialUnread={count ?? 0} />}
+    >
+      {children}
+    </AppShell>
+  );
 }

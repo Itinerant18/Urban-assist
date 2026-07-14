@@ -255,34 +255,38 @@ export default function HelpPage() {
         </div>
       </section>
 
-      {/* Raise a Support Ticket Form */}
-      <section className="space-y-3">
-        <h2 className="text-xs font-bold text-muted uppercase tracking-wider pl-0.5 font-display">Raise a Ticket</h2>
-        <SupportForm />
-      </section>
-
-      {/* Existing Tickets list */}
-      {!!tickets?.length && (
-        <section className="space-y-3 pb-8">
-          <h2 className="text-xs font-bold text-muted uppercase tracking-wider pl-0.5">Your Open Tickets</h2>
-          <ul className="space-y-2">
-            {tickets.map((t) => (
-              <li key={t.id}>
-                <Card className="flex items-start justify-between gap-3 border border-hairline bg-white rounded-xl p-4 shadow-card">
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold text-ink">{t.category}</div>
-                    <p className="mt-1 line-clamp-2 text-xs text-muted leading-relaxed">{t.description}</p>
-                    <div className="mt-2 text-[10px] text-muted font-mono-utility">
-                      Raised {ukDateTime(t.created_at)}
-                    </div>
-                  </div>
-                  <Badge tone={ticketTone[t.status] ?? 'muted'}>{t.status.replace(/_/g, ' ')}</Badge>
-                </Card>
-              </li>
-            ))}
-          </ul>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4 pb-12 border-t border-hairline mt-6">
+        {/* Left Column: Form */}
+        <section className="space-y-4">
+          <h2 className="font-display text-lg font-bold text-ink">How can we help?</h2>
+          <SupportForm />
         </section>
-      )}
+
+        {/* Right Column: Ticket History */}
+        <section className="space-y-4">
+          <h2 className="font-display text-lg font-bold text-ink">Your Support History</h2>
+          {!tickets?.length ? (
+            <p className="text-sm text-muted">No past support tickets.</p>
+          ) : (
+            <ul className="space-y-3">
+              {tickets.map((t) => (
+                <li key={t.id}>
+                  <Card className="flex items-start justify-between gap-3 border border-hairline bg-white rounded-xl p-4 shadow-card">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-ink">{t.category}</div>
+                      <p className="mt-1 line-clamp-2 text-xs text-muted leading-relaxed">{t.description}</p>
+                      <div className="mt-2 text-[10px] text-muted font-mono-utility">
+                        Raised {ukDateTime(t.created_at)}
+                      </div>
+                    </div>
+                    <Badge tone={ticketTone[t.status] ?? 'muted'}>{t.status.replace(/_/g, ' ')}</Badge>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

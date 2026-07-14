@@ -93,7 +93,29 @@ export function AddressForm({
         <Input value={city} onChange={(e) => setCity(e.target.value)} />
       </Field>
       {err && <p className="text-xs text-danger">{err}</p>}
-      <div className="flex gap-2">
+      
+      {/* Map Preview */}
+      {lat && lng && (
+        <div className="mt-2 rounded-xl overflow-hidden border border-hairline h-48 relative">
+          {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+             <iframe
+               width="100%"
+               height="100%"
+               style={{ border: 0 }}
+               loading="lazy"
+               allowFullScreen
+               src={`https://www.google.com/maps/embed/v1/view?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&center=${lat},${lng}&zoom=16`}
+             ></iframe>
+          ) : (
+             <div className="w-full h-full bg-bg/50 flex flex-col items-center justify-center p-4 text-center">
+               <span className="font-mono-utility text-xs text-muted mb-1">MAP PREVIEW</span>
+               <span className="text-xs text-muted">Lat: {lat.toFixed(4)}, Lng: {lng.toFixed(4)}</span>
+             </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-2">
         <Button onClick={save} disabled={busy || !pc || !line1 || !city}>
           {busy ? 'Saving…' : 'Save address'}
         </Button>

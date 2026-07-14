@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { AppShell, NavItem } from '@urban-assist/ui';
-import { Briefcase, CalendarDays, Wallet, FileText, UserRound } from 'lucide-react';
+import { Briefcase, CalendarDays, Wallet, FileText, UserRound, Settings } from 'lucide-react';
 
 const nav: NavItem[] = [
   { href: '/', label: 'Requests', icon: <Briefcase className="h-4 w-4" /> },
   { href: '/schedule', label: 'Schedule', icon: <CalendarDays className="h-4 w-4" /> },
   { href: '/earnings', label: 'Wallet', icon: <Wallet className="h-4 w-4" /> },
+  { href: '/services', label: 'My Services', icon: <Settings className="h-4 w-4" /> },
   { href: '/documents', label: 'Documents', icon: <FileText className="h-4 w-4" /> },
   { href: '/account', label: 'Menu', icon: <UserRound className="h-4 w-4" /> },
 ];

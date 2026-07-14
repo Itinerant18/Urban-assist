@@ -7,13 +7,14 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div
-        className="hidden items-center justify-center lg:flex"
-        style={{
-          background:
-            'repeating-linear-gradient(135deg,#EDE6D8,#EDE6D8 10px,#E4DBC9 10px,#E4DBC9 20px)',
-        }}
+        className="hidden items-center justify-center lg:flex relative overflow-hidden bg-[#fbfaf8]"
       >
-        <p className="font-mono text-[11px] text-[#8A8574]">provider greeting customer — photo</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/login-bg.png"
+          alt="Urban Assist Professionals"
+          className="absolute inset-0 w-full h-full object-contain p-12"
+        />
       </div>
       <div className="mx-auto flex w-full max-w-md flex-col justify-center px-6 py-12 pb-28 lg:pb-12">
         <div className="mb-8">

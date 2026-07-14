@@ -27,30 +27,71 @@ const ORDER: TrackStage[] = [
 
 const LABELS: Record<TrackStage, string> = {
   finding: 'Finding',
-  matched: 'Matched',
+  matched: 'Provider Matched',
   on_the_way: 'On the way',
-  arrived: 'Arrived',
-  in_progress: 'In progress',
+  arrived: 'Arrived at Location',
+  in_progress: 'Service in Progress',
   completed: 'Completed',
 };
 
 export function LiveStatusTrack({
   stage,
   className,
+  orientation = 'horizontal',
 }: {
   stage: TrackStage;
   className?: string;
+  orientation?: 'horizontal' | 'vertical';
 }) {
   const reduce = useReducedMotion();
   const idx = ORDER.indexOf(stage);
   const pct = (idx / (ORDER.length - 1)) * 100;
 
+  if (orientation === 'vertical') {
+    return (
+      <div className={cn('select-none pl-2', className)} role="status" aria-label={`Status: ${LABELS[stage]}`}>
+        <div className="relative border-l-2 border-hairline ml-2 space-y-8 py-4">
+          {/* filled portion */}
+          <div
+            className="absolute top-0 bottom-0 left-[-2px] border-l-2 border-accent transition-all duration-700"
+            style={{ height: `${pct}%` }}
+          />
+          {ORDER.map((s, i) => {
+            const done = i < idx;
+            const active = i === idx;
+            return (
+              <div key={s} className="relative flex items-center pl-6">
+                <div
+                  className={cn(
+                    'absolute -left-2 top-1/2 -translate-y-1/2 flex h-4 w-4 items-center justify-center rounded-full border-2',
+                    done
+                      ? 'border-accent bg-accent text-ink'
+                      : active
+                      ? 'border-accent bg-bg'
+                      : 'border-hairline bg-bg'
+                  )}
+                >
+                  {done && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+                </div>
+                <div className={cn("text-sm transition-colors", i <= idx ? "font-bold text-ink" : "text-muted")}>
+                  {LABELS[s]}
+                  {active && s === 'finding' && <Loader2 className="ml-2 inline h-3 w-3 animate-spin" />}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Horizontal variant
   return (
     <div className={cn('select-none', className)} role="status" aria-label={`Status: ${LABELS[stage]}`}>
       <div className="relative h-1.5 rounded-full bg-hairline">
         {/* filled portion */}
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-accent"
+          className="absolute inset-y-0 left-0 rounded-full bg-accent transition-all duration-700"
           style={{ width: `${pct}%` }}
         />
         {/* nodes */}
@@ -78,7 +119,7 @@ export function LiveStatusTrack({
             </div>
           );
         })}
-        {/* travelling dot — only when not at end and motion allowed */}
+        {/* travelling dot */}
         {!reduce && idx < ORDER.length - 1 && (
           <motion.div
             aria-hidden

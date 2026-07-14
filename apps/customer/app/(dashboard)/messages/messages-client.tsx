@@ -65,9 +65,7 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
     : conversations;
 
   function open(id: string) {
-    // ponytail: mobile reuses booking-detail chat; dedicated mobile chat route when needed
-    if (window.matchMedia('(min-width: 1024px)').matches) setSelectedId(id);
-    else router.push(`/bookings/${id}`);
+    setSelectedId(id);
   }
 
   async function send(e: React.FormEvent) {
@@ -97,90 +95,97 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
   const msgs = selected ? history[selected.id] ?? [] : [];
 
   return (
-    <div className="py-2 lg:grid lg:h-[calc(100vh-9rem)] lg:grid-cols-[320px_1fr] lg:gap-4">
-      {/* Left: conversation list */}
-      <div className="flex min-h-0 flex-col space-y-3">
-        <h1 className="font-display text-xl">Messages</h1>
-        <input
-          className="tap w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm focus:border-ink focus:outline-none"
-          placeholder="Search conversations"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-          {filtered.map((c) => {
-            const last = (history[c.id] ?? [])[history[c.id]?.length - 1];
-            const isSelected = c.id === selectedId;
-            return (
-              <li key={c.id}>
-                <button
-                  onClick={() => open(c.id)}
-                  className={`tap flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
-                    isSelected ? 'bg-accent/10' : 'hover:bg-bg'
-                  }`}
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-hairline font-medium text-ink">
-                    {c.provider.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={c.provider.avatar_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      (c.provider.full_name ?? '?').charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate font-medium">{c.provider.full_name}</span>
-                      {last && <span className="shrink-0 text-[11px] text-muted">{listStamp(last.created_at)}</span>}
-                    </div>
-                    <div className="text-[11px] text-muted">{c.category?.name}</div>
-                    <p className="truncate text-sm text-muted">{last?.content ?? 'Say hi to your provider'}</p>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-          {!filtered.length && <li className="px-3 py-4 text-sm text-muted">No matches for “{search}”.</li>}
-        </ul>
-      </div>
-
-      {/* Right: chat pane (desktop only) */}
-      <div className="hidden min-h-0 flex-col rounded-2xl border border-hairline bg-white lg:flex">
+    <div className="py-2 h-[calc(100vh-8rem)] relative">
+      {/* Mobile view logic */}
+      <div className="lg:hidden h-full flex flex-col">
         {!selected ? (
-          <div className="flex flex-1 items-center justify-center text-sm text-muted">Select a conversation</div>
+          /* Mobile List View */
+          <div className="flex flex-col h-full space-y-3">
+            <h1 className="font-display text-xl font-bold text-ink">Messages</h1>
+            <input
+              className="tap w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none"
+              placeholder="Search chats..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <ul className="flex-1 space-y-2 overflow-y-auto pb-6">
+              {filtered.map((c) => {
+                const last = (history[c.id] ?? [])[history[c.id]?.length - 1];
+                return (
+                  <li key={c.id}>
+                    <button
+                      onClick={() => open(c.id)}
+                      className="tap flex w-full items-center gap-3 rounded-2xl border border-hairline bg-white p-4 text-left transition hover:bg-bg/25 shadow-sm"
+                    >
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-hairline font-bold text-ink">
+                        {c.provider.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={c.provider.avatar_url} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          (c.provider.full_name ?? '?').charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate font-bold text-sm text-ink">{c.provider.full_name}</span>
+                          {last && <span className="shrink-0 text-[10px] text-muted">{listStamp(last.created_at)}</span>}
+                        </div>
+                        <div className="text-[10px] font-semibold text-muted mt-0.5">{c.category?.name}</div>
+                        <p className="truncate text-xs text-muted mt-1">{last?.content ?? 'Say hi to your provider'}</p>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+              {!filtered.length && <li className="text-center py-12 text-sm text-muted">No matches for “{search}”.</li>}
+            </ul>
+          </div>
         ) : (
-          <>
-            <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
-              <div className="font-medium">
-                {selected.provider.full_name}{' '}
-                <span className="text-sm font-normal text-muted">
-                  ({selected.category?.name} · #{selected.short_code})
-                </span>
+          /* Mobile Chat Full-Screen Takeover */
+          <div className="fixed inset-0 z-50 flex flex-col bg-bg">
+            {/* Mobile Header */}
+            <div className="flex items-center justify-between border-b border-hairline bg-white px-4 py-3 shadow-sm">
+              <button
+                onClick={() => setSelectedId(null)}
+                className="text-sm font-semibold text-muted hover:text-ink flex items-center gap-1"
+              >
+                ◀ Back
+              </button>
+              <div className="text-center min-w-0 flex-1 px-4">
+                <h2 className="font-display text-sm font-bold text-ink truncate">{selected.provider.full_name}</h2>
+                <p className="text-[10px] text-muted truncate">
+                  {selected.category?.name} · #{selected.short_code}
+                </p>
               </div>
-              {selected.provider.phone && (
+              {selected.provider.phone ? (
                 <a
                   href={`tel:${selected.provider.phone}`}
-                  className="flex items-center gap-1 text-sm font-medium text-accent"
+                  className="rounded-full bg-accent/10 p-2 text-accent hover:bg-accent/20"
                 >
-                  <Phone className="h-4 w-4" /> Call
+                  <Phone className="h-4 w-4" />
                 </a>
+              ) : (
+                <div className="w-8" />
               )}
             </div>
-            <div ref={scrollRef} className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 py-3 text-sm">
-              {msgs.length === 0 && <p className="text-muted">No messages yet — say hi to your provider.</p>}
+
+            {/* Messages Timeline */}
+            <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4 text-xs">
+              {msgs.length === 0 && <p className="text-center text-muted py-8">No messages yet — say hi.</p>}
               {msgs.map((m, i) => {
                 const label = dayLabel(m.created_at);
                 const showDivider = i === 0 || dayLabel(msgs[i - 1].created_at) !== label;
                 const mine = m.sender_id === userId;
                 return (
                   <React.Fragment key={m.id}>
-                    {showDivider && <div className="py-1.5 text-center text-[11px] text-muted">{label}</div>}
+                    {showDivider && <div className="py-2 text-center text-[10px] text-muted font-bold">{label}</div>}
                     <div
-                      className={`flex max-w-[75%] flex-col rounded-xl px-3 py-2 ${
-                        mine ? 'ml-auto bg-accent text-white' : 'mr-auto bg-bg text-ink'
+                      className={`flex max-w-[80%] flex-col rounded-2xl px-3.5 py-2.5 shadow-sm leading-relaxed ${
+                        mine ? 'ml-auto bg-accent text-white' : 'mr-auto bg-white text-ink border border-hairline'
                       }`}
                     >
                       <span>{m.content}</span>
-                      <span className={`mt-0.5 self-end text-[11px] ${mine ? 'text-white/70' : 'text-muted'}`}>
+                      <span className={`mt-1 self-end text-[9px] ${mine ? 'text-white/70' : 'text-muted'}`}>
                         {hhmm(m.created_at)}
                       </span>
                     </div>
@@ -188,19 +193,129 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
                 );
               })}
             </div>
-            <form onSubmit={send} className="flex gap-2 border-t border-hairline p-3">
+
+            {/* Mobile Footer Message Input */}
+            <form onSubmit={send} className="border-t border-hairline bg-white/95 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur flex gap-2">
               <input
-                className="tap flex-1 rounded-xl border border-hairline bg-white px-3 py-2 text-sm focus:border-ink focus:outline-none"
-                placeholder="Message your provider"
+                className="tap flex-1 rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm focus:border-ink focus:outline-none"
+                placeholder="Type a message..."
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
               />
               <Button type="submit" disabled={!draft.trim()}>
-                Send
+                SEND
               </Button>
             </form>
-          </>
+          </div>
         )}
+      </div>
+
+      {/* Desktop side-by-side view (lg+) */}
+      <div className="hidden lg:grid lg:h-full lg:grid-cols-[320px_1fr] lg:gap-4">
+        {/* Left: conversation list */}
+        <div className="flex min-h-0 flex-col space-y-3">
+          <h1 className="font-display text-xl font-bold text-ink">Messages</h1>
+          <input
+            className="tap w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm focus:border-ink focus:outline-none"
+            placeholder="Search chats..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+            {filtered.map((c) => {
+              const last = (history[c.id] ?? [])[history[c.id]?.length - 1];
+              const isSelected = c.id === selectedId;
+              return (
+                <li key={c.id}>
+                  <button
+                    onClick={() => open(c.id)}
+                    className={`tap flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+                      isSelected ? 'bg-accent/10' : 'hover:bg-bg'
+                    }`}
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-hairline font-medium text-ink">
+                      {c.provider.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.provider.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        (c.provider.full_name ?? '?').charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate font-medium">{c.provider.full_name}</span>
+                        {last && <span className="shrink-0 text-[11px] text-muted">{listStamp(last.created_at)}</span>}
+                      </div>
+                      <div className="text-[11px] text-muted">{c.category?.name}</div>
+                      <p className="truncate text-sm text-muted">{last?.content ?? 'Say hi to your provider'}</p>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+            {!filtered.length && <li className="px-3 py-4 text-sm text-muted">No matches for “{search}”.</li>}
+          </ul>
+        </div>
+
+        {/* Right: chat pane */}
+        <div className="flex min-h-0 flex-col rounded-2xl border border-hairline bg-white shadow-card">
+          {!selected ? (
+            <div className="flex flex-1 items-center justify-center text-sm text-muted">Select a conversation</div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
+                <div className="font-medium text-ink">
+                  {selected.provider.full_name}{' '}
+                  <span className="text-sm font-normal text-muted">
+                    ({selected.category?.name} · #{selected.short_code})
+                  </span>
+                </div>
+                {selected.provider.phone && (
+                  <a
+                    href={`tel:${selected.provider.phone}`}
+                    className="flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+                  >
+                    <Phone className="h-4 w-4" /> Call
+                  </a>
+                )}
+              </div>
+              <div ref={scrollRef} className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 py-3 text-sm bg-bg/5">
+                {msgs.length === 0 && <p className="text-muted">No messages yet — say hi to your provider.</p>}
+                {msgs.map((m, i) => {
+                  const label = dayLabel(m.created_at);
+                  const showDivider = i === 0 || dayLabel(msgs[i - 1].created_at) !== label;
+                  const mine = m.sender_id === userId;
+                  return (
+                    <React.Fragment key={m.id}>
+                      {showDivider && <div className="py-1.5 text-center text-[11px] text-muted">{label}</div>}
+                      <div
+                        className={`flex max-w-[75%] flex-col rounded-xl px-3 py-2 shadow-sm ${
+                          mine ? 'ml-auto bg-accent text-white' : 'mr-auto bg-white text-ink border border-hairline'
+                        }`}
+                      >
+                        <span>{m.content}</span>
+                        <span className={`mt-0.5 self-end text-[11px] ${mine ? 'text-white/70' : 'text-muted'}`}>
+                          {hhmm(m.created_at)}
+                        </span>
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+              <form onSubmit={send} className="flex gap-2 border-t border-hairline p-3 bg-white">
+                <input
+                  className="tap flex-1 rounded-xl border border-hairline bg-white px-3 py-2 text-sm focus:border-ink focus:outline-none"
+                  placeholder="Type your message..."
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                />
+                <Button type="submit" disabled={!draft.trim()}>
+                  SEND
+                </Button>
+              </form>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

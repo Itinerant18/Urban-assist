@@ -26,7 +26,7 @@ export default async function Home() {
     .order('scheduled_at');
   const { data: openOffer } = await db
     .from('booking_offers')
-    .select('id, booking_id, responds_by, booking:bookings(id,short_code,scheduled_at,total_pence,category:service_categories(name),address:addresses(line1,postcode))')
+    .select('id, booking_id, responds_by, booking:bookings(id,short_code,scheduled_at,total_pence,category:service_categories(name),address:addresses(line1,postcode,lat,lng))')
     .eq('provider_id', user.id)
     .eq('status', 'pending')
     .order('offered_at', { ascending: false })

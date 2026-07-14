@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { ShieldCheck, ChevronRight } from 'lucide-react';
 
@@ -31,16 +32,17 @@ export default async function KYCQueuePage() {
       ) : (
         <div className="flex flex-col gap-2">
           {pending.map((p) => (
-            <div
+            <Link
+              href={`/kyc/${p.id}`}
               key={p.id}
-              className="card flex items-center justify-between"
+              className="card flex items-center justify-between hover:bg-bg/40 transition cursor-pointer"
             >
               <div>
                 <p className="font-medium text-ink text-sm">{p.full_name ?? 'Unnamed'}</p>
                 <p className="text-xs text-muted">{p.email}</p>
               </div>
               <ChevronRight className="h-4 w-4 text-muted" />
-            </div>
+            </Link>
           ))}
         </div>
       )}

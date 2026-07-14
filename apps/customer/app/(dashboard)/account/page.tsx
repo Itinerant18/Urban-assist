@@ -19,7 +19,9 @@ import {
   LogOut,
   ArrowLeft,
   Bell,
-  CalendarDays
+  CalendarDays,
+  Home,
+  Briefcase
 } from 'lucide-react';
 import { AddressForm } from '../../../components/address-form';
 
@@ -27,8 +29,10 @@ interface Address {
   id: string;
   label: string;
   line1: string;
+  line2?: string | null;
   city: string;
   postcode: string;
+  is_default?: boolean;
 }
 
 interface Favorite {
@@ -242,58 +246,88 @@ export default function AccountPage() {
   );
 
   const renderAddresses = () => (
-    <Card className="space-y-4 border border-hairline bg-white p-5 rounded-xl shadow-card">
-      <div className="flex items-center justify-between border-b border-hairline pb-2">
-        <h3 className="font-display text-base font-bold text-ink flex items-center gap-2">
+    <div className="space-y-4 md:max-w-3xl pb-20 md:pb-0">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-lg flex items-center gap-2">
           <MapPin className="h-5 w-5 text-muted" /> Saved Addresses
-        </h3>
-        <Badge tone="muted">{addresses.length}</Badge>
+        </h2>
+        <div className="hidden md:block">
+          {!addingAddress && (
+            <Button variant="outline" onClick={() => setAddingAddress(true)} className="flex items-center gap-1.5 text-xs">
+              <Plus className="h-4 w-4" /> ADD NEW ADDRESS
+            </Button>
+          )}
+        </div>
       </div>
+
       {addresses.length ? (
-        <ul className="divide-y divide-hairline text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {addresses.map((a) => (
-            <li key={a.id} className="flex items-center justify-between gap-3 py-3">
-              <div>
-                <span className="font-bold text-ink block">{a.label}</span>
-                <span className="text-xs text-muted">
-                  {[a.line1, a.city, a.postcode].filter(Boolean).join(', ')}
-                </span>
+            <div key={a.id} className="p-4 border border-hairline rounded-xl flex flex-col justify-between bg-white shadow-card">
+              <div className="flex items-start gap-2">
+                {a.label.toLowerCase().includes('home') ? (
+                   <Home className="h-4 w-4 text-muted mt-0.5" />
+                ) : a.label.toLowerCase().includes('office') || a.label.toLowerCase().includes('work') ? (
+                   <Briefcase className="h-4 w-4 text-muted mt-0.5" />
+                ) : (
+                   <MapPin className="h-4 w-4 text-muted mt-0.5" />
+                )}
+                <div>
+                  <div className="font-bold text-sm text-ink">{a.label} {a.is_default && <span className="font-normal text-muted">(Default)</span>}</div>
+                  <div className="text-xs text-muted mt-1 leading-normal">
+                    {a.line1}
+                    {a.line2 ? `, ${a.line2}` : ''}
+                    <br />
+                    {a.city}, {a.postcode}
+                  </div>
+                </div>
               </div>
-              <button
-                aria-label={`Delete ${a.label}`}
-                className="shrink-0 rounded-full p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition"
-                onClick={async () => {
-                  if (!window.confirm(`Delete "${a.label}"?`)) return;
-                  const { error } = await supabase().from('addresses').delete().eq('id', a.id);
-                  if (!error) setAddresses((cur) => cur.filter((x) => x.id !== a.id));
-                  else alert('Could not delete — it may be linked to a booking.');
-                }}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </li>
+              <div className="flex gap-2 mt-4 pt-3 border-t border-hairline">
+                <Button variant="ghost" size="sm" className="text-xs flex-1">EDIT</Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs flex-1 text-danger hover:bg-danger/10"
+                  onClick={async () => {
+                    const { error } = await supabase().from('addresses').delete().eq('id', a.id);
+                    if (!error) setAddresses((cur) => cur.filter((x) => x.id !== a.id));
+                  }}
+                >
+                  REMOVE
+                </Button>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : (
         <p className="text-xs text-muted">No saved addresses yet.</p>
       )}
-      {addingAddress ? (
-        <AddressForm
-          onAdded={async () => {
-            setAddingAddress(false);
-            const { data: { user: u } } = await supabase().auth.getUser();
-            if (!u) return;
-            const { data: addr } = await supabase().from('addresses').select('*').eq('profile_id', u.id);
-            setAddresses(addr ?? []);
-          }}
-          onCancel={() => setAddingAddress(false)}
-        />
-      ) : (
-        <Button variant="outline" onClick={() => setAddingAddress(true)} className="flex items-center gap-1.5">
-          <Plus className="h-4 w-4" /> Add Address
-        </Button>
+
+      {addingAddress && (
+        <div className="mt-6 border-t border-hairline pt-6">
+          <h3 className="font-display text-base mb-3">Add New Address</h3>
+          <AddressForm
+            onAdded={async () => {
+              setAddingAddress(false);
+              const { data: { user: u } } = await supabase().auth.getUser();
+              if (!u) return;
+              const { data: addr } = await supabase().from('addresses').select('*').eq('profile_id', u.id);
+              setAddresses(addr ?? []);
+            }}
+            onCancel={() => setAddingAddress(false)}
+          />
+        </div>
       )}
-    </Card>
+
+      {/* Sticky Bottom CTA for Mobile */}
+      {!addingAddress && (
+        <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-hairline z-20">
+           <Button className="w-full shadow-lg" onClick={() => setAddingAddress(true)}>
+             + ADD NEW ADDRESS
+           </Button>
+        </div>
+      )}
+    </div>
   );
 
   const renderPayments = () => (

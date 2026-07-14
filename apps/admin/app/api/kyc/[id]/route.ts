@@ -10,7 +10,22 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   try {
     const db = getSupabaseServer();
     const data = await getProviderKyc(db, params.id);
-    return NextResponse.json(data);
+    
+    // Generate signed URLs for private files in provider_documents bucket
+    const documentsWithUrls = await Promise.all((data.documents || []).map(async (doc: any) => {
+      const { data: signData } = await db.storage
+        .from('provider_documents')
+        .createSignedUrl(doc.storage_path, 3600);
+      return {
+        ...doc,
+        signedUrl: signData?.signedUrl || null,
+      };
+    }));
+
+    return NextResponse.json({
+      profile: data.profile,
+      documents: documentsWithUrls,
+    });
   } catch (e: any) {
     const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' ? 401 : 404;
     return NextResponse.json({ error: e.message }, { status });

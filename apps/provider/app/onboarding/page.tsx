@@ -14,7 +14,7 @@ export default async function Onboarding() {
   const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single();
   const { data: docs } = await db.from('provider_documents').select('*').eq('provider_id', user.id);
 
-  const required = ['id', 'insurance'];
+  const required = ['id', 'selfie'];
   const have = new Set((docs ?? []).map((d) => d.doc_type));
   const missing = required.filter((r) => !have.has(r));
 
@@ -22,11 +22,11 @@ export default async function Onboarding() {
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-10 pb-24 lg:pb-10">
       <header className="space-y-1">
         <p className="font-mono-utility text-xs font-semibold uppercase tracking-wider text-muted">
-          Step 1 of 2
+          Step 3 of 3: Identity Verification
         </p>
-        <h1 className="font-display text-2xl font-bold text-ink">Get verified</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">COMPLETE YOUR PROFILE</h1>
         <p className="text-sm text-muted">
-          Upload the documents below. Once both required items are uploaded, your status will update automatically.
+          To ensure platform safety, we require a valid Government ID and a selfie.
         </p>
       </header>
 

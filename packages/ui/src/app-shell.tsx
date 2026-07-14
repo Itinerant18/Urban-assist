@@ -16,10 +16,12 @@ export interface NavItem {
 export function AppShell({
   nav,
   brand,
+  headerRight,
   children,
 }: {
   nav: NavItem[];
   brand: React.ReactNode;
+  headerRight?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -37,8 +39,13 @@ export function AppShell({
       <main className={cn("flex-1 pb-24 lg:pb-12", isSuccessPage && "pb-0")}>
         <header className="flex items-center justify-between px-5 py-4 lg:hidden">
           <div className="font-display text-base">{brand}</div>
+          {headerRight && <div>{headerRight}</div>}
         </header>
-        <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 lg:max-w-3xl lg:px-10">
+        {/* Desktop Header */}
+        <header className="hidden lg:flex items-center justify-end px-10 py-4 h-16 border-b border-hairline sticky top-0 bg-bg/95 backdrop-blur z-20">
+          {headerRight && <div>{headerRight}</div>}
+        </header>
+        <div className="mx-auto w-full max-w-2xl px-4 py-4 sm:px-6 lg:max-w-3xl lg:px-10 lg:py-8">
           {children}
         </div>
       </main>

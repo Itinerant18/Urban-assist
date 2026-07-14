@@ -10,14 +10,23 @@ import {
   TicketCheck,
   ScrollText,
   MoreHorizontal,
+  Wallet,
 } from 'lucide-react';
 
 const nav = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/bookings', label: 'Bookings', icon: Briefcase },
-  { href: '/providers', label: 'Users & Providers', icon: Users },
+  {
+    href: '/providers',
+    label: 'Users & Providers',
+    icon: Users,
+    sub: [
+      { href: '/staff', label: 'Staff Roles' }
+    ]
+  },
   { href: '/kyc', label: 'KYC Queue', icon: ShieldCheck },
   { href: '/tickets', label: 'Support', icon: TicketCheck },
+  { href: '/financials', label: 'Financials', icon: Wallet },
   { href: '/audit', label: 'Audit Logs', icon: ScrollText },
 ];
 
@@ -28,28 +37,47 @@ function isActive(pathname: string, href: string) {
 export function DesktopNav({ kycPending }: { kycPending: number }) {
   const pathname = usePathname();
   return (
-    <>
-      {nav.map(({ href, label, icon: Icon }) => {
+    <div className="space-y-1.5">
+      {nav.map(({ href, label, icon: Icon, sub }) => {
         const active = isActive(pathname, href);
         return (
-          <Link
-            key={href}
-            href={href}
-            className={`flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors ${
-              active ? 'bg-accent/10 font-semibold text-ink' : 'text-ink hover:bg-hairline/40'
-            }`}
-          >
-            <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-accent' : 'text-muted'}`} />
-            <span className="flex-1">{label}</span>
-            {href === '/kyc' && kycPending > 0 && (
-              <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
-                {kycPending}
-              </span>
+          <div key={href} className="flex flex-col">
+            <Link
+              href={href}
+              className={`flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors ${
+                active ? 'bg-accent/10 font-semibold text-ink' : 'text-ink hover:bg-hairline/40'
+              }`}
+            >
+              <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-accent' : 'text-muted'}`} />
+              <span className="flex-1">{label}</span>
+              {href === '/kyc' && kycPending > 0 && (
+                <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+                  {kycPending}
+                </span>
+              )}
+            </Link>
+            {sub && (
+              <div className="pl-6 mt-1 flex flex-col gap-1 border-l border-hairline ml-4">
+                {sub.map((s) => {
+                  const subActive = pathname.startsWith(s.href);
+                  return (
+                    <Link
+                      key={s.href}
+                      href={s.href}
+                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                        subActive ? 'font-semibold text-accent' : 'text-muted hover:text-ink'
+                      }`}
+                    >
+                      ↳ {s.label}
+                    </Link>
+                  );
+                })}
+              </div>
             )}
-          </Link>
+          </div>
         );
       })}
-    </>
+    </div>
   );
 }
 
