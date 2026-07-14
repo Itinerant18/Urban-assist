@@ -15,20 +15,25 @@ export default function AllServicesPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-page px-4 pb-16 pt-6 lg:px-6">
-        <div className="mb-6">
-          <h1 className="text-[26px] font-extrabold text-ink lg:text-[30px]">All Services</h1>
-          <p className="mt-1 text-[14px] text-muted">
-            Browse every category, room and job we cover.
+      <main className="mx-auto max-w-page px-4 pb-20 pt-8 lg:px-6">
+        {/* Page Header */}
+        <div className="mb-10">
+          <h1 className="text-[32px] font-bold text-ink lg:text-[40px]">All Services</h1>
+          <p className="mt-2 max-w-2xl text-[15px] text-muted leading-relaxed">
+            Discover every home service category we cover. From cleaning to repairs, find trusted professionals in your area.
           </p>
-          <div className="mt-4 max-w-xl">
-            <ServiceSearch />
+          
+          {/* Search Bar */}
+          <div className="mt-6 max-w-2xl">
+            <ServiceSearch inputClassName="bg-white shadow-sm focus:shadow-md" />
           </div>
         </div>
 
+        {/* Category Navigation */}
         <CategoryTabs categories={SERVICE_CATEGORIES} />
 
-        <div className="mt-8 space-y-14">
+        {/* Services by Category */}
+        <div className="mt-12 space-y-16">
           {SERVICE_CATEGORIES.map((category) => (
             <CategorySection key={category.id} category={category} />
           ))}
