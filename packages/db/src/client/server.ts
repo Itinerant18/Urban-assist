@@ -11,6 +11,7 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { readPublicEnv } from './env';
+import { cache } from 'react';
 
 type CookieStore = {
   get: (name: string) => { value: string } | undefined;
@@ -59,7 +60,7 @@ export function createServer(cookies: CookieStore) {
  * const db = getSupabaseServer();
  * const { data: { user } } = await db.auth.getUser();
  */
-export function getSupabaseServer() {
+export const getSupabaseServer = cache(() => {
   // Dynamically import cookies() so this file stays importable in non-Next
   // environments (e.g., edge functions, tests) — the error only surfaces at
   // call time if the Next.js runtime isn't present.
@@ -75,6 +76,6 @@ export function getSupabaseServer() {
       try { store.set({ name, value: '', ...options, maxAge: 0 }); } catch { /* noop */ }
     },
   });
-}
+});
 
 
