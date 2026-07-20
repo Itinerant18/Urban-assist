@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getSupabaseServer } from '@urban-assist/db/server';
+import { createServiceRole, getSupabaseServer } from '@urban-assist/db/server';
 import { LogOut } from 'lucide-react';
 import { DesktopNav, MobileNav } from './nav-links';
 
@@ -17,14 +17,15 @@ function SearchForm({ className }: { className?: string }) {
 }
 
 export default async function AdminAppLayout({ children }: { children: React.ReactNode }) {
-  const db = getSupabaseServer();
+  const sessionDb = getSupabaseServer();
   const {
     data: { user },
-  } = await db.auth.getUser();
+  } = await sessionDb.auth.getUser();
 
   if (!user) redirect('/login');
 
-  // Only allow admin-role users.
+  // All admin application data reads use the service-role client.
+  const db = createServiceRole();
   const [{ data: profile }, kycPendingRes] = await Promise.all([
     db.from('profiles').select('role, full_name, email').eq('id', user.id).single(),
     db

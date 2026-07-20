@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./types": "./src/types.ts",
     "./server": "./src/server.ts",
+    "./middleware": "./src/middleware.ts",
     "./browser": "./src/browser.ts"
   },
   "scripts": {

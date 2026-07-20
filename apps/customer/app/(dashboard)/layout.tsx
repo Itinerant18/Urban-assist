@@ -24,11 +24,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect(`/login?redirect=${encodeURIComponent(pathname)}`);
   }
 
-  const { count } = await db
-    .from('notifications')
-    .select('*', { count: 'exact', head: true })
-    .eq('profile_id', user.id)
-    .is('read_at', null);
+  const [{ data: profile }, { count }] = await Promise.all([
+    db.from('profiles').select('role').eq('id', user.id).single(),
+    db
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('profile_id', user.id)
+      .is('read_at', null),
+  ]);
+  if (profile?.role !== 'customer') redirect('/login?error=wrong_app');
 
   return (
     <AppShell 

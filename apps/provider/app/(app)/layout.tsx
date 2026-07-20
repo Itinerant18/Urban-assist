@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { AppShell, NavItem } from '@urban-assist/ui';
+import { AppShell, type NavItem } from '@urban-assist/ui';
 import { Briefcase, CalendarDays, Wallet, FileText, UserRound, Settings } from 'lucide-react';
 
 const nav: NavItem[] = [
@@ -23,15 +23,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .select('role,kyc_status,registration_completed')
     .eq('id', user.id)
     .single();
-  if (!profile) redirect('/login');
+  if (!profile || profile.role !== 'provider') redirect('/login?error=wrong_app');
 
   // Registration wall — /register lives outside this route group, so no loop.
   if (!profile.registration_completed) redirect('/register');
-
-  if (profile.role !== 'provider') {
-    // Promote (e.g. shared account).
-    await db.from('profiles').update({ role: 'provider' }).eq('id', user.id);
-  }
 
   return <AppShell nav={nav} brand="Urban Assist Pro">{children}</AppShell>;
 }

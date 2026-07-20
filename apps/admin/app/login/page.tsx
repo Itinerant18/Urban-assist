@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -15,16 +14,21 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError(null);
 
-    const db = supabase();
-    const { error: authError } = await db.auth.signInWithPassword({ email, password });
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const result = (await response.json().catch(() => ({}))) as { error?: string };
 
-    if (authError) {
-      setError(authError.message);
+    if (!response.ok) {
+      setError(result.error ?? 'Sign-in failed.');
       setLoading(false);
       return;
     }
 
-    router.push('/');
+    router.replace('/');
+    router.refresh();
   }
 
   return (
