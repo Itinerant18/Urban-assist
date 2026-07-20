@@ -9,11 +9,10 @@ export interface SubmitReviewInput {
 }
 
 export async function submitReview(
-  db: SupabaseClient,
   admin: SupabaseClient,
   input: SubmitReviewInput,
 ): Promise<void> {
-  const { data: booking } = await db
+  const { data: booking } = await admin
     .from('bookings')
     .select('id, customer_id, provider_id, status')
     .eq('id', input.bookingId)
@@ -25,12 +24,13 @@ export async function submitReview(
   const isProvider = booking.provider_id === input.userId;
   if (!isCustomer && !isProvider) throw new Error('forbidden');
 
-  const targetId = isCustomer ? booking.provider_id! : booking.customer_id;
+  const targetId = isCustomer ? booking.provider_id : booking.customer_id;
+  if (!targetId) throw new Error('review_target_missing');
   const direction: 'customer_to_provider' | 'provider_to_customer' = isCustomer
     ? 'customer_to_provider'
     : 'provider_to_customer';
 
-  const { error } = await db.from('reviews').insert({
+  const { error } = await admin.from('reviews').insert({
     booking_id: booking.id,
     author_id: input.userId,
     target_id: targetId,
@@ -38,7 +38,17 @@ export async function submitReview(
     rating: input.rating,
     comment: input.comment ?? null,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === '23505') throw new Error('review_already_submitted');
+    if (error.code === '23514') throw new Error('review_not_eligible');
+    throw new Error(error.message);
+  }
+
+  await admin.from('notifications').insert({
+    profile_id: targetId,
+    type: 'review.received',
+    payload: { booking_id: booking.id, rating: input.rating },
+  });
 
   track(admin, input.userId, {
     type: 'review.submitted',

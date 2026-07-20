@@ -203,6 +203,7 @@ function getTitle(type: string): string {
     'booking.completed': 'Job completed',
     'message.new': 'New message',
     'payment.released': 'Payment released',
+    'review.received': 'New review',
   };
   return titles[type] ?? 'Urban Assist';
 }
@@ -216,6 +217,7 @@ function getBody(type: string): string {
     'booking.completed': 'Your booking is complete and ready for review.',
     'message.new': 'You have a new message about your booking.',
     'payment.released': 'Payment for a completed job has been sent to your account.',
+    'review.received': 'A completed booking has received a new rating.',
   };
   return bodies[type] ?? 'You have a new notification.';
 }

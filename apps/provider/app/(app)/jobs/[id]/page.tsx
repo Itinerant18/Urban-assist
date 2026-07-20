@@ -453,7 +453,14 @@ export default function JobDetailPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ booking_id: id, rating, comment: reviewComment || null }),
       });
-      if (!res.ok) throw new Error('Could not submit review');
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(
+          payload.error === 'review_already_submitted'
+            ? 'You have already reviewed this booking.'
+            : 'Could not submit review',
+        );
+      }
       setReviewed(true);
     } catch (err: any) {
       alert(err.message);

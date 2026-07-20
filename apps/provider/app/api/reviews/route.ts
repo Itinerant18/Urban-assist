@@ -11,25 +11,26 @@ const Schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const { data: { user } } = await getSupabaseServer().auth.getUser();
+  const {
+    data: { user },
+  } = await getSupabaseServer().auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const parsed = Schema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const body = parsed.data;
 
   try {
     await submitReview(createServiceRole(), {
-      bookingId: body.booking_id,
+      bookingId: parsed.data.booking_id,
       userId: user.id,
-      rating: body.rating,
-      comment: body.comment,
+      rating: parsed.data.rating,
+      comment: parsed.data.comment,
     });
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'review_submission_failed';
-    const status = message === 'review_already_submitted' ? 409 : 400;
+    const status =
+      message === 'review_already_submitted' ? 409 : message === 'forbidden' ? 403 : 400;
     return NextResponse.json({ error: message }, { status });
   }
 }
-

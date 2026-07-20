@@ -276,7 +276,15 @@ export function BookingDetail({
           comment: fullComment.trim() || null,
         }),
       });
-      if (!reviewRes.ok) throw new Error('Could not submit review');
+      if (!reviewRes.ok) {
+        const payload = await reviewRes.json().catch(() => ({}));
+        throw new Error(
+          payload.error === 'review_already_submitted'
+            ? 'You have already reviewed this booking.'
+            : 'Could not submit review',
+        );
+      }
+      setReviewed(true);
 
       // 2. Process Tip Payment via Connect if added
       let tipAmount = 0;
@@ -314,8 +322,6 @@ export function BookingDetail({
           throw new Error(payErr.message || 'Payment confirmation failed');
         }
       }
-
-      setReviewed(true);
     } catch (e: any) {
       alert(e.message);
     } finally {
