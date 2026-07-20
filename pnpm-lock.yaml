@@ -56,6 +56,9 @@ importers:
       '@urban-assist/server-lib':
         specifier: workspace:*
         version: link:../../packages/server-lib
+      '@urban-assist/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@urban-assist/ui':
         specifier: workspace:*
         version: link:../../packages/ui

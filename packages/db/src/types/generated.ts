@@ -1208,6 +1208,10 @@ export type Database = {
           stripe_account_id: string
         }[]
       }
+      get_admin_financial_dashboard: {
+        Args: never
+        Returns: Json
+      }
       verify_booking_start_code: {
         Args: { p_booking_id: string; p_code: string; p_provider_id: string }
         Returns: string

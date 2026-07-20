@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { ProviderPayoutReleaseResult } from '@urban-assist/types';
 import { stripe } from './client';
 
 export interface PayoutOnboardingLink {
@@ -88,7 +89,7 @@ interface BookingPayoutClaim {
 export async function releaseProviderEarnings(
   db: SupabaseClient,
   providerId: string,
-): Promise<{ released: number; processing: number; alreadyPaid: number }> {
+): Promise<ProviderPayoutReleaseResult> {
   const { data: bookings, error } = await db
     .from('bookings')
     .select('id')

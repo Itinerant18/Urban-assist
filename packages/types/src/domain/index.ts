@@ -4,3 +4,10 @@ export type { PaymentMethod, PaymentStatus, PayoutStatus, Payment } from './paym
 export type { ReviewDirection, Review } from './review';
 export type { ServiceCategory, ProviderService } from './service';
 export type { TicketStatus, SupportTicket } from './support';
+export type {
+  AdminFinancialDashboard,
+  FinancialMetrics,
+  PayoutReleaseStatus,
+  ProviderPayoutReleaseResult,
+  ProviderPayoutSummary,
+} from './financial';
