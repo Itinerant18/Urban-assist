@@ -79,7 +79,7 @@ export function LoginForm() {
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel-national"
-                  placeholder="7700 900000"
+                  placeholder="7123 456789"
                   maxLength={10}
                   className="w-full bg-white px-3.5 py-2.5 text-sm text-charcoal placeholder:text-muted focus:outline-none"
                   value={local}

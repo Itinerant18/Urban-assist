@@ -3,21 +3,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { otpRateLimit } from '@urban-assist/integrations/redis';
 
-/** Normalise a UK mobile to E.164: `07123456789` → `+447123456789`. */
-function normaliseUkMobile(raw: string): string | null {
+/** Normalise a UK or IN mobile to E.164. */
+function normaliseMobile(raw: string): string | null {
   const digits = raw.replace(/[\s\-()]/g, '');
   if (/^\+447\d{9}$/.test(digits)) return digits;
   if (/^447\d{9}$/.test(digits)) return `+${digits}`;
   if (/^07\d{9}$/.test(digits)) return `+44${digits.slice(1)}`;
+  if (/^\+91[6-9]\d{9}$/.test(digits)) return digits;
+  if (/^91[6-9]\d{9}$/.test(digits)) return `+${digits}`;
   return null;
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const phone = normaliseUkMobile(typeof body?.phone === 'string' ? body.phone : '');
+  const phone = normaliseMobile(typeof body?.phone === 'string' ? body.phone : '');
   if (!phone) {
     return NextResponse.json(
-      { error: 'Enter a valid UK mobile number (starting 07 or +447).' },
+      { error: 'Enter a valid mobile number (UK starting 07/+447 or India +91).' },
       { status: 400 },
     );
   }
