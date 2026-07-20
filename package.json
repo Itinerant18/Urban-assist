@@ -12,7 +12,7 @@
     "lint":         "pnpm -r lint",
     "typecheck":    "pnpm -r typecheck",
     "format":       "prettier --write \"**/*.{ts,tsx,js,json,md}\" --ignore-path .gitignore",
-    "db:types":     "supabase gen types typescript --local > packages/db/src/types.ts",
+    "db:types":     "node tooling/generate-db-types.mjs",
     "db:migrate":   "supabase db push"
   },
   "devDependencies": {
