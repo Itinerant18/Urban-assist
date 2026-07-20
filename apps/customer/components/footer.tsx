@@ -2,7 +2,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Logo } from '@urban-assist/ui';
-import { ChevronDown, Plus, Minus } from 'lucide-react';
+import { Plus, Minus } from 'lucide-react';
 import { StoreBadges } from './store-badges';
 
 const footerLinks = {

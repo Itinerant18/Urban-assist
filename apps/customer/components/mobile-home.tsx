@@ -1,5 +1,5 @@
 'use client';
-import { MapPin, ChevronDown, Grid3X3, Star, ArrowRight, Gift, Home, CalendarClock, HelpCircle, User, ChevronUp, ShoppingCart } from 'lucide-react';
+import { MapPin, ChevronDown, Grid3X3, Star, ArrowRight, Gift, Home, CalendarClock, User, ChevronUp, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import type { HomepageData, HomepageCategory, HomepageService, HomepageReview } from '../lib/homepage-data';

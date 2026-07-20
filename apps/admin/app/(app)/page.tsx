@@ -1,5 +1,5 @@
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { Briefcase, Users, ShieldCheck, TicketCheck, AlertTriangle, ArrowRight, Play } from 'lucide-react';
+import { Briefcase, Users, ShieldCheck, TicketCheck, AlertTriangle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Card, Button, Badge } from '@urban-assist/ui';
 import { redis } from '@urban-assist/integrations/redis';
@@ -80,6 +80,8 @@ export default async function AdminDashboardPage() {
   const kycPending = kycRes.count ?? 0;
   const pendingBookings = bookingsRes.count ?? 0;
   const providersOnline = providersRes.count ?? 0;
+  void pendingBookings;
+  void providersOnline;
 
   const liquidityData = cachedStats?.liquidityData ?? [
     { hour: '08:00', bookings: 12, providers: 15 },

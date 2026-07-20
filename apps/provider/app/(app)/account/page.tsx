@@ -3,7 +3,7 @@ import * as React from 'react';
 import { Card, Button, Badge, Field, Input } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { formatUkPhone, ukDate } from '@urban-assist/lib';
-import { Star, FileText, AlertTriangle, ShieldCheck, Mail, Phone, User, Check, RefreshCw } from 'lucide-react';
+import { Star, AlertTriangle, User } from 'lucide-react';
 
 interface Review {
   id: string;

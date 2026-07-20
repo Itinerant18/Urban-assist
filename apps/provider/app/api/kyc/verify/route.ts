@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { verifyProviderDocuments } from '@urban-assist/domain/providers';
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const db = getSupabaseServer();
   const { data: { user } } = await db.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });

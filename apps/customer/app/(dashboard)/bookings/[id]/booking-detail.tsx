@@ -3,10 +3,10 @@
 // Subscribes to Supabase Realtime for status / message updates.
 
 import * as React from 'react';
-import { Card, Badge, Button, LiveStatusTrack, statusToStage, RatingInput, EmptyState, Field, Textarea } from '@urban-assist/ui';
+import { Card, Badge, Button, LiveStatusTrack, statusToStage, RatingInput, EmptyState, Field } from '@urban-assist/ui';
 import { pence, ukDateTime, getBookingOtp } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { Banknote, Phone, MessageSquare, AlertOctagon, Heart, CalendarClock, Home, UserRound } from 'lucide-react';
+import { Banknote, Phone, MessageSquare, AlertOctagon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -34,7 +34,7 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
   React.useEffect(() => {
     if (selectedTip && typeof window !== 'undefined') {
       let active = true;
-      async function initStripe() {
+      const initStripe = async () => {
         const stripe = await stripePromise;
         if (!stripe || !active) return;
         
@@ -55,7 +55,7 @@ export function BookingDetail({ booking: initialBooking, payment: initialPayment
           card.mount('#tip-card-element');
           setCardElement(card);
         }
-      }
+      };
       // Delay mounting slightly to allow DOM to render container
       const timer = setTimeout(initStripe, 100);
       return () => {

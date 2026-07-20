@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Clock } from 'lucide-react';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { pence } from '@urban-assist/lib';
-import { getCategoryBySlug, getCategoryIcon, getServiceBySlug, type ServiceItem, type Subcategory } from '../../../../../lib/services-data';
+import { getCategoryBySlug, getCategoryIcon, getServiceBySlug } from '../../../../../lib/services-data';
 import { Header } from '../../../../../components/header';
 import { Footer } from '../../../../../components/footer';
 import { ServiceCard } from '../../../../../components/services/service-card';

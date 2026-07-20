@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { createServiceRole } from '@urban-assist/db/server';
 import { redis } from '@urban-assist/integrations/redis';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   return handleAggregation();
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   return handleAggregation();
 }
 

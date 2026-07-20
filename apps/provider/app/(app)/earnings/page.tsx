@@ -1,9 +1,9 @@
 'use client';
 import * as React from 'react';
-import { Card, Button, Badge, EmptyState } from '@urban-assist/ui';
+import { Card, Button } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { pence, ukDate } from '@urban-assist/lib';
-import { Wallet, ShieldCheck, ShieldAlert, ExternalLink, Printer, ChevronRight } from 'lucide-react';
+import { Printer } from 'lucide-react';
 
 interface Transaction {
   id: string;

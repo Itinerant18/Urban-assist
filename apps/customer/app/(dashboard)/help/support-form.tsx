@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { Button, Card, Field, Input, Textarea } from '@urban-assist/ui';
+import { Button, Card, Field, Textarea } from '@urban-assist/ui';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { Paperclip } from 'lucide-react';

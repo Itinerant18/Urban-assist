@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { Card, Button, Badge } from '@urban-assist/ui';
-import { Bell, BellDot, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Card, Button } from '@urban-assist/ui';
+import { Bell, BellDot, CheckCircle2 } from 'lucide-react';
 import { ukDateTime } from '@urban-assist/lib';
 import Link from 'next/link';
 

@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
-import { Star, MapPin, SlidersHorizontal, Check, X } from 'lucide-react';
+import { Star, SlidersHorizontal } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 import { Card, Badge, Button, EmptyState } from '@urban-assist/ui';
 

@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, Button, Badge } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { CheckCircle2, AlertCircle, FileText, UploadCloud, Camera, X, RefreshCw } from 'lucide-react';
+import { UploadCloud, Camera, X } from 'lucide-react';
 
 interface DocumentRow {
   id: string;
@@ -17,7 +17,7 @@ interface OnboardingClientProps {
   initialDocs: DocumentRow[];
 }
 
-export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps) {
+export function OnboardingClient({ profile: _profile, initialDocs }: OnboardingClientProps) {
   const router = useRouter();
   const [docs, setDocs] = React.useState<DocumentRow[]>(initialDocs);
   const [busy, setBusy] = React.useState<string | null>(null);

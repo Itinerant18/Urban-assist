@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect, notFound } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { Card, Button, Badge } from '@urban-assist/ui';
-import { pence, ukDateTime } from '@urban-assist/lib';
+import { pence } from '@urban-assist/lib';
 import { CheckCircle2, Calendar, MapPin, CreditCard, Receipt } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';

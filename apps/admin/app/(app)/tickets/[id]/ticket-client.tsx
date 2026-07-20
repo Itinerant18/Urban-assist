@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge, Button, Card, Field } from '@urban-assist/ui';
-import { ShieldCheck, AlertCircle, RefreshCw, Star, Clock, User, DollarSign, MessageSquare, AlertOctagon } from 'lucide-react';
+import { Clock, DollarSign, MessageSquare, AlertOctagon } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 
 interface Ticket {

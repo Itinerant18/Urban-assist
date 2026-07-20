@@ -1,7 +1,4 @@
-import Link from 'next/link';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { Badge, Card, EmptyState, RatingStars } from '@urban-assist/ui';
-import { pence } from '@urban-assist/lib';
 import { getCached, setCached } from '@urban-assist/server-lib';
 import { BrowseClient } from '../../../components/services/browse-client';
 

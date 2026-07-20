@@ -1,6 +1,7 @@
 // Self-service support tickets. With no admin inbox in V1,
 // a webhook is fired via pg_net trigger on the database level.
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseServer } from '@urban-assist/db/server';
 

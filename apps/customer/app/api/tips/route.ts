@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { createTipIntent } from '@urban-assist/integrations/stripe';

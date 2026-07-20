@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowUpRight, Home, User, Calendar, Zap, CreditCard, Menu, X, Sun, Moon } from "lucide-react"
+import { Home, User, Calendar, Zap, CreditCard, Menu, X, Sun, Moon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Logo } from "@urban-assist/ui"
 import { motion, AnimatePresence } from "framer-motion"

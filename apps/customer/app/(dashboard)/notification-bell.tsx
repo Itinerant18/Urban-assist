@@ -16,7 +16,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       if (!data.user) return;
       profileId = data.user.id;
       
-      const ch = sb
+      sb
         .channel('notifications-bell')
         .on(
           'postgres_changes',

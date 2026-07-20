@@ -7,7 +7,7 @@ import { Button, Card, Field, Input, Textarea, Badge, RatingStars } from '@urban
 import { pence, quote } from '@urban-assist/lib';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { CreditCard, Banknote, MapPin, Plus, Clock, CalendarDays, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import { CreditCard, Banknote, MapPin, Plus, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { AddressForm } from '../../../../components/address-form';
 
@@ -71,7 +71,6 @@ export function BookFlow({ service, addresses: initialAddresses }: { service: Se
   const selectedPaymentMethod = watch('paymentMethod');
   const selectedDate = watch('scheduledAt');
   const promoCodeValue = watch('promoCode');
-  const notesValue = watch('notes');
 
   // Stripe checkout states
   const [paymentSecret, setPaymentSecret] = React.useState<string | null>(null);

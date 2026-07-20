@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { SERVICE_CATEGORIES, categoryIcons } from '../../lib/services-data';
 import { Card } from '@urban-assist/ui';
-import { Search, ChevronRight } from 'lucide-react';
+import { Search } from 'lucide-react';
 import Link from 'next/link';
 
 export function CatalogClient() {
@@ -35,7 +35,6 @@ export function CatalogClient() {
 
   // Scroll spy implementation using IntersectionObserver
   React.useEffect(() => {
-    const observers: IntersectionObserver[] = [];
     const elements = Object.values(sectionRefs.current).filter(Boolean) as HTMLDivElement[];
 
     if (elements.length === 0) return;

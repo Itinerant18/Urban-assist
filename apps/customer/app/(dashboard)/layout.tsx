@@ -1,5 +1,6 @@
-import { AppShell, NavItem } from '@urban-assist/ui';
-import { Home, CalendarClock, ShoppingCart, UserRound, Heart, Gift } from 'lucide-react';
+import type { NavItem } from '@urban-assist/ui';
+import { AppShell } from '@urban-assist/ui';
+import { Home, CalendarClock, UserRound, Heart, Gift } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { getSupabaseServer } from '@urban-assist/db/server';

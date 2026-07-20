@@ -3,7 +3,7 @@
 // Strict 90-second window to accept before routing to the next provider.
 
 import * as React from 'react';
-import { Button, Card, Badge } from '@urban-assist/ui';
+import { Button } from '@urban-assist/ui';
 import { pence, ukDateTime } from '@urban-assist/lib';
 import { Clock, MapPin, ShieldAlert } from 'lucide-react';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';

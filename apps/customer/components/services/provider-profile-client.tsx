@@ -1,9 +1,9 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
-import { Star, ShieldCheck, CheckCircle2, Award, Clock } from 'lucide-react';
+import { Star, ShieldCheck, CheckCircle2, Clock } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
-import { Button, Card, Badge } from '@urban-assist/ui';
+import { Button, Card } from '@urban-assist/ui';
 import { useCart } from '../../components/cart-context';
 
 interface ServiceItem {

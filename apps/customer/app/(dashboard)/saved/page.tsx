@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { Card, Badge, Button } from '@urban-assist/ui';
+import { Card, Badge } from '@urban-assist/ui';
 import { Heart, Tag, ArrowRight } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 

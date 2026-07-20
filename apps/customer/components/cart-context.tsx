@@ -27,7 +27,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (saved) {
       try {
         setCart(JSON.parse(saved));
-      } catch {}
+      } catch {
+        localStorage.removeItem('ua_cart');
+      }
     }
   }, []);
 

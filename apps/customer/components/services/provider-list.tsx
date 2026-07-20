@@ -3,8 +3,8 @@ import * as React from 'react';
 import Link from 'next/link';
 import { Star, Plus } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
-import { useCart, CartItem } from '../cart-context';
-import { Button, Card, Badge } from '@urban-assist/ui';
+import { useCart } from '../cart-context';
+import { Button } from '@urban-assist/ui';
 
 interface ProviderService {
   id: string;

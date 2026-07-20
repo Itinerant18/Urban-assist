@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import { Card, Badge, Button, Field, RatingInput, EmptyState, Input } from '@urban-assist/ui';
-import { pence, ukDateTime, getBookingOtp } from '@urban-assist/lib';
+import { pence, getBookingOtp } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { Phone, MessageSquare, MapPin, Play, CheckCircle2, Clock, Camera, Star, ChevronUp, ChevronDown } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
@@ -377,7 +377,7 @@ export default function JobDetailPage() {
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-muted">
-            <MapPin className="h-10 w-10 text-muted mb-2 animate-bounce" />
+            <MapPin className="h-10 w-10 text-muted mb-2 motion-safe:animate-pulse" />
             <p className="text-sm font-semibold text-ink">Routing Map Unavailable</p>
             <p className="text-xs mt-1">Please enable location services or complete setup.</p>
           </div>

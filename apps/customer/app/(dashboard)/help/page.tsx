@@ -1,12 +1,11 @@
 'use client';
 import * as React from 'react';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { Card, Badge, Button, Field, Input } from '@urban-assist/ui';
+import { Card, Badge, Button } from '@urban-assist/ui';
 import { ukDateTime } from '@urban-assist/lib';
 import { SupportForm } from './support-form';
 import Link from 'next/link';
-import { Search, CalendarClock, CreditCard, ShieldAlert, MessageSquare, Mail, Phone, BookOpen, ArrowLeft, ThumbsUp, Settings } from 'lucide-react';
-import { redirect } from 'next/navigation';
+import { Search, CalendarClock, CreditCard, ShieldAlert, MessageSquare, Mail, Phone, ArrowLeft, ThumbsUp, Settings } from 'lucide-react';
 
 interface Ticket {
   id: string;
@@ -53,7 +52,6 @@ const ticketTone: Record<string, 'accent' | 'success' | 'muted' | 'danger'> = {
 
 export default function HelpPage() {
   const [loading, setLoading] = React.useState(true);
-  const [user, setUser] = React.useState<any>(null);
   const [tickets, setTickets] = React.useState<Ticket[]>([]);
   const [searchQuery, setSearchQuery] = React.useState('');
 
@@ -66,7 +64,6 @@ export default function HelpPage() {
           window.location.href = '/login';
           return;
         }
-        setUser(authUser);
 
         const { data: t } = await sb
           .from('support_tickets')

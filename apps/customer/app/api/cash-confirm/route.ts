@@ -1,7 +1,8 @@
 // Both sides confirm cash collection. Booking is marked paid once
 // either party flips it (provider in practice; customer can corroborate).
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { createServiceRole } from '@urban-assist/db/server';

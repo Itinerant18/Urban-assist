@@ -3,8 +3,8 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCart } from '../../../components/cart-context';
-import { Card, Button, EmptyState, Badge } from '@urban-assist/ui';
-import { pence, ukDateTime } from '@urban-assist/lib';
+import { Card, Button, EmptyState } from '@urban-assist/ui';
+import { pence } from '@urban-assist/lib';
 import { Clock, Trash2, ArrowRight } from 'lucide-react';
 
 export default function CartPage() {

@@ -3,7 +3,6 @@
 // ponytail: no attach button (no attachment schema/storage) and no unread badges (no read_at column) — add schema first.
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import { Button, EmptyState } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { Phone } from 'lucide-react';
@@ -17,7 +16,6 @@ type Conversation = {
 };
 
 export function MessagesClient({ conversations, userId }: { conversations: Conversation[]; userId: string }) {
-  const router = useRouter();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState('');
   const [draft, setDraft] = React.useState('');

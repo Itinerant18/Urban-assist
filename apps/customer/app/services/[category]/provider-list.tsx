@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Card, Button } from '@urban-assist/ui';
-import { Star, Calendar, SlidersHorizontal, User, Clock, ChevronDown } from 'lucide-react';
+import { Star, Calendar, SlidersHorizontal, User, Clock } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';

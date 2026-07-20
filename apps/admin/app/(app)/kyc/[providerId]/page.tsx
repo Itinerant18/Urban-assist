@@ -3,8 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { getProviderKyc } from '@urban-assist/domain';
-import { ShieldCheck, AlertCircle, ChevronLeft, ZoomIn, ZoomOut, Check, X, FileText } from 'lucide-react';
-import { Button, Card, Badge, Field } from '@urban-assist/ui';
+import { ChevronLeft } from 'lucide-react';
 import { ReviewActions } from './review-actions';
 
 export const dynamic = 'force-dynamic';
@@ -41,8 +40,6 @@ export default async function KYCReviewDetail({ params }: { params: { providerId
       signedUrl: signData?.signedUrl || null,
     };
   }));
-
-  const activeDoc = documentsWithUrls[0] || null;
 
   return (
     <div className="h-full flex flex-col -mx-4 lg:-mx-8 -my-6">

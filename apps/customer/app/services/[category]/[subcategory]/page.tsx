@@ -52,7 +52,7 @@ async function fetchProviders(categorySlug: string) {
   }
 }
 
-function getDefaultFaqs(subcategoryName: string, categoryName: string) {
+function getDefaultFaqs(subcategoryName: string) {
   return [
     {
       question: `How often should I book ${subcategoryName.toLowerCase()}?`,
@@ -91,7 +91,7 @@ export default async function SubcategoryPage({
 
   const providers = await fetchProviders(params.category);
   const siblingSubcategories = category.subcategories.filter((s) => s.slug !== subcategory.slug);
-  const faqs = getDefaultFaqs(subcategory.name, category.name);
+  const faqs = getDefaultFaqs(subcategory.name);
 
   return (
     <>
