@@ -27,6 +27,8 @@ export type {
 export { submitReview } from './reviews';
 export type { SubmitReviewInput } from './reviews';
 
+export { sendBookingMessage } from './messages';
+
 export {
   listBookings, getBooking, updateBookingStatus,
   listProviders, getProvider,

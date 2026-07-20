@@ -4,3 +4,4 @@ export type {
   BookingStatusEvent,
   BookingStatusEventInput,
 } from './status';
+export type { ChatMessage } from './chat';

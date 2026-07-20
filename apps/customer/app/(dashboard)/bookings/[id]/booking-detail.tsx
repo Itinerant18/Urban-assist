@@ -18,6 +18,15 @@ import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { Banknote, Phone, MessageSquare, AlertOctagon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
+import type { ChatMessage } from '@urban-assist/types';
+
+type DisplayMessage = Pick<ChatMessage, 'id' | 'booking_id' | 'sender_id' | 'content' | 'created_at'>;
+
+function mergeMessages(current: DisplayMessage[], incoming: DisplayMessage[]): DisplayMessage[] {
+  const byId = new Map(current.map((message) => [message.id, message]));
+  for (const message of incoming) byId.set(message.id, message);
+  return Array.from(byId.values()).sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
 
 export function BookingDetail({
   booking: initialBooking,
@@ -33,7 +42,7 @@ export function BookingDetail({
   const router = useRouter();
   const [booking, setBooking] = React.useState(initialBooking);
   const [payment, setPayment] = React.useState(initialPayment);
-  const [messages, setMessages] = React.useState<any[]>([]);
+  const [messages, setMessages] = React.useState<DisplayMessage[]>([]);
   const [draft, setDraft] = React.useState('');
   const [rating, setRating] = React.useState(0);
   const [reviewComment, setReviewComment] = React.useState('');
@@ -104,7 +113,7 @@ export function BookingDetail({
           table: 'messages',
           filter: `booking_id=eq.${booking.id}`,
         },
-        (p) => setMessages((m) => [...m, p.new]),
+        (p) => setMessages((current) => mergeMessages(current, [p.new as DisplayMessage])),
       )
       .on(
         'postgres_changes',
@@ -150,7 +159,7 @@ export function BookingDetail({
       .eq('booking_id', booking.id)
       .order('created_at')
       .then(({ data }) => {
-        setMessages(data ?? []);
+        setMessages((current) => mergeMessages(current, (data ?? []) as DisplayMessage[]));
       });
     return () => {
       sb.removeChannel(ch);
@@ -190,6 +199,39 @@ export function BookingDetail({
     }
 
     void connectStatusStream();
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
+  }, [initialBooking.id]);
+
+  React.useEffect(() => {
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    async function connectChat() {
+      try {
+        const response = await fetch('/api/firebase/token', { method: 'POST' });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { token?: string };
+        if (!payload.token || !active) return;
+        const { subscribeToBookingChat } = await import(
+          '@urban-assist/integrations/firebase/chat-client'
+        );
+        unsubscribe = await subscribeToBookingChat({
+          bookingId: initialBooking.id,
+          customToken: payload.token,
+          participant: 'customer_id',
+          onMessages(incoming) {
+            if (active) setMessages((current) => mergeMessages(current, incoming));
+          },
+        });
+      } catch (error) {
+        console.warn('[urban-assist] Firebase chat unavailable', error);
+      }
+    }
+
+    void connectChat();
     return () => {
       active = false;
       unsubscribe?.();

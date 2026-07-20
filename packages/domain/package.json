@@ -12,6 +12,7 @@
     "./payments": "./src/payments/index.ts",
     "./providers": "./src/providers/index.ts",
     "./reviews": "./src/reviews/index.ts",
+    "./messages": "./src/messages/index.ts",
     "./admin": "./src/admin/index.ts",
     "./support": "./src/support/index.ts",
     "./pricing": "./src/pricing/index.ts",

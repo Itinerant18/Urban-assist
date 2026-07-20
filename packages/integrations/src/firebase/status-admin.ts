@@ -21,7 +21,7 @@ function getServiceAccount(): FirebaseServiceAccount | null {
   }
 }
 
-function getFirebaseAdminApp(): App | null {
+export function getFirebaseAdminApp(): App | null {
   const account = getServiceAccount();
   if (!account) return null;
   const appName = 'urban-assist-firestore';

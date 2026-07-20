@@ -16,6 +16,15 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
+import type { ChatMessage } from '@urban-assist/types';
+
+type DisplayMessage = Pick<ChatMessage, 'id' | 'booking_id' | 'sender_id' | 'content' | 'created_at'>;
+
+function mergeMessages(current: DisplayMessage[], incoming: DisplayMessage[]): DisplayMessage[] {
+  const byId = new Map(current.map((message) => [message.id, message]));
+  for (const message of incoming) byId.set(message.id, message);
+  return Array.from(byId.values()).sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
 
 type CompletionReport = {
   notes: string;
@@ -141,7 +150,7 @@ export default function JobDetailPage() {
   const [loading, setLoading] = React.useState(true);
   const [booking, setBooking] = React.useState<any>(null);
   const [payment, setPayment] = React.useState<any>(null);
-  const [messages, setMessages] = React.useState<any[]>([]);
+  const [messages, setMessages] = React.useState<DisplayMessage[]>([]);
   const [draft, setDraft] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [elapsed, setElapsed] = React.useState(0);
@@ -205,7 +214,7 @@ export default function JobDetailPage() {
           .select('*')
           .eq('booking_id', id)
           .order('created_at');
-        setMessages(msgData ?? []);
+        setMessages((current) => mergeMessages(current, (msgData ?? []) as DisplayMessage[]));
 
         // Check if already reviewed customer
         const { data: reviewData } = await sb
@@ -244,7 +253,7 @@ export default function JobDetailPage() {
           table: 'messages',
           filter: `booking_id=eq.${booking.id}`,
         },
-        (p) => setMessages((m) => [...m, p.new]),
+        (p) => setMessages((current) => mergeMessages(current, [p.new as DisplayMessage])),
       )
       .on(
         'postgres_changes',
@@ -296,6 +305,39 @@ export default function JobDetailPage() {
     }
 
     void connectStatusStream();
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
+  }, [id]);
+
+  React.useEffect(() => {
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    async function connectChat() {
+      try {
+        const response = await fetch('/api/firebase/token', { method: 'POST' });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { token?: string };
+        if (!payload.token || !active) return;
+        const { subscribeToBookingChat } = await import(
+          '@urban-assist/integrations/firebase/chat-client'
+        );
+        unsubscribe = await subscribeToBookingChat({
+          bookingId: id,
+          customToken: payload.token,
+          participant: 'provider_id',
+          onMessages(incoming) {
+            if (active) setMessages((current) => mergeMessages(current, incoming));
+          },
+        });
+      } catch (error) {
+        console.warn('[urban-assist] Firebase chat unavailable', error);
+      }
+    }
+
+    void connectChat();
     return () => {
       active = false;
       unsubscribe?.();

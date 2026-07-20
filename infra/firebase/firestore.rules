@@ -13,5 +13,15 @@ service cloud.firestore {
       // these rules; browser clients cannot create, alter, or delete events.
       allow create, update, delete: if false;
     }
+
+    match /chat_messages/{messageId} {
+      allow read: if request.auth != null
+        && (
+          resource.data.customer_id == request.auth.uid
+          || resource.data.provider_id == request.auth.uid
+        );
+
+      allow create, update, delete: if false;
+    }
   }
 }

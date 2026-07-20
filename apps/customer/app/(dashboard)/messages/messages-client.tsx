@@ -6,20 +6,29 @@ import * as React from 'react';
 import { Button, EmptyState } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { Phone } from 'lucide-react';
+import type { ChatMessage } from '@urban-assist/types';
+
+type DisplayMessage = Pick<ChatMessage, 'id' | 'booking_id' | 'sender_id' | 'content' | 'created_at'>;
+
+function mergeMessages(current: DisplayMessage[], incoming: DisplayMessage[]): DisplayMessage[] {
+  const byId = new Map(current.map((message) => [message.id, message]));
+  for (const message of incoming) byId.set(message.id, message);
+  return Array.from(byId.values()).sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
 
 type Conversation = {
   id: string;
   short_code: string;
   provider: { id: string; full_name: string | null; avatar_url: string | null; phone: string | null };
   category: { name: string } | null;
-  messages: any[];
+  messages: DisplayMessage[];
 };
 
 export function MessagesClient({ conversations, userId }: { conversations: Conversation[]; userId: string }) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState('');
   const [draft, setDraft] = React.useState('');
-  const [history, setHistory] = React.useState<Record<string, any[]>>(() =>
+  const [history, setHistory] = React.useState<Record<string, DisplayMessage[]>>(() =>
     Object.fromEntries(conversations.map((c) => [c.id, c.messages ?? []])),
   );
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -38,13 +47,50 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
         (p) =>
           setHistory((h) => {
             const cur = h[selectedId] ?? [];
-            if (cur.some((m) => m.id === (p.new as any).id)) return h;
-            return { ...h, [selectedId]: [...cur, p.new] };
+            return { ...h, [selectedId]: mergeMessages(cur, [p.new as DisplayMessage]) };
           }),
       )
       .subscribe();
     return () => {
       sb.removeChannel(ch);
+    };
+  }, [selectedId]);
+
+  React.useEffect(() => {
+    if (!selectedId) return;
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    async function connectChat() {
+      try {
+        const response = await fetch('/api/firebase/token', { method: 'POST' });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { token?: string };
+        if (!payload.token || !active || !selectedId) return;
+        const { subscribeToBookingChat } = await import(
+          '@urban-assist/integrations/firebase/chat-client'
+        );
+        unsubscribe = await subscribeToBookingChat({
+          bookingId: selectedId,
+          customToken: payload.token,
+          participant: 'customer_id',
+          onMessages(incoming) {
+            if (!active || !selectedId) return;
+            setHistory((current) => ({
+              ...current,
+              [selectedId]: mergeMessages(current[selectedId] ?? [], incoming),
+            }));
+          },
+        });
+      } catch (error) {
+        console.warn('[urban-assist] Firebase chat unavailable', error);
+      }
+    }
+
+    void connectChat();
+    return () => {
+      active = false;
+      unsubscribe?.();
     };
   }, [selectedId]);
 

@@ -20,6 +20,7 @@
     "@urban-assist/integrations": "workspace:*",
     "@urban-assist/lib": "workspace:*",
     "@urban-assist/server-lib": "workspace:*",
+    "@urban-assist/types": "workspace:*",
     "@urban-assist/ui": "workspace:*",
     "framer-motion": "^11.2.10",
     "lucide-react": "^0.395.0",
