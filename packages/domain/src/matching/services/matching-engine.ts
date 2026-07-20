@@ -211,14 +211,27 @@ export async function respondToOffer(
     }
 
     if (accept) {
+      const { data: assigned } = await db
+        .from('bookings')
+        .update({ provider_id: providerId })
+        .eq('id', offer.booking_id)
+        .in('status', ['pending_match', 'unmatched'])
+        .is('provider_id', null)
+        .select('id')
+        .maybeSingle();
+      if (!assigned) {
+        await db
+          .from('booking_offers')
+          .update({ status: 'expired', responded_at: new Date().toISOString() })
+          .eq('id', offerId)
+          .eq('status', 'pending');
+        return { result: 'expired' as const, next: null, bookingId };
+      }
       await db
         .from('booking_offers')
         .update({ status: 'accepted', responded_at: new Date().toISOString() })
-        .eq('id', offerId);
-      await db
-        .from('bookings')
-        .update({ provider_id: providerId })
-        .eq('id', offer.booking_id);
+        .eq('id', offerId)
+        .eq('status', 'pending');
       await clearActiveOffer(offer.booking_id);
       const { data: booking } = await db
         .from('bookings')

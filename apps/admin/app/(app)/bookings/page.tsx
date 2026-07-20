@@ -1,13 +1,14 @@
-import { getSupabaseServer } from '@urban-assist/db/server';
 import { Briefcase, ChevronRight } from 'lucide-react';
+import { requireAdminPermission } from '../../../lib/admin-auth';
+import { AssignmentPanel } from './assignment-panel';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BookingsPage() {
-  const db = getSupabaseServer();
+  const { db } = await requireAdminPermission('can_manage_bookings');
   const { data: bookings } = await db
     .from('bookings')
-    .select('id, short_code, status, total_pence, scheduled_at, created_at')
+    .select('id, short_code, status, total_pence, scheduled_at, created_at, provider_id')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -30,10 +31,7 @@ export default async function BookingsPage() {
       ) : (
         <div className="flex flex-col gap-2">
           {bookings.map((b) => (
-            <div
-              key={b.id}
-              className="card flex items-center justify-between"
-            >
+            <div key={b.id} className="card flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-xs font-mono-utility text-muted">
                   {b.short_code ?? b.id.slice(0, 8)}
@@ -43,7 +41,12 @@ export default async function BookingsPage() {
                   £{((b.total_pence ?? 0) / 100).toFixed(2)}
                 </span>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted" />
+              <div className="flex items-center gap-3">
+                {['pending_match', 'unmatched'].includes(b.status) && !b.provider_id && (
+                  <AssignmentPanel bookingId={b.id} />
+                )}
+                <ChevronRight className="h-4 w-4 text-muted" />
+              </div>
             </div>
           ))}
         </div>
