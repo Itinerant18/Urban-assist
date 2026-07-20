@@ -33,7 +33,8 @@ export async function createBooking(
     .single();
   if (svcErr || !svc) throw new Error('service_not_found');
 
-  let promo: { id: string; discount_type: 'percent' | 'fixed'; discount_value: number } | null = null;
+  let promo: { id: string; discount_type: 'percent' | 'fixed'; discount_value: number } | null =
+    null;
   if (input.promoCode) {
     const { data: p } = await admin
       .from('promo_codes')
@@ -307,6 +308,23 @@ export async function updateJobStatus(
   db: SupabaseClient,
   input: UpdateJobStatusInput,
 ): Promise<any> {
+  const { data: current, error: currentError } = await db
+    .from('bookings')
+    .select('status, provider_id')
+    .eq('id', input.bookingId)
+    .single();
+  if (currentError || !current) throw new Error('booking_not_found');
+  if (current.provider_id !== input.providerId) throw new Error('forbidden');
+
+  const transitions: Record<string, string[]> = {
+    assigned: ['on_the_way', 'cancelled'],
+    on_the_way: ['arrived', 'cancelled'],
+    arrived: ['in_progress', 'cancelled'],
+    in_progress: ['completed'],
+  };
+  if (!transitions[current.status]?.includes(input.status))
+    throw new Error('invalid_status_transition');
+
   const patch: Record<string, any> = { status: input.status };
   const now = new Date().toISOString();
   if (input.status === 'in_progress') patch.started_at = now;
@@ -321,6 +339,7 @@ export async function updateJobStatus(
     .update(patch)
     .eq('id', input.bookingId)
     .eq('provider_id', input.providerId)
+    .eq('status', current.status)
     .select()
     .single();
   if (error) throw new Error(error.message);

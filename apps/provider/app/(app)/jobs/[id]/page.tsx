@@ -1,13 +1,49 @@
 'use client';
 import * as React from 'react';
 import { Card, Badge, Button, Field, RatingInput, EmptyState, Input } from '@urban-assist/ui';
-import { pence, getBookingOtp } from '@urban-assist/lib';
+import { pence } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { Phone, MessageSquare, MapPin, Play, CheckCircle2, Clock, Camera, Star, ChevronUp, ChevronDown } from 'lucide-react';
+import {
+  Phone,
+  MessageSquare,
+  MapPin,
+  Play,
+  CheckCircle2,
+  Clock,
+  Camera,
+  Star,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 
+type CompletionReport = {
+  notes: string;
+  storage_path: string | null;
+};
+
+function parseCompletionReport(value: unknown): CompletionReport | null {
+  if (typeof value !== 'string') return null;
+  try {
+    const parsed = JSON.parse(value) as Partial<CompletionReport>;
+    if (typeof parsed.notes !== 'string') return null;
+    if (parsed.storage_path !== null && typeof parsed.storage_path !== 'string') return null;
+    return { notes: parsed.notes, storage_path: parsed.storage_path ?? null };
+  } catch {
+    return null;
+  }
+}
+
 // SwipeToConfirm component for native-feeling mobile transitions
-function SwipeToConfirm({ onConfirm, label, disabled }: { onConfirm: () => void; label: string; disabled?: boolean }) {
+function SwipeToConfirm({
+  onConfirm,
+  label,
+  disabled,
+}: {
+  onConfirm: () => void;
+  label: string;
+  disabled?: boolean;
+}) {
   const [startX, setStartX] = React.useState(0);
   const [currentX, setCurrentX] = React.useState(0);
   const [isSwiped, setIsSwiped] = React.useState(false);
@@ -90,7 +126,7 @@ function SwipeToConfirm({ onConfirm, label, disabled }: { onConfirm: () => void;
         onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
       >
-        <span className="font-bold text-xs select-none">{">>>"}</span>
+        <span className="font-bold text-xs select-none">{'>>>'}</span>
       </div>
       <span className="text-xs font-bold text-ink pl-8 pointer-events-none animate-pulse">
         {label}
@@ -115,6 +151,7 @@ export default function JobDetailPage() {
   const [notes, setNotes] = React.useState('');
   const [file, setFile] = React.useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = React.useState<string | null>(null);
+  const [completionPhotoUrl, setCompletionPhotoUrl] = React.useState<string | null>(null);
 
   // Review states
   const [rating, setRating] = React.useState(0);
@@ -135,7 +172,7 @@ export default function JobDetailPage() {
           setProviderLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         },
         (err) => console.log('Geolocation error', err),
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true },
       );
     }
   }, []);
@@ -146,7 +183,9 @@ export default function JobDetailPage() {
         const sb = supabase();
         const { data: b, error: bErr } = await sb
           .from('bookings')
-          .select('*, category:service_categories(name,slug), address:addresses(*), customer:profiles!bookings_customer_id_fkey(id,full_name,phone,avatar_url)')
+          .select(
+            '*, category:service_categories(name,slug), address:addresses(*), customer:profiles!bookings_customer_id_fkey(id,full_name,phone,avatar_url)',
+          )
           .eq('id', id)
           .single();
 
@@ -155,11 +194,7 @@ export default function JobDetailPage() {
           return;
         }
 
-        const { data: p } = await sb
-          .from('payments')
-          .select('*')
-          .eq('booking_id', id)
-          .single();
+        const { data: p } = await sb.from('payments').select('*').eq('booking_id', id).single();
 
         setBooking(b);
         setPayment(p);
@@ -203,12 +238,22 @@ export default function JobDetailPage() {
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `booking_id=eq.${booking.id}` },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `booking_id=eq.${booking.id}`,
+        },
         (p) => setMessages((m) => [...m, p.new]),
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'payments', filter: `booking_id=eq.${booking.id}` },
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'payments',
+          filter: `booking_id=eq.${booking.id}`,
+        },
         (p) => setPayment((cur: any) => ({ ...cur, ...p.new })),
       )
       .subscribe();
@@ -228,19 +273,51 @@ export default function JobDetailPage() {
     return () => clearInterval(t);
   }, [booking?.status, booking?.started_at]);
 
-  async function updateStatus(nextStatus: 'on_the_way' | 'arrived' | 'in_progress' | 'completed' | 'cancelled') {
+  React.useEffect(() => {
+    const report = parseCompletionReport(booking?.completion_report);
+    if (!report?.storage_path) {
+      setCompletionPhotoUrl(null);
+      return;
+    }
+    let active = true;
+    supabase()
+      .storage.from('completion-photos')
+      .createSignedUrl(report.storage_path, 3600)
+      .then(({ data, error }) => {
+        if (active) setCompletionPhotoUrl(error ? null : (data?.signedUrl ?? null));
+      });
+    return () => {
+      active = false;
+    };
+  }, [booking?.completion_report]);
+
+  async function updateStatus(
+    nextStatus: 'on_the_way' | 'arrived' | 'in_progress' | 'cancelled',
+    startCode?: string,
+  ) {
     setBusy(true);
     try {
       const res = await fetch(`/api/jobs/${id}/status`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({ status: nextStatus, start_code: startCode }),
       });
-      if (!res.ok) throw new Error('Status update failed');
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error ?? 'Status update failed');
+      }
       const data = await res.json();
       setBooking((cur: any) => ({ ...cur, ...data }));
     } catch (e: any) {
-      alert(e.message);
+      if (nextStatus === 'in_progress') {
+        setOtpError(
+          e.message === 'too_many_attempts'
+            ? 'Too many attempts. Try again later.'
+            : 'Incorrect verification code. Please ask the customer.',
+        );
+      } else {
+        alert(e.message);
+      }
     } finally {
       setBusy(false);
     }
@@ -268,37 +345,16 @@ export default function JobDetailPage() {
     setBusy(true);
     setUploadProgress('Uploading completion report…');
     try {
-      const sb = supabase();
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user) throw new Error('Not logged in');
-
-      let storagePath = null;
-      if (file) {
-        // Enforce path matches RLS policy: bookingId / filename
-        const path = `${booking.id}/${Date.now()}-${file.name}`;
-        const { error: upErr } = await sb.storage.from('completion-photos').upload(path, file, {
-          upsert: false,
-          contentType: file.type,
-        });
-        if (upErr) throw upErr;
-        storagePath = path;
-      }
-
-      // Update completion report notes and file path
-      const { error: updateErr } = await sb
-        .from('bookings')
-        .update({
-          completion_report: JSON.stringify({
-            notes: notes.trim(),
-            storage_path: storagePath,
-          }),
-        })
-        .eq('id', booking.id);
-
-      if (updateErr) throw updateErr;
-
-      // Transition to completed status
-      await updateStatus('completed');
+      const form = new FormData();
+      form.set('notes', notes.trim());
+      if (file) form.set('photo', file);
+      const response = await fetch(`/api/jobs/${booking.id}/complete`, {
+        method: 'POST',
+        body: form,
+      });
+      const completed = await response.json();
+      if (!response.ok) throw new Error(completed.error ?? 'Completion failed');
+      setBooking(completed);
       setUploadProgress(null);
     } catch (err: any) {
       alert(err.message);
@@ -353,16 +409,17 @@ export default function JobDetailPage() {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const hasPhotos = booking.completion_report ? JSON.parse(booking.completion_report).storage_path : null;
+  const completionReport = parseCompletionReport(booking.completion_report);
 
   // Directions routing embed map URL
   const jobLat = booking?.address?.lat;
   const jobLng = booking?.address?.lng;
-  const mapUrl = providerLoc && jobLat && jobLng
-    ? `https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&origin=${providerLoc.lat},${providerLoc.lng}&destination=${jobLat},${jobLng}&zoom=12`
-    : (jobLat && jobLng
-      ? `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${jobLat},${jobLng}&zoom=14`
-      : null);
+  const mapUrl =
+    providerLoc && jobLat && jobLng
+      ? `https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&origin=${providerLoc.lat},${providerLoc.lng}&destination=${jobLat},${jobLng}&zoom=12`
+      : jobLat && jobLng
+        ? `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${jobLat},${jobLng}&zoom=14`
+        : null;
 
   return (
     <div className="h-full flex flex-col lg:flex-row -mx-4 lg:-mx-8 -my-6 overflow-hidden">
@@ -401,11 +458,17 @@ export default function JobDetailPage() {
             </Badge>
             <span className="font-mono-utility text-xs text-muted">#{booking.short_code}</span>
           </div>
-          {drawerOpen ? <ChevronDown className="h-4 w-4 text-ink" /> : <ChevronUp className="h-4 w-4 text-ink" />}
+          {drawerOpen ? (
+            <ChevronDown className="h-4 w-4 text-ink" />
+          ) : (
+            <ChevronUp className="h-4 w-4 text-ink" />
+          )}
         </div>
 
         {/* Content list */}
-        <div className={`flex-1 overflow-y-auto p-5 space-y-5 ${!drawerOpen ? 'hidden lg:block' : ''}`}>
+        <div
+          className={`flex-1 overflow-y-auto p-5 space-y-5 ${!drawerOpen ? 'hidden lg:block' : ''}`}
+        >
           {/* Header */}
           <div className="hidden lg:flex justify-between items-start">
             <div>
@@ -422,7 +485,9 @@ export default function JobDetailPage() {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-xs text-muted uppercase font-mono-utility">Customer</p>
-                <h3 className="font-bold text-ink text-sm sm:text-base mt-0.5">{booking.customer?.full_name}</h3>
+                <h3 className="font-bold text-ink text-sm sm:text-base mt-0.5">
+                  {booking.customer?.full_name}
+                </h3>
               </div>
               <div className="flex gap-2">
                 {booking.customer?.phone && (
@@ -438,7 +503,12 @@ export default function JobDetailPage() {
             <div>
               <p className="text-xs text-muted uppercase font-mono-utility">Location</p>
               <p className="text-xs text-ink mt-0.5 leading-relaxed">
-                {[booking.address?.line1, booking.address?.line2, booking.address?.city, booking.address?.postcode]
+                {[
+                  booking.address?.line1,
+                  booking.address?.line2,
+                  booking.address?.city,
+                  booking.address?.postcode,
+                ]
                   .filter(Boolean)
                   .join(', ')}
               </p>
@@ -453,7 +523,9 @@ export default function JobDetailPage() {
                   <span className="font-mono-utility text-[10px] text-muted flex items-center gap-1">
                     <Clock className="h-3 w-3 animate-pulse text-accent" /> In Progress Timer
                   </span>
-                  <span className="font-display text-2xl font-bold mt-1 text-ink">{formatTimer(elapsed)}</span>
+                  <span className="font-display text-2xl font-bold mt-1 text-ink">
+                    {formatTimer(elapsed)}
+                  </span>
                 </div>
               )}
 
@@ -494,12 +566,7 @@ export default function JobDetailPage() {
                     size="block"
                     disabled={busy || enteredOtp.length !== 4}
                     onClick={() => {
-                      const correctOtp = getBookingOtp(booking.id);
-                      if (enteredOtp === correctOtp) {
-                        updateStatus('in_progress');
-                      } else {
-                        setOtpError('Incorrect verification code. Please ask the customer.');
-                      }
+                      void updateStatus('in_progress', enteredOtp);
                     }}
                   >
                     <Play className="mr-1.5 h-4 w-4" /> Verify and Start Job
@@ -509,7 +576,10 @@ export default function JobDetailPage() {
 
               {/* Completion uploader */}
               {booking.status === 'in_progress' && (
-                <form onSubmit={uploadCompletion} className="space-y-3 border-t border-hairline pt-3 mt-2">
+                <form
+                  onSubmit={uploadCompletion}
+                  className="space-y-3 border-t border-hairline pt-3 mt-2"
+                >
                   <Field label="Job completion notes">
                     <textarea
                       rows={2}
@@ -524,7 +594,7 @@ export default function JobDetailPage() {
                     <div className="flex items-center gap-2">
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                         className="hidden"
                         id="completion-file"
@@ -533,9 +603,14 @@ export default function JobDetailPage() {
                         htmlFor="completion-file"
                         className="tap cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-hairline bg-white px-4 py-2 text-xs font-medium hover:bg-bg transition"
                       >
-                        <Camera className="h-4 w-4 text-muted" /> {file ? 'Change Photo' : 'Add Photo'}
+                        <Camera className="h-4 w-4 text-muted" />{' '}
+                        {file ? 'Change Photo' : 'Add Photo'}
                       </label>
-                      {file && <span className="text-xs text-muted truncate max-w-[120px]">{file.name}</span>}
+                      {file && (
+                        <span className="text-xs text-muted truncate max-w-[120px]">
+                          {file.name}
+                        </span>
+                      )}
                     </div>
                   </Field>
                   {uploadProgress && <p className="text-xs text-accent">{uploadProgress}</p>}
@@ -556,29 +631,35 @@ export default function JobDetailPage() {
             </div>
             <div className="text-xs text-muted">
               Method: {booking.payment_method === 'card' ? 'Card' : 'Cash'} ·{' '}
-              <span className={payment?.status === 'succeeded' ? 'text-success font-semibold' : 'text-accent'}>
+              <span
+                className={
+                  payment?.status === 'succeeded' ? 'text-success font-semibold' : 'text-accent'
+                }
+              >
                 {(payment?.status ?? 'pending').toUpperCase()}
               </span>
             </div>
-            {booking.payment_method === 'cash' && booking.status === 'completed' && payment?.status !== 'succeeded' && (
-              <Button onClick={confirmCash} disabled={busy} className="w-full mt-2 text-xs">
-                Confirm Cash Collected
-              </Button>
-            )}
+            {booking.payment_method === 'cash' &&
+              booking.status === 'completed' &&
+              payment?.status !== 'succeeded' && (
+                <Button onClick={confirmCash} disabled={busy} className="w-full mt-2 text-xs">
+                  Confirm Cash Collected
+                </Button>
+              )}
           </Card>
 
           {/* Completion details if finished */}
-          {booking.status === 'completed' && booking.completion_report && (
+          {booking.status === 'completed' && completionReport && (
             <Card className="p-4 border border-hairline space-y-3">
               <div className="text-xs font-mono-utility text-muted">Completion Report</div>
-              <p className="text-xs text-ink leading-relaxed">{JSON.parse(booking.completion_report).notes}</p>
-              {hasPhotos && (
+              <p className="text-xs text-ink leading-relaxed">
+                {completionReport.notes}
+              </p>
+              {completionReport.storage_path && completionPhotoUrl && (
                 <div className="mt-2 rounded-xl overflow-hidden border border-hairline">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={`${
-                      supabase().storage.from('completion-photos').getPublicUrl(JSON.parse(booking.completion_report).storage_path).data.publicUrl
-                    }`}
+                    src={completionPhotoUrl ?? ''}
                     alt="Job completion visual"
                     className="w-full object-cover"
                   />
@@ -609,7 +690,10 @@ export default function JobDetailPage() {
                   >
                     <span>{m.content}</span>
                     <span className="text-[7px] text-muted self-end mt-0.5">
-                      {new Date(m.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(m.created_at).toLocaleTimeString('en-GB', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </span>
                   </li>
                 );
@@ -653,7 +737,10 @@ export default function JobDetailPage() {
           )}
 
           {booking.status === 'completed' && reviewed && (
-            <EmptyState title="Customer reviewed" description="You have submitted your rating for this customer." />
+            <EmptyState
+              title="Customer reviewed"
+              description="You have submitted your rating for this customer."
+            />
           )}
         </div>
       </div>

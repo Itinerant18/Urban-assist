@@ -8,7 +8,9 @@ export default async function BookingPage({ params }: { params: { id: string } }
   const db = getSupabaseServer();
   const { data: booking } = await db
     .from('bookings')
-    .select('*, category:service_categories(name,slug), address:addresses(*), provider:profiles!bookings_provider_id_fkey(id,full_name,avatar_url,rating_avg,phone)')
+    .select(
+      '*, category:service_categories(name,slug), address:addresses(*), provider:profiles!bookings_provider_id_fkey(id,full_name,avatar_url,rating_avg,phone)',
+    )
     .eq('id', params.id)
     .single();
   if (!booking) return notFound();
@@ -17,7 +19,9 @@ export default async function BookingPage({ params }: { params: { id: string } }
     .select('*')
     .eq('booking_id', params.id)
     .single();
-  const { data: { user } } = await db.auth.getUser();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
   if (!user) {
     redirect('/login');
   }
@@ -27,5 +31,17 @@ export default async function BookingPage({ params }: { params: { id: string } }
     .eq('booking_id', params.id)
     .eq('author_id', user.id)
     .maybeSingle();
-  return <BookingDetail booking={booking as any} payment={payment as any} hasReview={!!existingReview} />;
+  const { data: startCode } = await db
+    .from('booking_start_codes')
+    .select('code')
+    .eq('booking_id', params.id)
+    .maybeSingle();
+  return (
+    <BookingDetail
+      booking={booking as any}
+      payment={payment as any}
+      hasReview={!!existingReview}
+      startCode={startCode?.code ?? null}
+    />
+  );
 }

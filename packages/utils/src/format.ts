@@ -30,13 +30,4 @@ export function formatUkPhone(input: string): string {
   return input;
 }
 
-export const UK_POSTCODE_RE =
-  /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
-
-export function getBookingOtp(bookingId: string): string {
-  let hash = 0;
-  for (let i = 0; i < bookingId.length; i++) {
-    hash = bookingId.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return String(Math.abs(hash) % 10000).padStart(4, '0');
-}
+export const UK_POSTCODE_RE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
