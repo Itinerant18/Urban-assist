@@ -26,6 +26,8 @@
     "@urban-assist/db": "workspace:*",
     "@urban-assist/types": "workspace:*",
     "@urban-assist/utils": "workspace:*",
+    "firebase": "^12.16.0",
+    "firebase-admin": "^14.2.0",
     "stripe": "^16.0.0"
   },
   "devDependencies": {

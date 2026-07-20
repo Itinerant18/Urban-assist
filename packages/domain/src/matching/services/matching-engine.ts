@@ -7,7 +7,7 @@ import {
   providerOnlineKey, providerLocKey, bookingLockKey,
   TTL,
 } from '@urban-assist/integrations/redis';
-import { sendPush } from '@urban-assist/integrations/firebase';
+import { appendBookingStatus, sendPush } from '@urban-assist/integrations/firebase';
 
 interface Candidate {
   provider_id: string;
@@ -127,7 +127,24 @@ export async function sendNextOffer(db: SupabaseClient, bookingId: string) {
   try {
     const candidates = await findCandidates(db, bookingId);
     if (!candidates.length) {
-      await db.from('bookings').update({ status: 'unmatched' }).eq('id', bookingId);
+      const { data: unmatched } = await db
+        .from('bookings')
+        .update({ status: 'unmatched' })
+        .eq('id', bookingId)
+        .neq('status', 'unmatched')
+        .select('id, customer_id, provider_id')
+        .maybeSingle();
+      if (unmatched) {
+        await appendBookingStatus({
+          booking_id: unmatched.id,
+          customer_id: unmatched.customer_id,
+          provider_id: unmatched.provider_id,
+          status: 'unmatched',
+          actor_id: null,
+          actor_role: 'system',
+          source: 'matching',
+        });
+      }
       await clearActiveOffer(bookingId);
       return null;
     }
@@ -217,7 +234,7 @@ export async function respondToOffer(
         .eq('id', offer.booking_id)
         .in('status', ['pending_match', 'unmatched'])
         .is('provider_id', null)
-        .select('id')
+        .select('id, customer_id, provider_id, status')
         .maybeSingle();
       if (!assigned) {
         await db
@@ -233,24 +250,28 @@ export async function respondToOffer(
         .eq('id', offerId)
         .eq('status', 'pending');
       await clearActiveOffer(offer.booking_id);
-      const { data: booking } = await db
-        .from('bookings')
-        .select('customer_id')
-        .eq('id', offer.booking_id)
-        .single();
-      if (booking) {
+      await appendBookingStatus({
+        booking_id: assigned.id,
+        customer_id: assigned.customer_id,
+        provider_id: assigned.provider_id,
+        status: 'assigned',
+        actor_id: providerId,
+        actor_role: 'provider',
+        source: 'offer',
+      });
+      if (assigned.customer_id) {
         await db.from('notifications').insert({
-          profile_id: booking.customer_id,
+          profile_id: assigned.customer_id,
           type: 'booking.matched',
           payload: { booking_id: offer.booking_id, provider_id: providerId },
         });
         enqueueNotification({
           id: offer.id,
-          profile_id: booking.customer_id,
+          profile_id: assigned.customer_id,
           type: 'booking.matched',
           payload: { booking_id: offer.booking_id, provider_id: providerId },
         });
-        await sendPush(db, booking.customer_id, {
+        await sendPush(db, assigned.customer_id, {
           title: 'Professional assigned',
           body: 'A professional has accepted your booking. View details in the app.',
           data: { booking_id: offer.booking_id, link: `/bookings/${offer.booking_id}` },

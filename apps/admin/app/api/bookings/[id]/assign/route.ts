@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { appendBookingStatus } from '@urban-assist/integrations/firebase';
 import { requireAdminPermission } from '../../../../../lib/admin-auth';
 
 const Schema = z.object({ provider_id: z.string().uuid() });
@@ -41,7 +42,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       .eq('id', params.id)
       .in('status', ['pending_match', 'unmatched'])
       .is('provider_id', null)
-      .select('id, provider_id, status, matched_at')
+      .select('id, customer_id, provider_id, status, matched_at')
       .single();
     if (assignError || !assigned) throw new Error('booking_assignment_conflict');
 
@@ -65,6 +66,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         payload: { booking_id: params.id },
       }),
     ]);
+
+    await appendBookingStatus({
+      booking_id: assigned.id,
+      customer_id: assigned.customer_id,
+      provider_id: assigned.provider_id,
+      status: 'assigned',
+      actor_id: user.id,
+      actor_role: 'admin',
+      source: 'admin',
+    });
 
     return NextResponse.json(assigned);
   } catch (error: any) {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceRole, getSupabaseServer } from '@urban-assist/db/server';
-import { sendPush } from '@urban-assist/integrations/firebase';
+import { appendBookingStatus, sendPush } from '@urban-assist/integrations/firebase';
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -65,6 +65,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       if (storagePath) await admin.storage.from('completion-photos').remove([storagePath]);
       throw new Error('completion_conflict');
     }
+
+    await appendBookingStatus({
+      booking_id: completed.id,
+      customer_id: completed.customer_id,
+      provider_id: completed.provider_id,
+      status: 'completed',
+      actor_id: user.id,
+      actor_role: 'provider',
+      source: 'provider',
+    });
 
     await sendPush(admin, booking.customer_id, {
       title: 'Job completed',

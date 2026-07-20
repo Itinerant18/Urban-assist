@@ -3,7 +3,7 @@ import { quote } from '@urban-assist/domain/pricing';
 import { sendNextOffer } from '@urban-assist/domain/matching';
 import { track } from '@urban-assist/domain/analytics';
 import { createBookingIntent, refundPaymentIntent } from '@urban-assist/integrations/stripe';
-import { sendPush } from '@urban-assist/integrations/firebase';
+import { appendBookingStatus, sendPush } from '@urban-assist/integrations/firebase';
 
 export interface CreateBookingInput {
   customerId: string;
@@ -67,6 +67,16 @@ export async function createBooking(
     .select()
     .single();
   if (bErr || !booking) throw new Error(bErr?.message ?? 'insert_failed');
+
+  await appendBookingStatus({
+    booking_id: booking.id,
+    customer_id: booking.customer_id,
+    provider_id: booking.provider_id,
+    status: 'pending_match',
+    actor_id: input.customerId,
+    actor_role: 'customer',
+    source: 'booking',
+  });
 
   try {
     await sendNextOffer(admin, booking.id);
@@ -166,6 +176,16 @@ export async function retryMatching(
     .eq('id', input.bookingId);
   if (updateErr) throw new Error(updateErr.message);
 
+  await appendBookingStatus({
+    booking_id: booking.id,
+    customer_id: booking.customer_id,
+    provider_id: null,
+    status: 'pending_match',
+    actor_id: input.userId,
+    actor_role: 'customer',
+    source: 'customer',
+  });
+
   await sendNextOffer(admin, input.bookingId);
 }
 
@@ -197,7 +217,7 @@ export async function cancelBooking(
   // Withdraw any outstanding offers so providers stop seeing the job.
   await admin.from('booking_offers').delete().eq('booking_id', input.bookingId);
 
-  const { error: updateErr } = await admin
+  const { data: cancelled, error: updateErr } = await admin
     .from('bookings')
     .update({
       status: 'cancelled',
@@ -206,8 +226,21 @@ export async function cancelBooking(
     })
     .eq('id', input.bookingId)
     // Guard against a concurrent provider status change between read and write.
-    .in('status', CANCELLABLE_STATUSES);
+    .in('status', CANCELLABLE_STATUSES)
+    .select('id')
+    .maybeSingle();
   if (updateErr) throw new Error(updateErr.message);
+  if (!cancelled) throw new Error('booking_update_conflict');
+
+  await appendBookingStatus({
+    booking_id: booking.id,
+    customer_id: booking.customer_id,
+    provider_id: booking.provider_id,
+    status: 'cancelled',
+    actor_id: input.userId,
+    actor_role: 'customer',
+    source: 'customer',
+  });
 
   // Refund captured card payments (minus fee if within 24h).
   const { data: payment } = await admin
@@ -283,12 +316,27 @@ export async function rescheduleBooking(
   if (booking.customer_id !== input.userId) throw new Error('forbidden');
   if (!RESCHEDULABLE_STATUSES.includes(booking.status)) throw new Error('not_reschedulable');
 
-  const { error: updateErr } = await admin
+  const { data: rescheduled, error: updateErr } = await admin
     .from('bookings')
     .update({ status: 'pending_match', scheduled_at: when.toISOString() })
     .eq('id', input.bookingId)
-    .in('status', RESCHEDULABLE_STATUSES);
+    .in('status', RESCHEDULABLE_STATUSES)
+    .select('id')
+    .maybeSingle();
   if (updateErr) throw new Error(updateErr.message);
+  if (!rescheduled) throw new Error('booking_update_conflict');
+
+  if (booking.status === 'unmatched') {
+    await appendBookingStatus({
+      booking_id: booking.id,
+      customer_id: booking.customer_id,
+      provider_id: null,
+      status: 'pending_match',
+      actor_id: input.userId,
+      actor_role: 'customer',
+      source: 'customer',
+    });
+  }
 
   // Unmatched bookings re-enter the matching queue at the new time.
   if (booking.status === 'unmatched') {
@@ -343,5 +391,14 @@ export async function updateJobStatus(
     .select()
     .single();
   if (error) throw new Error(error.message);
+  await appendBookingStatus({
+    booking_id: data.id,
+    customer_id: data.customer_id,
+    provider_id: data.provider_id,
+    status: data.status,
+    actor_id: input.providerId,
+    actor_role: 'provider',
+    source: 'provider',
+  });
   return data;
 }

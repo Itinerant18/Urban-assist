@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./domain/*": "./src/domain/*.ts",
     "./api/*": "./src/api/*.ts",
+    "./events": "./src/events/index.ts",
     "./events/*": "./src/events/*.ts"
   },
   "scripts": {

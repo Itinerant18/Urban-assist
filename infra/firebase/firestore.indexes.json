@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "status_stream",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "booking_id", "order": "ASCENDING" },
+        { "fieldPath": "customer_id", "order": "ASCENDING" },
+        { "fieldPath": "occurred_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "status_stream",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "booking_id", "order": "ASCENDING" },
+        { "fieldPath": "provider_id", "order": "ASCENDING" },
+        { "fieldPath": "occurred_at", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

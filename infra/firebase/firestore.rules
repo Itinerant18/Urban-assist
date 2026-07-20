@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /status_stream/{eventId} {
+      allow read: if request.auth != null
+        && (
+          resource.data.customer_id == request.auth.uid
+          || resource.data.provider_id == request.auth.uid
+        );
+
+      // Status history is append-only and server-owned. Admin SDK writes bypass
+      // these rules; browser clients cannot create, alter, or delete events.
+      allow create, update, delete: if false;
+    }
+  }
+}

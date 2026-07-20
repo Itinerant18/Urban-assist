@@ -157,6 +157,45 @@ export function BookingDetail({
     };
   }, [booking.id, booking.provider_id]);
 
+  React.useEffect(() => {
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    async function connectStatusStream() {
+      try {
+        const response = await fetch('/api/firebase/token', { method: 'POST' });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { token?: string };
+        if (!payload.token || !active) return;
+        const { subscribeToBookingStatus } = await import(
+          '@urban-assist/integrations/firebase/status-client'
+        );
+        unsubscribe = await subscribeToBookingStatus({
+          bookingId: initialBooking.id,
+          customToken: payload.token,
+          participant: 'customer_id',
+          onEvents(events) {
+            const latest = events.at(-1);
+            if (latest && active) {
+              setBooking((current: Record<string, unknown> | null) => ({
+                ...(current ?? {}),
+                status: latest.status,
+              }));
+            }
+          },
+        });
+      } catch (error) {
+        console.warn('[urban-assist] Firebase status stream unavailable', error);
+      }
+    }
+
+    void connectStatusStream();
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
+  }, [initialBooking.id]);
+
   const stage = statusToStage(booking.status);
 
   async function sendMessage(e: React.FormEvent) {

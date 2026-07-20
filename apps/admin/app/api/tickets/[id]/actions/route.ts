@@ -1,8 +1,9 @@
 import type { NextRequest} from 'next/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
 import { refundPaymentIntent } from '@urban-assist/integrations/stripe';
+import { appendBookingStatus } from '@urban-assist/integrations/firebase';
+import { requireAdminPermission } from '../../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,19 +23,7 @@ const ActionSchema = z.discriminatedUnion('action', [
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const db = getSupabaseServer();
-    
-    // Authenticate admin user
-    const { data: { user }, error: authErr } = await db.auth.getUser();
-    if (authErr || !user) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-    }
-
-    // Verify admin role
-    const { data: profile } = await db.from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'admin') {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-    }
+    const { db: admin, user } = await requireAdminPermission('can_manage_tickets');
 
     const parsed = ActionSchema.safeParse(await req.json());
     if (!parsed.success) {
@@ -42,8 +31,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const body = parsed.data;
-    const admin = createServiceRole();
-
     // Fetch the ticket & booking context
     const { data: ticket, error: ticketErr } = await admin
       .from('support_tickets')
@@ -80,7 +67,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       await admin.from('payments').update({ status: 'refunded' }).eq('id', payment.id);
 
       // Mark booking as cancelled or keep as completed but refunded
-      await admin.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id);
+      const { data: cancelled, error: cancelError } = await admin
+        .from('bookings')
+        .update({ status: 'cancelled' })
+        .eq('id', booking.id)
+        .select('id, customer_id, provider_id')
+        .single();
+      if (cancelError || !cancelled) throw cancelError ?? new Error('booking_update_failed');
+
+      await appendBookingStatus({
+        booking_id: cancelled.id,
+        customer_id: cancelled.customer_id,
+        provider_id: cancelled.provider_id,
+        status: 'cancelled',
+        actor_id: user.id,
+        actor_role: 'admin',
+        source: 'support',
+      });
 
       // Log event to audit log
       await admin.from('audit_log').insert({
