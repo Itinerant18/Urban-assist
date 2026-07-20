@@ -304,6 +304,57 @@ export type Database = {
           },
         ]
       }
+      booking_start_codes: {
+        Row: {
+          attempt_count: number
+          booking_id: string
+          code: string
+          consumed_at: string | null
+          created_at: string
+          customer_id: string
+          expires_at: string
+          last_attempt_at: string | null
+          max_attempts: number
+        }
+        Insert: {
+          attempt_count?: number
+          booking_id: string
+          code: string
+          consumed_at?: string | null
+          created_at?: string
+          customer_id: string
+          expires_at?: string
+          last_attempt_at?: string | null
+          max_attempts?: number
+        }
+        Update: {
+          attempt_count?: number
+          booking_id?: string
+          code?: string
+          consumed_at?: string | null
+          created_at?: string
+          customer_id?: string
+          expires_at?: string
+          last_attempt_at?: string | null
+          max_attempts?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_start_codes_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_start_codes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           address_id: string
@@ -526,7 +577,12 @@ export type Database = {
       notifications: {
         Row: {
           created_at: string
+          delivered_at: string | null
+          delivery_attempts: number
+          delivery_error: string | null
+          delivery_status: string
           id: string
+          last_delivery_attempt_at: string | null
           payload: Json
           profile_id: string
           read_at: string | null
@@ -534,7 +590,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          delivered_at?: string | null
+          delivery_attempts?: number
+          delivery_error?: string | null
+          delivery_status?: string
           id?: string
+          last_delivery_attempt_at?: string | null
           payload?: Json
           profile_id: string
           read_at?: string | null
@@ -542,7 +603,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          delivered_at?: string | null
+          delivery_attempts?: number
+          delivery_error?: string | null
+          delivery_status?: string
           id?: string
+          last_delivery_attempt_at?: string | null
           payload?: Json
           profile_id?: string
           read_at?: string | null
@@ -605,33 +671,45 @@ export type Database = {
       payouts: {
         Row: {
           amount_pence: number
+          booking_id: string | null
           created_at: string
+          failure_reason: string | null
           id: string
+          lease_expires_at: string | null
           period_end: string
           period_start: string
           provider_id: string
           status: Database["public"]["Enums"]["payout_status"]
           stripe_transfer_id: string | null
+          updated_at: string
         }
         Insert: {
           amount_pence: number
+          booking_id?: string | null
           created_at?: string
+          failure_reason?: string | null
           id?: string
+          lease_expires_at?: string | null
           period_end: string
           period_start: string
           provider_id: string
           status?: Database["public"]["Enums"]["payout_status"]
           stripe_transfer_id?: string | null
+          updated_at?: string
         }
         Update: {
           amount_pence?: number
+          booking_id?: string | null
           created_at?: string
+          failure_reason?: string | null
           id?: string
+          lease_expires_at?: string | null
           period_end?: string
           period_start?: string
           provider_id?: string
           status?: Database["public"]["Enums"]["payout_status"]
           stripe_transfer_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -639,6 +717,13 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
@@ -1113,6 +1198,20 @@ export type Database = {
       }
     }
     Functions: {
+      claim_booking_payout: {
+        Args: { p_booking_id: string }
+        Returns: {
+          amount_pence: number
+          claim_state: string
+          payout_id: string
+          provider_id: string
+          stripe_account_id: string
+        }[]
+      }
+      verify_booking_start_code: {
+        Args: { p_booking_id: string; p_code: string; p_provider_id: string }
+        Returns: string
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined

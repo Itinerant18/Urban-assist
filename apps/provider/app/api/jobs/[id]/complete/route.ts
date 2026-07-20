@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceRole, getSupabaseServer } from '@urban-assist/db/server';
-import { appendBookingStatus, sendPush } from '@urban-assist/integrations/firebase';
+import { appendBookingStatus } from '@urban-assist/integrations/firebase';
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -76,11 +76,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       source: 'provider',
     });
 
-    await sendPush(admin, booking.customer_id, {
-      title: 'Job completed',
-      body: 'Your booking is complete. Tap to rate your experience.',
-      data: { booking_id: booking.id, link: `/bookings/${booking.id}` },
-    }).catch(() => undefined);
+    await admin.from('notifications').insert({
+      profile_id: booking.customer_id,
+      type: 'booking.completed',
+      payload: { booking_id: booking.id },
+    });
 
     return NextResponse.json(completed);
   } catch (error: unknown) {

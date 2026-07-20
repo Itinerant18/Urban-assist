@@ -3,6 +3,11 @@ export { findCandidates, sendNextOffer, respondToOffer, expireOfferIfStale } fro
 export { track } from '@urban-assist/domain/analytics';
 export type { AnalyticsEvent } from '@urban-assist/domain/analytics';
 export { verifyProviderDocuments } from '@urban-assist/domain/providers';
-export { stripe, createBookingIntent, createPayoutOnboardingLink, transferToProvider } from '@urban-assist/integrations/stripe';
+export {
+  stripe,
+  createBookingIntent,
+  createPayoutOnboardingLink,
+  releaseProviderEarnings,
+} from '@urban-assist/integrations/stripe';
 export { redis, otpRateLimit, getCached, setCached, setActiveOffer, clearActiveOffer } from '@urban-assist/integrations/redis';
 export { registerToken, sendPush } from '@urban-assist/integrations/firebase';

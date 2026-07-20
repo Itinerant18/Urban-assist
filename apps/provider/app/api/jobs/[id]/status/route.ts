@@ -3,25 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
 import { updateJobStatus } from '@urban-assist/domain';
-import { sendPush } from '@urban-assist/integrations/firebase';
 import { otpRateLimit } from '@urban-assist/integrations/redis';
-
-const PUSH_COPY: Record<string, { title: string; body: string }> = {
-  on_the_way: { title: 'On the way', body: 'Your professional is on the way to you now.' },
-  arrived: {
-    title: 'Professional arrived',
-    body: 'Your professional has arrived. Share your start code to begin.',
-  },
-  in_progress: { title: 'Job started', body: 'Work on your booking has started.' },
-  completed: {
-    title: 'Job completed',
-    body: 'Your booking is complete. Tap to rate your experience.',
-  },
-  cancelled: {
-    title: 'Booking cancelled',
-    body: 'Your professional had to cancel. We’re sorry — please rebook.',
-  },
-};
 
 const Schema = z.object({
   status: z.enum(['on_the_way', 'arrived', 'in_progress', 'cancelled']),
@@ -63,13 +45,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const { success } = await limiter.limit(`job-start:${user.id}:${params.id}`);
         if (!success) return NextResponse.json({ error: 'too_many_attempts' }, { status: 429 });
       }
-      const { data: startCode } = await admin
-        .from('booking_start_codes')
-        .select('code')
-        .eq('booking_id', params.id)
-        .single();
-      if (!startCode || startCode.code !== parsed.data.start_code)
-        throw new Error('invalid_start_code');
+      const { data: verification, error: verificationError } = await admin.rpc(
+        'verify_booking_start_code',
+        {
+          p_booking_id: params.id,
+          p_provider_id: user.id,
+          p_code: parsed.data.start_code,
+        },
+      );
+      if (verificationError) throw new Error('start_code_verification_failed');
+      if (verification !== 'verified') throw new Error(String(verification ?? 'invalid_start_code'));
     }
 
     const data = await updateJobStatus(admin, {
@@ -78,13 +63,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       status: parsed.data.status,
       cancellationReason: parsed.data.cancellation_reason,
     });
-    const copy = PUSH_COPY[parsed.data.status];
-    if (copy && data?.customer_id) {
-      // service role: reading the customer's fcm_tokens crosses RLS
-      await sendPush(admin, data.customer_id, {
-        ...copy,
-        data: { booking_id: params.id, link: `/bookings/${params.id}` },
-      }).catch((e) => console.warn('[urban-assist] push failed:', e.message));
+    if (data?.customer_id) {
+      await admin.from('notifications').insert({
+        profile_id: data.customer_id,
+        type: 'booking.status_changed',
+        payload: { booking_id: params.id, status: parsed.data.status },
+      });
     }
     return NextResponse.json(data);
   } catch (error: unknown) {

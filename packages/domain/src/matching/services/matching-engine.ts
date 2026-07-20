@@ -1,13 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { OFFER_TTL_SECONDS } from '@urban-assist/utils/constants';
 import {
-  setActiveOffer, clearActiveOffer, enqueueNotification,
+  setActiveOffer, clearActiveOffer,
   acquireLock, releaseLock,
   getCached, setCached,
   providerOnlineKey, providerLocKey, bookingLockKey,
   TTL,
 } from '@urban-assist/integrations/redis';
-import { appendBookingStatus, sendPush } from '@urban-assist/integrations/firebase';
+import { appendBookingStatus } from '@urban-assist/integrations/firebase';
 
 interface Candidate {
   provider_id: string;
@@ -181,13 +181,6 @@ export async function sendNextOffer(db: SupabaseClient, bookingId: string) {
       type: 'offer.new',
       payload: { booking_id: bookingId, offer_id: offer.id, responds_by: respondsBy },
     });
-    enqueueNotification({
-      id: offer.id,
-      profile_id: next.provider_id,
-      type: 'offer.new',
-      payload: { booking_id: bookingId, offer_id: offer.id, responds_by: respondsBy },
-    });
-
     return offer;
   } finally {
     await releaseLock(bookingLockKey(bookingId));
@@ -265,17 +258,6 @@ export async function respondToOffer(
           type: 'booking.matched',
           payload: { booking_id: offer.booking_id, provider_id: providerId },
         });
-        enqueueNotification({
-          id: offer.id,
-          profile_id: assigned.customer_id,
-          type: 'booking.matched',
-          payload: { booking_id: offer.booking_id, provider_id: providerId },
-        });
-        await sendPush(db, assigned.customer_id, {
-          title: 'Professional assigned',
-          body: 'A professional has accepted your booking. View details in the app.',
-          data: { booking_id: offer.booking_id, link: `/bookings/${offer.booking_id}` },
-        }).catch((e) => console.warn('[urban-assist] push failed:', e.message));
       }
       return { result: 'accepted' as const, bookingId };
     }

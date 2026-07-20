@@ -8,8 +8,6 @@ import { Redis } from '@upstash/redis';
 export const TTL = {
   SEARCH_CACHE: 60,
   OFFER_ACTIVE: 90,
-  FCM_TOKEN: 300,
-  DISPATCHED_FENCE: 86_400,
   ONLINE_STATUS: 60,
   CONCURRENCY_LOCK: 5,
   PROVIDER_LOC: 300,
@@ -23,9 +21,6 @@ export const searchCacheKey = (slug: string, postcode: string) =>
 
 export const offerKey = (bookingId: string) =>
   `offer:active:${bookingId}`;
-
-export const fcmTokenKey = (profileId: string) =>
-  `fcm:tokens:${profileId}`;
 
 export const providerOnlineKey = (profileId: string) =>
   `provider:online:${profileId}`;
@@ -41,9 +36,6 @@ export const providerActiveKey = (categoryId: string) =>
 
 export const postcodeCacheKey = (postcode: string) =>
   `cache:postcode:${postcode.replace(/\s+/g, '').toUpperCase()}`;
-
-export const notificationPendingKey = 'notif:pending';
-export const notificationDispatchedKey = 'notif:dispatched';
 
 // ── Higher-level functions ─────────────────────────────────
 

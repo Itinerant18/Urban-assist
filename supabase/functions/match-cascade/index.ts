@@ -230,13 +230,6 @@ async function sendNext(bookingId: string) {
       type: 'offer.new',
       payload: { booking_id: bookingId, offer_id: offer?.id, responds_by: respondsBy },
     });
-    // Push to notification dispatch queue
-    await redis.lpush('notif:pending', JSON.stringify({
-      id: offer?.id,
-      profile_id: cands[0].id,
-      type: 'offer.new',
-      payload: { booking_id: bookingId, offer_id: offer?.id, responds_by: respondsBy },
-    }));
   } finally {
     await releaseLock(lockKey);
   }

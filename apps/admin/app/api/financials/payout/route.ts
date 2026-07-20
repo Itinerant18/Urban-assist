@@ -1,162 +1,66 @@
-import type { NextRequest} from 'next/server';
 import { NextResponse } from 'next/server';
-import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
-import { stripe } from '@urban-assist/integrations/stripe';
+import { z } from 'zod';
+import { releaseProviderEarnings } from '@urban-assist/integrations/stripe';
+import { requireAdminPermission } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: NextRequest) {
-  const db = getSupabaseServer();
+const Schema = z
+  .object({
+    providerId: z.string().uuid().optional(),
+    batch: z.boolean().optional(),
+  })
+  .refine((value) => Boolean(value.providerId) !== Boolean(value.batch), {
+    message: 'Provide exactly one of providerId or batch',
+  });
 
-  // 1. Authenticate user
-  const { data: { user } } = await db.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
-
-  // 2. Check admin permissions for payments
-  const { data: perms } = await db
-    .from('admin_permissions')
-    .select('can_manage_payments')
-    .eq('profile_id', user.id)
-    .single();
-
-  if (!perms || !perms.can_manage_payments) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  }
-
+export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const { providerId, batch } = body;
-
-    const admin = createServiceRole();
-
-    if (batch) {
-      // BATCH PAY ALL PENDING
-      // Query all pending payouts
-      const { data: pendingPayouts, error: fetchErr } = await admin
-        .from('payouts')
-        .select('id, provider_id, amount_pence')
-        .eq('status', 'pending');
-
-      if (fetchErr) throw fetchErr;
-      if (!pendingPayouts || pendingPayouts.length === 0) {
-        return NextResponse.json({ success: true, message: 'No pending payouts to process.' });
-      }
-
-      // Group payouts by provider_id
-      const payoutsByProvider: Record<string, { ids: string[]; total: number }> = {};
-      for (const p of pendingPayouts) {
-        if (!payoutsByProvider[p.provider_id]) {
-          payoutsByProvider[p.provider_id] = { ids: [], total: 0 };
-        }
-        payoutsByProvider[p.provider_id].ids.push(p.id);
-        payoutsByProvider[p.provider_id].total += p.amount_pence;
-      }
-
-      const results = [];
-
-      for (const provider_id of Object.keys(payoutsByProvider)) {
-        const { ids, total } = payoutsByProvider[provider_id];
-
-        // Fetch provider's Stripe Connect Account ID
-        const { data: profile, error: profErr } = await admin
-          .from('profiles')
-          .select('stripe_account_id')
-          .eq('id', provider_id)
-          .single();
-
-        if (profErr || !profile?.stripe_account_id) {
-          console.error(`Provider ${provider_id} lacks Stripe Account ID.`);
-          continue;
-        }
-
-        // Execute Stripe Connect transfer
-        const transfer = await stripe().transfers.create({
-          amount: total,
-          currency: 'gbp',
-          destination: profile.stripe_account_id,
-        });
-
-        // Update database payouts status to paid
-        const { error: updateErr } = await admin
-          .from('payouts')
-          .update({ status: 'paid', stripe_transfer_id: transfer.id })
-          .in('id', ids);
-
-        if (updateErr) throw updateErr;
-
-        // Insert audit log
-        await admin.from('audit_log').insert({
-          actor_id: user.id,
-          action: 'payout.dispatched_batch',
-          entity_type: 'payout',
-          entity_id: provider_id as any,
-          old_data: { ids, status: 'pending' } as any,
-          new_data: { stripe_transfer_id: transfer.id, status: 'paid', amount_pence: total } as any,
-        });
-
-        results.push({ provider_id, amount_pence: total, transfer_id: transfer.id });
-      }
-
-      return NextResponse.json({ success: true, processed: results });
-    } else if (providerId) {
-      // SINGLE PROVIDER PAYOUT
-      const { data: pendingPayouts, error: fetchErr } = await admin
-        .from('payouts')
-        .select('id, amount_pence')
-        .eq('provider_id', providerId)
-        .eq('status', 'pending');
-
-      if (fetchErr) throw fetchErr;
-      if (!pendingPayouts || pendingPayouts.length === 0) {
-        return NextResponse.json({ error: 'No pending payouts found for this provider.' }, { status: 400 });
-      }
-
-      const total = pendingPayouts.reduce((sum, p) => sum + p.amount_pence, 0);
-      const ids = pendingPayouts.map((p) => p.id);
-
-      // Fetch provider's Stripe Connect Account ID
-      const { data: profile, error: profErr } = await admin
-        .from('profiles')
-        .select('stripe_account_id')
-        .eq('id', providerId)
-        .single();
-
-      if (profErr || !profile?.stripe_account_id) {
-        return NextResponse.json({ error: 'Provider does not have a Stripe Connect account connected.' }, { status: 400 });
-      }
-
-      // Execute Stripe Connect transfer
-      const transfer = await stripe().transfers.create({
-        amount: total,
-        currency: 'gbp',
-        destination: profile.stripe_account_id,
-      });
-
-      // Update database payouts status to paid
-      const { error: updateErr } = await admin
-        .from('payouts')
-        .update({ status: 'paid', stripe_transfer_id: transfer.id })
-        .in('id', ids);
-
-      if (updateErr) throw updateErr;
-
-      // Insert audit log
-      await admin.from('audit_log').insert({
-        actor_id: user.id,
-        action: 'payout.dispatched',
-        entity_type: 'payout',
-        entity_id: providerId,
-        old_data: { ids, status: 'pending' } as any,
-        new_data: { stripe_transfer_id: transfer.id, status: 'paid', amount_pence: total } as any,
-      });
-
-      return NextResponse.json({ success: true, amount_pence: total, transfer_id: transfer.id });
-    } else {
-      return NextResponse.json({ error: 'Missing parameters.' }, { status: 400 });
+    const { db, user } = await requireAdminPermission('can_manage_payments');
+    const parsed = Schema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message ?? 'Internal Server Error' }, { status: 500 });
+
+    if (parsed.data.providerId) {
+      const result = await releaseProviderEarnings(db, parsed.data.providerId);
+      await db.from('audit_log').insert({
+        actor_id: user.id,
+        action: 'payout.release_requested',
+        entity_type: 'provider',
+        entity_id: parsed.data.providerId,
+        new_data: result,
+      });
+      return NextResponse.json({ success: true, ...result });
+    }
+
+    const { data: completed, error } = await db
+      .from('bookings')
+      .select('provider_id')
+      .eq('status', 'completed')
+      .not('provider_id', 'is', null);
+    if (error) throw error;
+
+    const providerIds = [...new Set((completed ?? []).map((booking) => booking.provider_id))].filter(
+      (providerId): providerId is string => Boolean(providerId),
+    );
+    const processed = [];
+    for (const providerId of providerIds) {
+      const result = await releaseProviderEarnings(db, providerId);
+      processed.push({ provider_id: providerId, ...result });
+    }
+
+    await db.from('audit_log').insert({
+      actor_id: user.id,
+      action: 'payout.batch_release_requested',
+      entity_type: 'payout',
+      entity_id: user.id,
+      new_data: { provider_count: providerIds.length, processed },
+    });
+    return NextResponse.json({ success: true, processed });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'internal_server_error';
+    const status = message === 'unauthorized' ? 401 : message === 'forbidden' ? 403 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
