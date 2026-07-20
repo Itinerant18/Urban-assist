@@ -226,6 +226,23 @@ function QuickServiceGrid({ categories }: { categories: HomepageCategory[] }) {
     },
   ];
 
+  const usedIds = new Set([cleaning.id, plumbing.id, electrical.id, heating.id, handyman.id, painting.id, gardening.id]);
+  const extraCategories = categories.filter(c => !usedIds.has(c.id)).map(c => ({
+      id: c.id,
+      type: 'standard' as const,
+      category: c,
+      slug: c.slug,
+      name: c.name,
+      icon: c.icon,
+      stripeType: 'A' as const,
+      caption: c.name.split(' ')[0],
+      badge: badgeColors[c.icon] || { bg: c.color ?? '#1F3A4D', label: 'Service' },
+      spanClass: 'col-span-1',
+  }));
+
+  tiles.push(...extraCategories);
+
+
   return (
     <section className="lg:hidden bg-bg px-4 py-4">
       <div className="mb-4 flex items-center justify-between">

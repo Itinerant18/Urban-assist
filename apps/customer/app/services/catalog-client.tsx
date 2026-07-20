@@ -175,7 +175,7 @@ export function CatalogClient() {
                     {cat.subcategories.map((sub) => {
                       const SubIcon = categoryIcons[sub.icon] ?? CatIcon;
                       return (
-                        <Link key={sub.id} href={`/services/${cat.slug}`}>
+                        <Link key={sub.id} href={`/services/${cat.slug}/${sub.slug}`}>
                           <Card className="aspect-square flex flex-col items-center justify-center p-4 gap-3 bg-white border border-hairline hover:border-accent/40 hover:bg-accent/5 hover:-translate-y-1 transition-all cursor-pointer group shadow-sm text-center">
                             <div className="rounded-2xl bg-bg p-3 group-hover:bg-accent/10 transition-colors">
                               {SubIcon && (

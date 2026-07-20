@@ -8,16 +8,7 @@ interface HeroProps {
   promoCode: HomepageData['promoCode'];
 }
 
-const tileColors: Record<string, string> = {
-  sparkles: '#6B8F6B',
-  wrench: '#C1622E',
-  zap: '#D9A441',
-  leaf: '#6B8F6B',
-  settings: '#C1622E',
-  hammer: '#1F3A4D',
-  paintbrush: '#1F3A4D',
-  lock: '#1F3A4D',
-};
+// Removed tileColors mapping in favor of DB/taxonomy color property
 
 export function Hero({ categories, promoCode }: HeroProps) {
   return (
@@ -42,9 +33,9 @@ export function Hero({ categories, promoCode }: HeroProps) {
             <div className="mt-8">
               <h2 className="mb-4 text-[15px] font-bold text-ink">What are you looking for?</h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {categories.slice(0, 8).map((cat) => {
+                {categories.map((cat) => {
                   const Icon = getCategoryIcon(cat.icon);
-                  const color = tileColors[cat.icon] ?? '#C1622E';
+                  const color = cat.color ?? '#C1622E';
                   return (
                     <a
                       key={cat.id}

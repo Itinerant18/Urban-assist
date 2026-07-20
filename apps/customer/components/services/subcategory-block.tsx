@@ -19,7 +19,7 @@ export function SubcategoryBlock({
       {/* Services Grid - Tight spacing */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {subcategory.services.map((s) => (
-          <ServiceCard key={s.id} service={s} categorySlug={categorySlug} icon={subcategory.icon} />
+          <ServiceCard key={s.id} service={s} categorySlug={categorySlug} subcategorySlug={subcategory.slug} icon={subcategory.icon} />
         ))}
       </div>
     </div>

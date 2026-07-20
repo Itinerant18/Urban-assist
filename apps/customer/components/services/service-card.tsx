@@ -5,15 +5,19 @@ import { getCategoryIcon, type ServiceItem } from '../../lib/services-data';
 interface ServiceCardProps {
   service: ServiceItem;
   categorySlug: string;
+  subcategorySlug?: string;
   /** Icon name to render (usually the parent subcategory's icon). */
   icon?: string;
 }
 
-export function ServiceCard({ service, categorySlug, icon }: ServiceCardProps) {
+export function ServiceCard({ service, categorySlug, subcategorySlug, icon }: ServiceCardProps) {
   const Icon = getCategoryIcon(service.icon ?? icon ?? 'sparkles');
+  const href = subcategorySlug
+    ? `/services/${categorySlug}/${subcategorySlug}/${service.slug}`
+    : `/services/${categorySlug}/${service.slug}`;
   return (
     <Link
-      href={`/services/${categorySlug}/${service.slug}`}
+      href={href}
       className="group flex flex-col rounded-lg border border-hairline bg-white transition-all hover:border-accent hover:shadow-sm hover:shadow-accent/20 overflow-hidden"
     >
       {/* Top: Square Image/Icon Area - Compact */}

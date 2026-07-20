@@ -94,7 +94,7 @@ export interface Category {
 export const SERVICE_CATEGORIES: Category[] = [
   {
     id: 'cleaning',
-    slug: 'cleaning-services',
+    slug: 'cleaning',
     name: 'Cleaning Services',
     description: 'Professional cleaning for every room and occasion',
     icon: 'sparkles',
@@ -347,7 +347,7 @@ export const SERVICE_CATEGORIES: Category[] = [
   },
   {
     id: 'painting-decorating',
-    slug: 'painting-decorating',
+    slug: 'painting',
     name: 'Painting & Decorating',
     description: 'Interior and exterior painting, wallpapering and finishes',
     icon: 'paintbrush',
@@ -440,7 +440,7 @@ export const SERVICE_CATEGORIES: Category[] = [
   },
   {
     id: 'gardening-outdoor',
-    slug: 'gardening-outdoor',
+    slug: 'gardening',
     name: 'Gardening & Outdoor',
     description: 'Garden maintenance, landscaping and tree surgery',
     icon: 'tree-pine',
@@ -585,7 +585,7 @@ export const SERVICE_CATEGORIES: Category[] = [
   },
   {
     id: 'appliance-services',
-    slug: 'appliance-services',
+    slug: 'appliance-repair',
     name: 'Appliance Services',
     description: 'Repair and installation for household appliances',
     icon: 'settings',
@@ -952,7 +952,7 @@ export function getPopularServices(limit = 8): (ServiceItem & { categorySlug: st
 }
 
 export function getCategoriesForHomepage(): Category[] {
-  return SERVICE_CATEGORIES.slice(0, 8).map((cat) => ({
+  return SERVICE_CATEGORIES.map((cat) => ({
     ...cat,
     minPricePence: cat.minPricePence,
     maxPricePence: cat.maxPricePence,

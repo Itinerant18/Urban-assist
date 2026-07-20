@@ -149,6 +149,24 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
     },
   ];
 
+  const usedIds = new Set([cleaning.id, plumbing.id, electrical.id, heating.id, handyman.id, painting.id, gardening.id]);
+  const extraCategories = categories.filter(c => !usedIds.has(c.id)).map(c => ({
+      id: c.id,
+      type: 'standard' as const,
+      category: c,
+      slug: c.slug,
+      name: c.name,
+      description: c.description || '',
+      icon: c.icon,
+      stripeType: 'A' as const,
+      caption: c.name,
+      spanClass: 'col-span-1 row-span-1',
+      badge: badgeColors[c.icon],
+  }));
+
+  tiles.push(...extraCategories);
+
+
   return (
     <section className="bg-bg py-12">
       <div className="mx-auto max-w-page px-6">

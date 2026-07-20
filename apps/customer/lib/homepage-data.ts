@@ -16,6 +16,7 @@ export interface HomepageCategory {
   minPricePence: number;
   maxPricePence: number;
   sortOrder: number;
+  color?: string;
 }
 
 export interface HomepageReview {
@@ -82,6 +83,7 @@ async function fetchCategories(): Promise<HomepageCategory[]> {
     minPricePence: c.minPricePence,
     maxPricePence: c.maxPricePence,
     sortOrder: c.sortOrder,
+    color: c.color,
   }));
 }
 
