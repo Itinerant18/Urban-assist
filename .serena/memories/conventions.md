@@ -1,0 +1,1 @@
+Next.js route handlers and server actions own sensitive DB mutations. Browser code calls app APIs. Use @supabase/ssr, never auth-helpers. Shared contracts imported from @urban-assist/types. Supabase Storage for uploads. Firestore status_stream append-only.

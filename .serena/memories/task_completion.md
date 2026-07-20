@@ -1,0 +1,1 @@
+Run pnpm workspace checks available in package scripts, at minimum pnpm -r typecheck/build/lint where configured. Run graphify update . after modifications. Inspect git diff/status and commit each logical increment.

@@ -1,0 +1,1 @@
+Expected commands from package scripts: pnpm install; pnpm --filter <app> dev/build/lint/typecheck; pnpm -r build/typecheck/lint; supabase db reset/db push/functions deploy; graphify update . after code edits. Windows shell is PowerShell.

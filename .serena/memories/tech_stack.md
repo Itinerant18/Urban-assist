@@ -1,0 +1,1 @@
+TypeScript monorepo using pnpm workspace. Next.js app-router apps with Supabase SSR clients, Supabase Edge Functions, Stripe integration, Firebase messaging/status integrations, shared @urban-assist/* packages. Generated DB types in packages/db/src/types/generated.ts.

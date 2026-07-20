@@ -40,11 +40,12 @@ supabase/.temp/
 # Graph / AI agent cache
 # ──────────────────────────────────────────────────
 graphify-out/
-.opencode/
-.agents/
-.claude/
-AGENTS.md
-CLAUDE.md
+# .opencode/
+# .agents/
+# .claude/
+# .serena/
+# AGENTS.md
+# CLAUDE.md
 
 # ──────────────────────────────────────────────────
 # Editor / OS
@@ -56,3 +57,9 @@ Thumbs.db
 !.vscode/settings.json
 *.log
 .playwright-mcp/
+
+# ──────────────────────────────────────────────────
+# Local scratch scripts
+# ──────────────────────────────────────────────────
+check*.js
+clean.js

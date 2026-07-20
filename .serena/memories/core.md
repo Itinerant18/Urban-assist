@@ -1,0 +1,1 @@
+Urban Assist monorepo. Apps: apps/customer, apps/provider, apps/admin. Shared packages: packages/types, packages/db, packages/domain, packages/integrations, packages/ui, packages/utils. Supabase migrations/functions live under supabase/. Business rules and API routes are server-side for mutations. Admin uses service-role server client. Firebase status history is append-only.
