@@ -14,6 +14,7 @@
     --amber: 217 164 65;        /* Amber       #D9A441 — star ratings */
     --muted: 107 106 98;        /* Muted text  #6B6A62 */
     --hairline: 236 230 217;    /* Card border #ECE6D9 */
+    --surface-sunk: 239 234 225; /* Sunk gutter #EFEAE1 — behind white bento tiles */
     --input-border: 226 218 203;/* Input/tile border #E2DACB */
     --footer-muted: 159 177 188; /* #9FB1BC */
     --footer-faint: 126 147 160; /* #7E93A0 */

@@ -19,6 +19,7 @@ module.exports = {
         'input-border': 'rgb(var(--input-border) / <alpha-value>)',
         'footer-muted': 'rgb(var(--footer-muted) / <alpha-value>)',
         'footer-faint': 'rgb(var(--footer-faint) / <alpha-value>)',
+        'surface-sunk': 'rgb(var(--surface-sunk) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
