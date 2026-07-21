@@ -21,6 +21,7 @@ const nav = [
     label: 'Users & Providers',
     icon: Users,
     sub: [
+      { href: '/customers', label: 'Customers' },
       { href: '/staff', label: 'Staff Roles' }
     ]
   },
