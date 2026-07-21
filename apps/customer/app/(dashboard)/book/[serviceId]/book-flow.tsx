@@ -45,9 +45,10 @@ const CheckoutSchema = z.object({
 
 type CheckoutFormValues = z.infer<typeof CheckoutSchema>;
 
-export function BookFlow({ service, addresses: initialAddresses }: { service: Service; addresses: Address[] }) {
+export function BookFlow({ service, addresses: initialAddresses, walletBalance = 0 }: { service: Service; addresses: Address[]; walletBalance?: number }) {
   const router = useRouter();
   const [addresses, setAddresses] = React.useState<Address[]>(initialAddresses);
+  const [applyWallet, setApplyWallet] = React.useState(false);
   
   // Accordion active step on mobile: 'address' | 'schedule' | 'payment'
   const [activeStep, setActiveStep] = React.useState<'address' | 'schedule' | 'payment'>('address');
@@ -190,6 +191,7 @@ export function BookFlow({ service, addresses: initialAddresses }: { service: Se
           scheduled_at: new Date(values.scheduledAt).toISOString(),
           payment_method: values.paymentMethod,
           promo_code: promoDiscount ? values.promoCode : null,
+          apply_wallet: applyWallet && walletBalance > 0,
           notes: values.notes || null,
         }),
       });
@@ -558,6 +560,17 @@ export function BookFlow({ service, addresses: initialAddresses }: { service: Se
               </div>
               {promoError && <p className="text-[11px] text-danger mt-1 font-medium">{promoError}</p>}
               {promoDiscount && <p className="text-[11px] text-success mt-1 font-medium flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Promo applied successfully!</p>}
+              {walletBalance > 0 && (
+                <label className="mt-3 flex items-center gap-2 text-xs text-ink cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={applyWallet}
+                    onChange={(e) => setApplyWallet(e.target.checked)}
+                    className="h-4 w-4 rounded border-hairline"
+                  />
+                  Apply wallet credit (£{(walletBalance / 100).toFixed(2)} available)
+                </label>
+              )}
             </div>
           </Card>
         </aside>

@@ -14,9 +14,18 @@ export default async function BookPage({ params }: { params: { serviceId: string
   if (!service) return notFound();
 
   const { data: { user } } = await db.auth.getUser();
-  const { data: addresses } = user
-    ? await db.from('addresses').select('*').eq('profile_id', user.id).order('is_default', { ascending: false })
-    : { data: [] as any[] };
+  const [{ data: addresses }, walletRes] = await Promise.all([
+    user
+      ? db.from('addresses').select('*').eq('profile_id', user.id).order('is_default', { ascending: false })
+      : Promise.resolve({ data: [] as any[] }),
+    user ? db.rpc('wallet_balance', { p_profile_id: user.id }) : Promise.resolve({ data: 0 }),
+  ]);
 
-  return <BookFlow service={service as any} addresses={addresses ?? []} />;
+  return (
+    <BookFlow
+      service={service as any}
+      addresses={addresses ?? []}
+      walletBalance={typeof walletRes.data === 'number' ? walletRes.data : 0}
+    />
+  );
 }

@@ -12,6 +12,7 @@ const Schema = z.object({
   scheduled_at: z.string().datetime(),
   payment_method: z.enum(['card', 'cash']),
   promo_code: z.string().optional().nullable(),
+  apply_wallet: z.boolean().optional(),
   notes: z.string().max(500).optional().nullable(),
 });
 
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
       scheduledAt: body.scheduled_at,
       paymentMethod: body.payment_method,
       promoCode: body.promo_code,
+      applyWallet: body.apply_wallet,
       notes: body.notes,
     });
     return NextResponse.json(result);

@@ -12,6 +12,7 @@ export interface CreateBookingInput {
   scheduledAt: string;
   paymentMethod: 'card' | 'cash';
   promoCode?: string | null;
+  applyWallet?: boolean;
   notes?: string | null;
 }
 
@@ -86,31 +87,61 @@ export async function createBooking(
     /* cascade failure is non-fatal */
   }
 
+  // Wallet spend happens last, so the failure surface after the debit is only
+  // the payment step — which we compensate below. Atomic + capped at the total.
+  let walletApplied = 0;
+  if (input.applyWallet) {
+    const { data } = await admin.rpc('apply_wallet_credit', {
+      p_profile_id: input.customerId,
+      p_max_pence: q.total_pence,
+      p_booking_id: booking.id,
+    });
+    walletApplied = typeof data === 'number' ? data : 0;
+    if (walletApplied > 0) {
+      await admin.from('bookings').update({ wallet_applied_pence: walletApplied }).eq('id', booking.id);
+    }
+  }
+  const amountDue = q.total_pence - walletApplied;
+
   let clientSecret: string | null = null;
-  if (input.paymentMethod === 'card') {
-    const pi = await createBookingIntent({
-      bookingId: booking.id,
-      customerId: input.customerId,
-      amountPence: q.total_pence,
-      description: `Urban Assist booking ${booking.short_code}`,
-    });
-    await admin.from('payments').insert({
-      booking_id: booking.id,
-      method: 'card',
-      stripe_payment_intent_id: pi.id,
-      amount_pence: q.total_pence,
-      vat_pence: q.vat_pence,
-      status: 'pending',
-    });
-    clientSecret = pi.client_secret;
-  } else {
-    await admin.from('payments').insert({
-      booking_id: booking.id,
-      method: 'cash',
-      amount_pence: q.total_pence,
-      vat_pence: q.vat_pence,
-      status: 'pending',
-    });
+  try {
+    if (input.paymentMethod === 'card' && amountDue > 0) {
+      const pi = await createBookingIntent({
+        bookingId: booking.id,
+        customerId: input.customerId,
+        amountPence: amountDue,
+        description: `Urban Assist booking ${booking.short_code}`,
+      });
+      await admin.from('payments').insert({
+        booking_id: booking.id,
+        method: 'card',
+        stripe_payment_intent_id: pi.id,
+        amount_pence: amountDue,
+        vat_pence: q.vat_pence,
+        status: 'pending',
+      });
+      clientSecret = pi.client_secret;
+    } else {
+      // Cash, or fully covered by wallet (amountDue === 0 → nothing to charge).
+      await admin.from('payments').insert({
+        booking_id: booking.id,
+        method: input.paymentMethod,
+        amount_pence: amountDue,
+        vat_pence: q.vat_pence,
+        status: amountDue === 0 ? 'succeeded' : 'pending',
+      });
+    }
+  } catch (e) {
+    // Never leave the customer debited for a booking we couldn't set up to pay.
+    if (walletApplied > 0) {
+      await admin.from('wallet_ledger').insert({
+        profile_id: input.customerId,
+        amount_pence: walletApplied,
+        reason: 'booking_spend_refund',
+        booking_id: booking.id,
+      });
+    }
+    throw e;
   }
 
   track(admin, input.customerId, { type: 'booking.created', payload: { booking_id: booking.id } });

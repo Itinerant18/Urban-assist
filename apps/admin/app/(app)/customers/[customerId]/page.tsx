@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 
 import { requireAdminPermission } from '../../../../lib/admin-auth';
@@ -8,6 +9,31 @@ export const dynamic = 'force-dynamic';
 
 const gbp = (pence: number) =>
   new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(pence / 100);
+
+async function grantCredit(formData: FormData) {
+  'use server';
+  const { db, user } = await requireAdminPermission('can_manage_payments');
+  const customerId = String(formData.get('customer_id'));
+  const pounds = Number(formData.get('amount'));
+  const reason = String(formData.get('reason') ?? '').trim() || 'admin_goodwill';
+  if (!customerId || !Number.isFinite(pounds) || pounds <= 0) return;
+  const amount_pence = Math.round(pounds * 100);
+
+  await (db as any).from('wallet_ledger').insert({
+    profile_id: customerId,
+    amount_pence,
+    reason: 'admin_goodwill',
+  });
+  await (db as any).rpc('append_admin_action_log', {
+    p_actor_user_id: user.id,
+    p_actor_role_code: null,
+    p_action_type: 'WALLET_GRANT',
+    p_entity_type: 'customer',
+    p_entity_id: customerId,
+    p_context: { amount_pence, reason },
+  });
+  revalidatePath(`/customers/${customerId}`);
+}
 
 export default async function CustomerDetailPage({
   params,
@@ -25,12 +51,28 @@ export default async function CustomerDetailPage({
 
   if (!customer) notFound();
 
-  const { data: bookingRows } = await (db as any)
-    .from('bookings')
-    .select('id, status, scheduled_at, total_pence')
-    .eq('customer_id', params.customerId)
-    .order('scheduled_at', { ascending: false })
-    .limit(100);
+  const [{ data: bookingRows }, walletRes, { data: ledgerRows }] = await Promise.all([
+    (db as any)
+      .from('bookings')
+      .select('id, status, scheduled_at, total_pence')
+      .eq('customer_id', params.customerId)
+      .order('scheduled_at', { ascending: false })
+      .limit(100),
+    (db as any).rpc('wallet_balance', { p_profile_id: params.customerId }),
+    (db as any)
+      .from('wallet_ledger')
+      .select('id, amount_pence, reason, created_at')
+      .eq('profile_id', params.customerId)
+      .order('created_at', { ascending: false })
+      .limit(10),
+  ]);
+  const walletBalance = typeof walletRes.data === 'number' ? walletRes.data : 0;
+  const ledger = (ledgerRows ?? []) as {
+    id: number;
+    amount_pence: number;
+    reason: string;
+    created_at: string;
+  }[];
   const bookings = (bookingRows ?? []) as {
     id: string;
     status: string;
@@ -90,6 +132,52 @@ export default async function CustomerDetailPage({
             <p className="text-lg font-semibold text-ink mt-0.5">{value}</p>
           </div>
         ))}
+      </div>
+
+      <div className="card mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-muted">Wallet balance</p>
+            <p className="text-lg font-semibold text-ink mt-0.5">{gbp(walletBalance)}</p>
+          </div>
+          <form action={grantCredit} className="flex items-end gap-2">
+            <input type="hidden" name="customer_id" value={customer.id} />
+            <label className="text-xs text-muted">
+              Grant £
+              <input
+                name="amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
+                className="mt-1 w-24 rounded-lg border border-hairline bg-bg px-2 py-1.5 text-sm text-ink focus:border-ink focus:outline-none"
+              />
+            </label>
+            <input
+              name="reason"
+              placeholder="reason (optional)"
+              className="rounded-lg border border-hairline bg-bg px-2 py-1.5 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none"
+            />
+            <button type="submit" className="rounded-lg bg-ink px-3 py-1.5 text-sm font-semibold text-white">
+              Grant
+            </button>
+          </form>
+        </div>
+        {ledger.length > 0 && (
+          <div className="mt-3 border-t border-hairline pt-3 flex flex-col gap-1">
+            {ledger.map((l) => (
+              <div key={l.id} className="flex items-center justify-between text-xs">
+                <span className="text-muted">
+                  {new Date(l.created_at).toLocaleDateString('en-GB')} · {l.reason.replace(/_/g, ' ')}
+                </span>
+                <span className={l.amount_pence >= 0 ? 'text-green-600' : 'text-ink'}>
+                  {l.amount_pence >= 0 ? '+' : '−'}
+                  {gbp(Math.abs(l.amount_pence))}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <h2 className="font-display text-sm font-bold text-ink mb-3">Booking history</h2>
