@@ -22,14 +22,16 @@ node_modules/
 # Environment variables — NEVER commit real keys
 # ──────────────────────────────────────────────────
 .env
-.env.local
-.env.*.local
+.env.*
 !.env.example
 
-# Service account / admin SDK private keys — NEVER commit
+# Service account / admin SDK private keys & certs — NEVER commit
 *-firebase-adminsdk-*.json
 *service-account*.json
 *serviceAccount*.json
+*.pem
+*.p12
+*.pfx
 
 # ──────────────────────────────────────────────────
 # TypeScript
