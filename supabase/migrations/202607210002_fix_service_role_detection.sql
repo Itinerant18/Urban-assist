@@ -1,191 +1,10 @@
--- Explicit admin RBAC, immutable application audit trail, and the V1 manual
--- assignment transaction. Existing admin_permissions rows are migrated below
--- so this can be rolled out without locking current staff out.
-
-create extension if not exists pgcrypto;
-create schema if not exists audit;
-
-create table if not exists public.admin_roles (
-  id uuid primary key default gen_random_uuid(),
-  code text not null unique,
-  name text not null,
-  description text,
-  created_at timestamptz not null default now(),
-  constraint admin_roles_code_check check (
-    code in ('super_admin', 'ops_admin', 'finance_admin', 'support_agent', 'analyst')
-  )
-);
-
-create table if not exists public.admin_user_roles (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles(id) on delete cascade,
-  role_id uuid not null references public.admin_roles(id) on delete cascade,
-  created_at timestamptz not null default now(),
-  created_by uuid references public.profiles(id) on delete set null,
-  unique (user_id, role_id)
-);
-
-create index if not exists admin_user_roles_user_idx
-  on public.admin_user_roles (user_id);
-
-insert into public.admin_roles (code, name, description)
-values
-  ('super_admin', 'Super admin', 'Full platform and staff administration access.'),
-  ('ops_admin', 'Operations admin', 'Bookings, assignments, provider vetting, and operational exceptions.'),
-  ('finance_admin', 'Finance admin', 'Payments, commissions, refunds, and provider payouts.'),
-  ('support_agent', 'Support agent', 'Disputes and customer communications.'),
-  ('analyst', 'Read-only analyst', 'Read-only access to operations and reporting.')
-on conflict (code) do update
-set name = excluded.name,
-    description = excluded.description;
-
--- Migrate the legacy permission flags. An existing admin may receive multiple
--- roles; admins with no matching permission remain able to sign in as analysts.
-insert into public.admin_user_roles (user_id, role_id)
-select p.id, ar.id
-from public.profiles p
-left join public.admin_permissions ap on ap.profile_id = p.id
-join public.admin_roles ar on
-  (ar.code = 'super_admin' and coalesce(ap.can_manage_admins, false))
-  or (ar.code = 'finance_admin' and coalesce(ap.can_manage_payments, false))
-  or (
-    ar.code = 'ops_admin'
-    and (
-      coalesce(ap.can_manage_bookings, false)
-      or coalesce(ap.can_manage_kyc, false)
-      or coalesce(ap.can_manage_providers, false)
-    )
-  )
-  or (ar.code = 'support_agent' and coalesce(ap.can_manage_tickets, false))
-  or (
-    ar.code = 'analyst'
-    and not (
-      coalesce(ap.can_manage_admins, false)
-      or coalesce(ap.can_manage_payments, false)
-      or coalesce(ap.can_manage_bookings, false)
-      or coalesce(ap.can_manage_kyc, false)
-      or coalesce(ap.can_manage_providers, false)
-      or coalesce(ap.can_manage_tickets, false)
-    )
-  )
-where p.role = 'admin'
-on conflict (user_id, role_id) do nothing;
-
-create or replace function public.is_admin_user(user_id uuid)
-returns boolean
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select exists (
-    select 1
-    from public.admin_user_roles aur
-    where aur.user_id = $1
-  );
-$$;
-
-create or replace function public.has_admin_role(user_id uuid, role_code text)
-returns boolean
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select exists (
-    select 1
-    from public.admin_user_roles aur
-    join public.admin_roles ar on ar.id = aur.role_id
-    where aur.user_id = $1
-      and ar.code = $2
-  );
-$$;
-
-revoke all on function public.is_admin_user(uuid) from public;
-revoke all on function public.has_admin_role(uuid, text) from public;
-grant execute on function public.is_admin_user(uuid) to authenticated, service_role;
-grant execute on function public.has_admin_role(uuid, text) to authenticated, service_role;
-
-alter table public.admin_roles enable row level security;
-alter table public.admin_user_roles enable row level security;
-
-drop policy if exists "Admins can read admin roles" on public.admin_roles;
-create policy "Admins can read admin roles"
-on public.admin_roles for select to authenticated
-using (public.is_admin_user((select auth.uid())));
-
-drop policy if exists "Super admins manage admin roles" on public.admin_roles;
-create policy "Super admins manage admin roles"
-on public.admin_roles for all to authenticated
-using (public.has_admin_role((select auth.uid()), 'super_admin'))
-with check (public.has_admin_role((select auth.uid()), 'super_admin'));
-
-drop policy if exists "Admins can read own role memberships" on public.admin_user_roles;
-create policy "Admins can read own role memberships"
-on public.admin_user_roles for select to authenticated
-using (
-  user_id = (select auth.uid())
-  or public.has_admin_role((select auth.uid()), 'super_admin')
-);
-
-drop policy if exists "Super admins manage admin user roles" on public.admin_user_roles;
-create policy "Super admins manage admin user roles"
-on public.admin_user_roles for all to authenticated
-using (public.has_admin_role((select auth.uid()), 'super_admin'))
-with check (public.has_admin_role((select auth.uid()), 'super_admin'));
-
-create table if not exists audit.admin_action_logs (
-  id bigserial primary key,
-  actor_user_id uuid not null references public.profiles(id),
-  actor_role_code text,
-  action_type text not null,
-  entity_type text not null,
-  entity_id uuid,
-  context jsonb not null default '{}'::jsonb,
-  ip_address inet,
-  user_agent text,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists admin_action_logs_actor_idx
-  on audit.admin_action_logs (actor_user_id);
-create index if not exists admin_action_logs_entity_idx
-  on audit.admin_action_logs (entity_type, entity_id);
-create index if not exists admin_action_logs_action_type_idx
-  on audit.admin_action_logs (action_type);
-create index if not exists admin_action_logs_created_at_brin
-  on audit.admin_action_logs using brin (created_at);
-
-alter table audit.admin_action_logs enable row level security;
-
-drop policy if exists "Admins can read audit logs" on audit.admin_action_logs;
-create policy "Admins can read audit logs"
-on audit.admin_action_logs for select to authenticated
-using (public.is_admin_user((select auth.uid())));
-
-drop policy if exists "Admins append own audit logs" on audit.admin_action_logs;
-
-revoke update, delete, truncate on audit.admin_action_logs
-  from public, anon, authenticated, service_role;
-grant usage on schema audit to authenticated, service_role;
-grant select on audit.admin_action_logs to authenticated;
-grant select, insert on audit.admin_action_logs to service_role;
-grant usage, select on sequence audit.admin_action_logs_id_seq to service_role;
-
-create or replace function audit.prevent_admin_action_log_mutation()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-begin
-  raise exception 'audit.admin_action_logs is append-only';
-end;
-$$;
-
-drop trigger if exists admin_action_logs_immutable on audit.admin_action_logs;
-create trigger admin_action_logs_immutable
-before update or delete on audit.admin_action_logs
-for each row execute function audit.prevent_admin_action_log_mutation();
+-- Fix service_role detection in admin RPCs.
+-- The original 202607210001 used current_setting('request.jwt.claim.role'),
+-- a PostgREST GUC that is NULL on current Supabase — so service-role callers
+-- (the admin app always uses createServiceRole()) failed the actor guard with
+-- 'actor_mismatch'. Replaced with auth.jwt() ->> 'role', which reads the live
+-- request.jwt.claims. Bodies are otherwise identical; create-or-replace keeps
+-- existing grants.
 
 create or replace function public.append_admin_action_log(
   p_actor_user_id uuid,
@@ -240,13 +59,6 @@ begin
 end;
 $$;
 
-revoke all on function public.append_admin_action_log(
-  uuid, text, text, text, uuid, jsonb, inet, text
-) from public;
-grant execute on function public.append_admin_action_log(
-  uuid, text, text, text, uuid, jsonb, inet, text
-) to service_role;
-
 create or replace function public.get_admin_action_logs(
   p_actor_user_id uuid,
   p_action_type text default null,
@@ -297,13 +109,6 @@ begin
   offset greatest(p_offset, 0);
 end;
 $$;
-
-revoke all on function public.get_admin_action_logs(
-  uuid, text, text, uuid, timestamptz, timestamptz, integer, integer
-) from public;
-grant execute on function public.get_admin_action_logs(
-  uuid, text, text, uuid, timestamptz, timestamptz, integer, integer
-) to authenticated, service_role;
 
 create or replace function public.set_admin_user_roles(
   p_target_user_id uuid,
@@ -366,249 +171,6 @@ begin
 end;
 $$;
 
-revoke all on function public.set_admin_user_roles(uuid, text[], uuid) from public;
-grant execute on function public.set_admin_user_roles(uuid, text[], uuid)
-  to service_role;
-
--- Assignment support. Postcode patterns are normalized uppercase prefixes;
--- e.g. "SW1" covers SW1A 1AA. Empty coverage means the provider is not yet
--- eligible for manual assignment.
-create table if not exists public.provider_service_areas (
-  id uuid primary key default gen_random_uuid(),
-  provider_id uuid not null references public.profiles(id) on delete cascade,
-  category_id uuid references public.service_categories(id) on delete cascade,
-  postcode_pattern text not null,
-  created_at timestamptz not null default now(),
-  created_by uuid references public.profiles(id) on delete set null,
-  constraint provider_service_areas_pattern_check
-    check (length(btrim(postcode_pattern)) between 2 and 8),
-  unique (provider_id, category_id, postcode_pattern)
-);
-
-create index if not exists provider_service_areas_lookup_idx
-  on public.provider_service_areas (provider_id, category_id, postcode_pattern);
-
-alter table public.service_categories
-  add column if not exists requires_start_otp boolean not null default true;
-alter table public.profiles
-  add column if not exists last_seen_at timestamptz;
-alter table public.profiles
-  add column if not exists is_blocked boolean not null default false;
-
-create table if not exists public.booking_status_logs (
-  id bigserial primary key,
-  booking_id uuid not null references public.bookings(id) on delete cascade,
-  from_status text,
-  to_status text not null,
-  previous_provider_id uuid references public.profiles(id) on delete set null,
-  provider_id uuid references public.profiles(id) on delete set null,
-  action_type text not null,
-  reason text,
-  strategy text not null default 'manual_admin',
-  admin_user_id uuid references public.profiles(id) on delete set null,
-  context jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists booking_status_logs_booking_created_idx
-  on public.booking_status_logs (booking_id, created_at desc);
-
-create table if not exists public.otp_verifications (
-  id uuid primary key default gen_random_uuid(),
-  booking_id uuid not null references public.bookings(id) on delete cascade,
-  purpose text not null default 'job_start',
-  code_hash text not null,
-  expires_at timestamptz not null,
-  verified_at timestamptz,
-  invalidated_at timestamptz,
-  attempts integer not null default 0,
-  created_by uuid references public.profiles(id) on delete set null,
-  created_at timestamptz not null default now(),
-  constraint otp_verifications_attempts_check check (attempts >= 0)
-);
-
-create table if not exists public.notification_delivery_outbox (
-  id bigserial primary key,
-  profile_id uuid not null references public.profiles(id) on delete cascade,
-  channel text not null check (channel in ('email', 'sms')),
-  template_code text not null,
-  payload jsonb not null default '{}'::jsonb,
-  status text not null default 'pending'
-    check (status in ('pending', 'processing', 'sent', 'failed')),
-  attempts integer not null default 0 check (attempts >= 0),
-  last_error text,
-  available_at timestamptz not null default now(),
-  created_at timestamptz not null default now(),
-  sent_at timestamptz
-);
-
-create table if not exists public.booking_integration_outbox (
-  id uuid primary key default gen_random_uuid(),
-  booking_id uuid not null references public.bookings(id) on delete cascade,
-  event_type text not null,
-  payload jsonb not null,
-  status text not null default 'pending'
-    check (status in ('pending', 'sent', 'failed')),
-  attempts integer not null default 0 check (attempts >= 0),
-  external_event_id text,
-  last_error text,
-  created_at timestamptz not null default now(),
-  synced_at timestamptz
-);
-
-create index if not exists booking_integration_outbox_pending_idx
-  on public.booking_integration_outbox (created_at, id)
-  where status in ('pending', 'failed');
-
-create index if not exists notification_delivery_outbox_pending_idx
-  on public.notification_delivery_outbox (available_at, id)
-  where status in ('pending', 'failed');
-
-create unique index if not exists otp_verifications_active_booking_idx
-  on public.otp_verifications (booking_id, purpose)
-  where verified_at is null and invalidated_at is null;
-alter table public.provider_service_areas enable row level security;
-alter table public.booking_status_logs enable row level security;
-alter table public.otp_verifications enable row level security;
-alter table public.notification_delivery_outbox enable row level security;
-alter table public.booking_integration_outbox enable row level security;
-
-drop policy if exists "Admins read notification delivery outbox"
-  on public.notification_delivery_outbox;
-create policy "Admins read notification delivery outbox"
-on public.notification_delivery_outbox for select to authenticated
-using (public.is_admin_user((select auth.uid())));
-
-drop policy if exists "Admins read booking integration outbox"
-  on public.booking_integration_outbox;
-create policy "Admins read booking integration outbox"
-on public.booking_integration_outbox for select to authenticated
-using (public.is_admin_user((select auth.uid())));
-
-revoke insert, update, delete, truncate on public.notification_delivery_outbox
-  from public, anon, authenticated;
-revoke insert, update, delete, truncate on public.booking_integration_outbox
-  from public, anon, authenticated;
-grant select on public.notification_delivery_outbox, public.booking_integration_outbox
-  to authenticated;
-grant select, insert, update on public.notification_delivery_outbox,
-  public.booking_integration_outbox to service_role;
-grant usage, select on sequence public.notification_delivery_outbox_id_seq
-  to service_role;
-
-drop policy if exists "Admins manage provider service areas" on public.provider_service_areas;
-create policy "Admins manage provider service areas"
-on public.provider_service_areas for all to authenticated
-using (
-  public.has_admin_role((select auth.uid()), 'super_admin')
-  or public.has_admin_role((select auth.uid()), 'ops_admin')
-)
-with check (
-  public.has_admin_role((select auth.uid()), 'super_admin')
-  or public.has_admin_role((select auth.uid()), 'ops_admin')
-);
-
-drop policy if exists "Admins read booking status logs" on public.booking_status_logs;
-create policy "Admins read booking status logs"
-on public.booking_status_logs for select to authenticated
-using (public.is_admin_user((select auth.uid())));
-
-drop policy if exists "Admins read OTP verification state" on public.otp_verifications;
-create policy "Admins read OTP verification state"
-on public.otp_verifications for select to authenticated
-using (public.is_admin_user((select auth.uid())));
-
--- A candidate function keeps matching logic outside the UI. The manual
--- strategy uses it today; a future ML strategy can rank the same result set.
-create or replace function public.get_assignment_candidates(p_booking_id uuid)
-returns table (
-  provider_id uuid,
-  full_name text,
-  email text,
-  rating numeric,
-  completed_jobs bigint,
-  cancellation_rate numeric,
-  last_seen_at timestamptz,
-  earnings_pence bigint,
-  is_available boolean
-)
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  with target as (
-    select b.id, b.category_id, b.scheduled_at, upper(replace(a.postcode, ' ', '')) as postcode
-    from public.bookings b
-    join public.addresses a on a.id = b.address_id
-    where b.id = p_booking_id
-  ), provider_metrics as (
-    select
-      b.provider_id,
-      count(*) filter (where b.status = 'completed') as completed_jobs,
-      count(*) filter (where b.status = 'cancelled') as cancelled_jobs,
-      count(*) filter (where b.status in ('completed', 'cancelled')) as terminal_jobs,
-      coalesce(sum(b.total_pence) filter (where b.status = 'completed'), 0)::bigint as earnings_pence
-    from public.bookings b
-    where b.provider_id is not null
-    group by b.provider_id
-  )
-  select distinct
-    p.id,
-    p.full_name,
-    p.email,
-    coalesce(p.rating_avg, 0)::numeric as rating,
-    coalesce(pm.completed_jobs, 0) as completed_jobs,
-    case when coalesce(pm.terminal_jobs, 0) = 0 then 0
-      else round((pm.cancelled_jobs::numeric / pm.terminal_jobs::numeric) * 100, 2)
-    end as cancellation_rate,
-    p.last_seen_at,
-    coalesce(pm.earnings_pence, 0),
-    exists (
-      select 1
-      from public.availability_slots av
-      where av.provider_id = p.id
-        -- availability_slots uses 0=Monday ... 6=Sunday.
-        and av.weekday = (extract(isodow from t.scheduled_at)::integer - 1)
-        and t.scheduled_at::time between av.start_time and av.end_time
-    )
-    and not exists (
-      select 1
-      from public.time_off off_period
-      where off_period.provider_id = p.id
-        and t.scheduled_at::date between off_period.start_date and off_period.end_date
-    )
-    and not exists (
-      select 1
-      from public.bookings busy
-      where busy.provider_id = p.id
-        and busy.status in ('assigned', 'on_the_way', 'arrived', 'in_progress')
-        and busy.scheduled_at between t.scheduled_at - interval '60 minutes'
-                                  and t.scheduled_at + interval '60 minutes'
-    ) as is_available
-  from target t
-  join public.provider_services ps
-    on ps.category_id = t.category_id and ps.is_active
-  join public.profiles p
-    on p.id = ps.provider_id
-   and p.role = 'provider'
-   and p.kyc_status = 'approved'
-   and p.registration_completed
-   and not p.is_blocked
-  join public.provider_service_areas psa
-    on psa.provider_id = p.id
-   and (psa.category_id is null or psa.category_id = t.category_id)
-   and t.postcode like upper(replace(psa.postcode_pattern, ' ', '')) || '%'
-  left join provider_metrics pm on pm.provider_id = p.id
-  order by is_available desc, rating desc, completed_jobs desc, p.id;
-$$;
-
-revoke all on function public.get_assignment_candidates(uuid) from public;
-grant execute on function public.get_assignment_candidates(uuid) to service_role;
-
--- One database transaction owns the source-of-truth mutation and outbox rows.
--- Firebase remains an external side effect and is appended by the server after
--- this RPC succeeds; a durable notification row makes retries observable.
 create or replace function public.admin_assign_booking(
   p_booking_id uuid,
   p_provider_id uuid,
@@ -826,13 +388,6 @@ begin
 end;
 $$;
 
-revoke all on function public.admin_assign_booking(
-  uuid, uuid, uuid, text, text, boolean, inet, text
-) from public;
-grant execute on function public.admin_assign_booking(
-  uuid, uuid, uuid, text, text, boolean, inet, text
-) to service_role;
-
 create or replace function public.record_booking_status_sync(
   p_outbox_id uuid,
   p_actor_user_id uuid,
@@ -862,48 +417,6 @@ begin
     and event_type = 'firebase.booking_status';
 end;
 $$;
-
-revoke all on function public.record_booking_status_sync(uuid, uuid, text, text) from public;
-grant execute on function public.record_booking_status_sync(uuid, uuid, text, text)
-  to service_role;
-
--- Provider operations are kept behind transactional RPCs so eligibility
--- changes and their audit records cannot diverge.
-create unique index if not exists provider_service_areas_null_safe_uidx
-  on public.provider_service_areas (
-    provider_id,
-    coalesce(category_id, '00000000-0000-0000-0000-000000000000'::uuid),
-    postcode_pattern
-  );
-
-create table if not exists public.provider_admin_notes (
-  id bigserial primary key,
-  provider_id uuid not null references public.profiles(id) on delete cascade,
-  admin_user_id uuid references public.profiles(id) on delete set null,
-  note text not null check (length(btrim(note)) between 1 and 4000),
-  created_at timestamptz not null default now()
-);
-
-create index if not exists provider_admin_notes_provider_created_idx
-  on public.provider_admin_notes (provider_id, created_at desc);
-
-alter table public.provider_admin_notes enable row level security;
-
-drop policy if exists "Provider staff read internal notes"
-  on public.provider_admin_notes;
-create policy "Provider staff read internal notes"
-on public.provider_admin_notes for select to authenticated
-using (
-  public.has_admin_role((select auth.uid()), 'super_admin')
-  or public.has_admin_role((select auth.uid()), 'ops_admin')
-  or public.has_admin_role((select auth.uid()), 'support_agent')
-);
-
-revoke insert, update, delete, truncate on public.provider_admin_notes
-  from public, anon, authenticated;
-grant select on public.provider_admin_notes to authenticated;
-grant select, insert on public.provider_admin_notes to service_role;
-grant usage, select on sequence public.provider_admin_notes_id_seq to service_role;
 
 create or replace function public.admin_set_provider_blocked(
   p_provider_id uuid,
@@ -968,13 +481,6 @@ begin
 end;
 $$;
 
-revoke all on function public.admin_set_provider_blocked(
-  uuid, boolean, text, uuid, inet, text
-) from public;
-grant execute on function public.admin_set_provider_blocked(
-  uuid, boolean, text, uuid, inet, text
-) to service_role;
-
 create or replace function public.admin_add_provider_note(
   p_provider_id uuid,
   p_note text,
@@ -1030,13 +536,6 @@ begin
   return v_id;
 end;
 $$;
-
-revoke all on function public.admin_add_provider_note(
-  uuid, text, uuid, inet, text
-) from public;
-grant execute on function public.admin_add_provider_note(
-  uuid, text, uuid, inet, text
-) to service_role;
 
 create or replace function public.admin_configure_provider(
   p_provider_id uuid,
@@ -1149,13 +648,6 @@ begin
 end;
 $$;
 
-revoke all on function public.admin_configure_provider(
-  uuid, uuid[], jsonb, uuid, inet, text
-) from public;
-grant execute on function public.admin_configure_provider(
-  uuid, uuid[], jsonb, uuid, inet, text
-) to service_role;
-
 create or replace function public.admin_set_provider_vetting(
   p_provider_id uuid,
   p_action text,
@@ -1260,9 +752,3 @@ begin
 end;
 $$;
 
-revoke all on function public.admin_set_provider_vetting(
-  uuid, text, text, uuid, inet, text
-) from public;
-grant execute on function public.admin_set_provider_vetting(
-  uuid, text, text, uuid, inet, text
-) to service_role;
