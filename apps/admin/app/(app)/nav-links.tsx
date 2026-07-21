@@ -16,6 +16,7 @@ import {
   BarChart3,
   Tag,
   Percent,
+  LayoutGrid,
 } from 'lucide-react';
 
 const nav = [
@@ -31,6 +32,7 @@ const nav = [
     ]
   },
   { href: '/kyc', label: 'KYC Queue', icon: ShieldCheck },
+  { href: '/services', label: 'Services', icon: LayoutGrid },
   { href: '/scheduling', label: 'Scheduling', icon: CalendarDays },
   { href: '/ratings', label: 'Ratings', icon: Star },
   { href: '/tickets', label: 'Support', icon: TicketCheck },
