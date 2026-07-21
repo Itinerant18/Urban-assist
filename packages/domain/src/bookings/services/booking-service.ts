@@ -28,7 +28,7 @@ export async function createBooking(
 ): Promise<CreateBookingResult> {
   const { data: svc, error: svcErr } = await admin
     .from('provider_services')
-    .select('id, provider_id, category_id, price_pence')
+    .select('id, provider_id, category_id, sku_id, price_pence')
     .eq('id', input.providerServiceId)
     .eq('is_active', true)
     .single();
@@ -56,6 +56,7 @@ export async function createBooking(
     .insert({
       customer_id: input.customerId,
       category_id: svc.category_id,
+      service_sku_id: (svc as any).sku_id ?? null,
       provider_service_id: svc.id,
       address_id: input.addressId,
       scheduled_at: input.scheduledAt,
