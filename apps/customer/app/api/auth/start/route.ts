@@ -3,6 +3,7 @@ import type { NextRequest} from 'next/server';
 import { NextResponse } from 'next/server';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { otpRateLimit } from '@urban-assist/integrations/redis';
+import { inPhoneE164, normaliseMobile, ukPhoneE164 } from '@urban-assist/utils';
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? 'anon';
@@ -25,9 +26,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Only phone verification is supported.' }, { status: 400 });
   }
 
-  // Validate E.164 prefixes for UK (+44) and India (+91)
-  const isUK = value.startsWith('+44') && /^\+447\d{9}$/.test(value);
-  const isIndia = value.startsWith('+91') && /^\+91[6-9]\d{9}$/.test(value);
+  const phone = normaliseMobile(value);
+  const isUK = phone !== null && ukPhoneE164.safeParse(phone).success;
+  const isIndia = phone !== null && inPhoneE164.safeParse(phone).success;
 
   if (!isUK && !isIndia) {
     return NextResponse.json(
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   const db = getSupabaseServer();
   const { error } = await db.auth.signInWithOtp({
-    phone: value,
+    phone: phone!,
     options: { shouldCreateUser: true },
   });
 

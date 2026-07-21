@@ -1,18 +1,8 @@
-// Start phone OTP for providers — UK mobiles only, rate-limited via Upstash if configured.
+// Start phone OTP for providers — UK and Indian mobiles, rate-limited via Upstash if configured.
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { otpRateLimit } from '@urban-assist/integrations/redis';
-
-/** Normalise a UK or IN mobile to E.164. */
-function normaliseMobile(raw: string): string | null {
-  const digits = raw.replace(/[\s\-()]/g, '');
-  if (/^\+447\d{9}$/.test(digits)) return digits;
-  if (/^447\d{9}$/.test(digits)) return `+${digits}`;
-  if (/^07\d{9}$/.test(digits)) return `+44${digits.slice(1)}`;
-  if (/^\+91[6-9]\d{9}$/.test(digits)) return digits;
-  if (/^91[6-9]\d{9}$/.test(digits)) return `+${digits}`;
-  return null;
-}
+import { normaliseMobile } from '@urban-assist/utils';
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));

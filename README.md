@@ -18,7 +18,8 @@ urban-assist/
 │   ├── ui/              # Shared design system (Tailwind tokens, components)
 │   ├── db/              # Supabase typed client + generated DB types
 │   ├── lib/             # Universal utilities (format, pricing, postcode)
-│   └── server-lib/      # Server-only logic (Stripe, Redis, FCM, KYC, matching)
+│   ├── domain/          # Business logic (KYC, matching, analytics)
+│   └── integrations/    # Stripe, Redis, Firebase and postcode adapters
 │
 ├── supabase/
 │   ├── migrations/      # Incremental SQL migrations (schema, RLS, seed)
@@ -53,7 +54,8 @@ urban-assist/
 | `@urban-assist/ui` | Design tokens (Tailwind preset), shared CSS variables, primitives (Button, Card, Badge), AppShell, LiveStatusTrack, Rating |
 | `@urban-assist/db` | Supabase client factory (`getSupabaseServer`, `getSupabaseBrowser`, `createServiceRole`), generated DB types |
 | `@urban-assist/lib` | Universal utilities — currency/date formatting, pricing/VAT, UK postcode lookup (safe for client & server) |
-| `@urban-assist/server-lib` | Server-only business logic — Stripe payments, Upstash Redis, Firebase FCM, KYC, matching engine, analytics |
+| `@urban-assist/domain` | Business logic — KYC, matching engine, analytics, bookings and admin services |
+| `@urban-assist/integrations` | External adapters — Stripe payments, Upstash Redis, Firebase FCM and postcode lookup |
 
 ### Package Dependency Graph
 
@@ -61,7 +63,8 @@ urban-assist/
 apps/customer ──┐
 apps/provider ──┼──→ @urban-assist/db       ──→ Supabase
 apps/admin    ──┤──→ @urban-assist/lib      ──→ format · pricing · postcode
-                │──→ @urban-assist/server-lib ──→ Stripe · Redis · FCM · KYC
+                │──→ @urban-assist/domain   ──→ KYC · matching · analytics
+                │──→ @urban-assist/integrations ──→ Stripe · Redis · FCM
                 └──→ @urban-assist/ui       ──→ design-only, no external deps
 ```
 

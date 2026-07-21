@@ -4,3 +4,7 @@ packages:
   - "infra/supabase/functions/*"
   - "infra/firebase/functions"
   - "tooling"
+allowBuilds:
+  '@firebase/util': set this to true or false
+  protobufjs: set this to true or false
+  unrs-resolver: set this to true or false

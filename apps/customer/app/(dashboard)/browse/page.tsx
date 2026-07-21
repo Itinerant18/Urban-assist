@@ -1,5 +1,5 @@
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { getCached, setCached } from '@urban-assist/server-lib';
+import { getCached, setCached } from '@urban-assist/integrations/redis';
 import { BrowseClient } from '../../../components/services/browse-client';
 
 export const dynamic = 'force-dynamic';

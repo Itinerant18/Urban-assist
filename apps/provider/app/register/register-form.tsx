@@ -6,9 +6,9 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
+import { UK_POSTCODE_RE } from '@urban-assist/utils';
 
 const NINO_RE = /^[A-CEGHJ-PR-TW-Z]{2}\d{6}[A-D]$/i;
-const UK_POSTCODE_RE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
 const RADIUS_OPTIONS = [5, 10, 15, 20, 30, 50];
 
 type Step = 0 | 1 | 2;

@@ -2,7 +2,8 @@
 import * as React from 'react';
 import { Card, Button, Badge, Field, Input } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { formatUkPhone, ukDate } from '@urban-assist/lib';
+import { ukDate } from '@urban-assist/lib';
+import { normaliseMobile } from '@urban-assist/utils';
 import { Star, AlertTriangle, User } from 'lucide-react';
 
 interface Review {
@@ -90,25 +91,24 @@ export default function AccountPage() {
     setProfileBusy(true);
 
     try {
-      const cleanPhone = phone.replace(/\s+/g, '');
-      if (cleanPhone && !cleanPhone.startsWith('+44') && !cleanPhone.startsWith('0')) {
-        throw new Error('Enter a valid UK phone number starting with +44 or 0');
+      const cleanPhone = phone.trim();
+      const normalisedPhone = cleanPhone ? normaliseMobile(cleanPhone) : '';
+      if (cleanPhone && !normalisedPhone) {
+        throw new Error('Enter a valid UK or Indian mobile number');
       }
-
-      const formattedPhone = cleanPhone ? formatUkPhone(cleanPhone) : '';
 
       const sb = supabase();
       const { error } = await sb
         .from('profiles')
         .update({
           full_name: fullName.trim(),
-          phone: formattedPhone,
+          phone: normalisedPhone,
         })
         .eq('id', user.id);
 
       if (error) throw error;
       setProfileOk('Profile updated.');
-      setProfile({ ...profile, full_name: fullName.trim(), phone: formattedPhone });
+      setProfile({ ...profile, full_name: fullName.trim(), phone: normalisedPhone });
     } catch (err: any) {
       setProfileError(err.message);
     } finally {
