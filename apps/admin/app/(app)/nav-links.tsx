@@ -15,6 +15,7 @@ import {
   Star,
   BarChart3,
   Tag,
+  Percent,
 } from 'lucide-react';
 
 const nav = [
@@ -34,6 +35,7 @@ const nav = [
   { href: '/ratings', label: 'Ratings', icon: Star },
   { href: '/tickets', label: 'Support', icon: TicketCheck },
   { href: '/financials', label: 'Financials', icon: Wallet },
+  { href: '/pricing', label: 'Pricing', icon: Percent },
   { href: '/promotions', label: 'Promotions', icon: Tag },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/audit', label: 'Audit Logs', icon: ScrollText },
