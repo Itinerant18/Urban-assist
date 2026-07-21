@@ -124,7 +124,7 @@ NEXT_PUBLIC_VAT_RATE=0.20
 ### File 4: `.env.local` (root — Dev/edge-function env vars)
 
 ```env
-FCM_SERVER_KEY=
+FIREBASE_SERVICE_ACCOUNT_JSON=
 SUPPORT_NOTIFICATION_WEBHOOK=
 ```
 

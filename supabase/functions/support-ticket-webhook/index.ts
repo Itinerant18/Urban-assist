@@ -1,7 +1,20 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.40.0'
 
+const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
 serve(async (req) => {
+  // Only the Postgres trigger (bearing the service-role key) may invoke this;
+  // it holds the service role and reads user records. verify_jwt at the gateway
+  // blocks unauthenticated callers; this blocks anon-JWT callers too.
+  const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  if (!SERVICE_ROLE_KEY || bearer !== SERVICE_ROLE_KEY) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const payload = await req.json();
     

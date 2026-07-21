@@ -5,11 +5,15 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 // @ts-expect-error Deno remote import
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+// @ts-expect-error Deno node compat
+import { createSign } from 'node:crypto';
+// @ts-expect-error Deno node compat
+import { Buffer } from 'node:buffer';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const EDGE_FUNCTION_SECRET = Deno.env.get('EDGE_FUNCTION_SECRET') ?? '';
-const FCM_SERVER_KEY = Deno.env.get('FCM_SERVER_KEY') ?? '';
+const FIREBASE_SERVICE_ACCOUNT_JSON = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON') ?? '';
 const MAX_ATTEMPTS = 5;
 const BATCH_SIZE = 25;
 
@@ -29,7 +33,16 @@ interface PendingNotification {
 serve(async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   if (!isAuthorized(req)) return json({ error: 'unauthorized' }, 401);
-  if (!FCM_SERVER_KEY) return json({ error: 'fcm_not_configured' }, 503);
+
+  const sa = getServiceAccount();
+  if (!sa) return json({ error: 'fcm_not_configured' }, 503);
+
+  let accessToken: string;
+  try {
+    accessToken = await getAccessToken(sa);
+  } catch (err) {
+    return json({ error: err instanceof Error ? err.message : 'fcm_oauth_failed' }, 502);
+  }
 
   const staleClaim = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const { data, error } = await db
@@ -74,7 +87,9 @@ serve(async (req: Request) => {
     }
 
     const outcomes = await Promise.all(
-      tokens.map((token) => deliver(token, candidate.type, candidate.payload)),
+      tokens.map((token) =>
+        deliver(sa.project_id, accessToken, token, candidate.type, candidate.payload),
+      ),
     );
     const delivered = outcomes.filter((outcome) => outcome.ok).length;
     const invalidTokens = outcomes
@@ -140,40 +155,52 @@ async function markFailed(notificationId: string, reason: string) {
 }
 
 async function deliver(
+  projectId: string,
+  accessToken: string,
   token: string,
   type: string,
   payload: Record<string, unknown>,
 ): Promise<{ token: string; ok: boolean; invalidToken: boolean; error?: string }> {
   try {
-    const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        Authorization: `key=${FCM_SERVER_KEY}`,
-      },
-      body: JSON.stringify({
-        to: token,
-        notification: { title: getTitle(type), body: getBody(type) },
-        data: {
-          type,
-          payload: JSON.stringify(payload),
-          ...(typeof payload.booking_id === 'string'
-            ? { booking_id: payload.booking_id }
-            : {}),
+    const response = await fetch(
+      `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
         },
-      }),
-    });
-    const result = (await response.json().catch(() => ({}))) as {
-      failure?: number;
-      results?: Array<{ error?: string }>;
+        body: JSON.stringify({
+          message: {
+            token,
+            notification: { title: getTitle(type), body: getBody(type) },
+            data: {
+              type,
+              payload: JSON.stringify(payload),
+              ...(typeof payload.booking_id === 'string'
+                ? { booking_id: payload.booking_id }
+                : {}),
+            },
+          },
+        }),
+      },
+    );
+
+    if (response.ok) return { token, ok: true, invalidToken: false };
+
+    const body = (await response.json().catch(() => ({}))) as {
+      error?: { status?: string; message?: string };
     };
-    const error = result.results?.[0]?.error;
-    const ok = response.ok && result.failure !== 1 && !error;
+    // HTTP v1: 404 UNREGISTERED / 400 INVALID_ARGUMENT mean the token is dead.
+    const invalidToken =
+      response.status === 404 ||
+      body.error?.status === 'UNREGISTERED' ||
+      body.error?.status === 'INVALID_ARGUMENT';
     return {
       token,
-      ok,
-      invalidToken: error === 'NotRegistered' || error === 'InvalidRegistration',
-      ...(error ? { error } : {}),
+      ok: false,
+      invalidToken,
+      error: body.error?.status ?? body.error?.message ?? `fcm_http_${response.status}`,
     };
   } catch (error) {
     return {
@@ -183,6 +210,62 @@ async function deliver(
       error: error instanceof Error ? error.message : 'fcm_request_failed',
     };
   }
+}
+
+// --- FCM HTTP v1 auth: service-account JWT → OAuth access token. ---
+
+interface ServiceAccount {
+  project_id: string;
+  client_email: string;
+  private_key: string;
+}
+
+function getServiceAccount(): ServiceAccount | null {
+  if (!FIREBASE_SERVICE_ACCOUNT_JSON) return null;
+  try {
+    const sa = JSON.parse(FIREBASE_SERVICE_ACCOUNT_JSON);
+    sa.private_key = String(sa.private_key).replace(/\\n/g, '\n');
+    return sa;
+  } catch {
+    return null;
+  }
+}
+
+const b64url = (s: string | Buffer) =>
+  Buffer.from(s).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+function mintJwt(sa: ServiceAccount): string {
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  const claims = b64url(
+    JSON.stringify({
+      iss: sa.client_email,
+      scope: 'https://www.googleapis.com/auth/firebase.messaging',
+      aud: 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600,
+    }),
+  );
+  const signature = createSign('RSA-SHA256').update(`${header}.${claims}`).sign(sa.private_key);
+  return `${header}.${claims}.${b64url(signature)}`;
+}
+
+let cachedToken: { token: string; expiresAt: number } | null = null;
+
+async function getAccessToken(sa: ServiceAccount): Promise<string> {
+  if (cachedToken && cachedToken.expiresAt > Date.now()) return cachedToken.token;
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: mintJwt(sa),
+    }),
+  });
+  if (!res.ok) throw new Error(`fcm_oauth_failed: ${res.status} ${await res.text()}`);
+  const body = (await res.json()) as { access_token: string; expires_in: number };
+  cachedToken = { token: body.access_token, expiresAt: Date.now() + (body.expires_in - 60) * 1000 };
+  return body.access_token;
 }
 
 function isAuthorized(req: Request): boolean {

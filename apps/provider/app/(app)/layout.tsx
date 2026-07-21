@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { AppShell, type NavItem } from '@urban-assist/ui';
+import { PushRegistrar } from './push-registrar';
 import { Briefcase, CalendarDays, Wallet, FileText, UserRound, Settings } from 'lucide-react';
 
 const nav: NavItem[] = [
@@ -28,5 +29,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Registration wall — /register lives outside this route group, so no loop.
   if (!profile.registration_completed) redirect('/register');
 
-  return <AppShell nav={nav} brand="Urban Assist Pro">{children}</AppShell>;
+  return (
+    <AppShell nav={nav} brand="Urban Assist Pro">
+      <PushRegistrar />
+      {children}
+    </AppShell>
+  );
 }

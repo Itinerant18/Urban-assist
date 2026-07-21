@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { NotificationBell } from './notification-bell';
+import { PushRegistrar } from './push-registrar';
 
 const nav: NavItem[] = [
   { href: '/browse', label: 'Home', icon: <Home className="h-4 w-4" /> },
@@ -40,6 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       brand="Urban Assist"
       headerRight={<NotificationBell initialUnread={count ?? 0} />}
     >
+      <PushRegistrar />
       {children}
     </AppShell>
   );

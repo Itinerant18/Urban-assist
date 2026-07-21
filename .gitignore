@@ -26,6 +26,11 @@ node_modules/
 .env.*.local
 !.env.example
 
+# Service account / admin SDK private keys — NEVER commit
+*-firebase-adminsdk-*.json
+*service-account*.json
+*serviceAccount*.json
+
 # ──────────────────────────────────────────────────
 # TypeScript
 # ──────────────────────────────────────────────────
