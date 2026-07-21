@@ -10,7 +10,7 @@ function SearchForm({ className }: { className?: string }) {
         type="search"
         name="q"
         placeholder="Search users, bookings, tickets…"
-        className="w-full rounded-lg border border-hairline bg-bg px-2.5 py-1.5 text-xs text-ink placeholder:text-muted focus:border-ink focus:outline-none"
+        className="w-full rounded-xl border border-hairline bg-bg px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
       />
     </form>
   );
@@ -47,9 +47,9 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
   const identityRole = memberships[0]?.admin_roles?.code?.replaceAll('_', ' ') ?? 'admin';
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-bg">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-surface-sunk">
       {/* MOBILE HEADER */}
-      <header className="lg:hidden border-b border-hairline bg-white shadow-sm">
+      <header className="lg:hidden border-b border-hairline bg-white">
         <div className="flex items-center justify-between px-4 pt-3">
           <span className="font-display text-sm font-bold text-ink">Admin Dashboard</span>
           <span className="max-w-[45%] truncate text-[11px] text-muted">{identityEmail}</span>
@@ -61,14 +61,16 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
       <aside className="hidden lg:flex flex-col w-56 border-r border-hairline px-4 py-6 gap-1 shrink-0 bg-white">
         <div className="px-2 mb-4">
           <span className="font-display text-base font-bold text-ink">Urban Assist</span>
-          <span className="ml-1 text-xs text-muted font-mono-utility">ADMIN</span>
+          <span className="ml-1 text-xs text-muted font-mono">ADMIN</span>
         </div>
 
-        <SearchForm className="px-2 mb-4" />
+        <SearchForm className="px-2 mb-2" />
 
-        <DesktopNav kycPending={kycPending} />
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <DesktopNav kycPending={kycPending} />
+        </div>
 
-        <div className="mt-auto">
+        <div className="mt-auto shrink-0">
           <div className="border-t border-hairline px-2 py-3">
             <p className="truncate text-xs font-medium text-ink">{identityName}</p>
             <p className="truncate text-[11px] text-muted">{identityEmail}</p>
@@ -78,7 +80,7 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
             <button
               type="submit"
               id="admin-logout"
-              className="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm text-muted hover:text-danger hover:bg-danger/10 w-full transition-colors"
+              className="flex items-center gap-2.5 px-2 py-2 min-h-[40px] rounded-lg text-sm text-muted hover:text-danger hover:bg-danger/10 w-full transition-colors"
             >
               <LogOut className="h-4 w-4 shrink-0" />
               Sign out
@@ -87,11 +89,13 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-auto p-6 pb-24 lg:p-8 lg:pb-8">{children}</main>
+      {/* MAIN CONTENT AREA — sunk gutter so white bento tiles lift */}
+      <main className="flex-1 overflow-auto p-6 pb-24 lg:p-8 lg:pb-8">
+        <div className="mx-auto w-full max-w-[1200px]">{children}</div>
+      </main>
 
       {/* MOBILE BOTTOM NAVIGATION BAR */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white pb-[env(safe-area-inset-bottom)] pt-2 shadow-lg lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white pb-[env(safe-area-inset-bottom)] pt-2 lg:hidden">
         <MobileNav kycPending={kycPending} />
       </nav>
     </div>
