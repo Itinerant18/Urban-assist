@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import {
   SERVICE_CATEGORIES,
@@ -8,7 +9,9 @@ import {
 
 export type { Category, Subcategory, ServiceItem };
 
-export async function getCatalogTree(): Promise<Category[]> {
+// Deduped per request: getServiceBySlug → getSubcategoryBySlug → getCategoryBySlug
+// all call this; cache() collapses them into a single fetch.
+export const getCatalogTree = cache(async (): Promise<Category[]> => {
   try {
     const db = getSupabaseServer();
     const [{ data: categories }, { data: subcategories }, { data: skus }] = await Promise.all([
@@ -78,7 +81,7 @@ export async function getCatalogTree(): Promise<Category[]> {
     console.error('Failed to fetch catalog tree from DB, falling back to static taxonomy:', err);
     return SERVICE_CATEGORIES;
   }
-}
+});
 
 export async function getCategoryBySlug(slug: string): Promise<Category | undefined> {
   const tree = await getCatalogTree();
