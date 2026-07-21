@@ -34,14 +34,17 @@ export function ReviewActions({
 
   const activeDoc = documents[activeDocIndex] || null;
 
-  const handleAction = async (action: 'approve' | 'reject') => {
+  const handleAction = async (action: 'approve' | 'reject' | 'request_documents', reason?: string) => {
     setBusy(true);
     setError(null);
     try {
       const res = await fetch(`/api/kyc/${providerId}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action, reason: action === 'reject' ? rejectReason : undefined }),
+        body: JSON.stringify({
+          action,
+          reason: reason ?? (action === 'reject' ? rejectReason : undefined),
+        }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -210,6 +213,16 @@ export function ReviewActions({
 
         {!showRejectForm && (
           <div className="flex flex-col gap-2 pt-4 border-t border-hairline">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                const reason = prompt('Which additional or replacement documents are required?');
+                if (reason?.trim()) void handleAction('request_documents', reason);
+              }}
+              disabled={busy}
+            >
+              Request more documents
+            </Button>
             <Button
               variant="outline"
               className="text-danger border-danger/25 hover:border-danger"

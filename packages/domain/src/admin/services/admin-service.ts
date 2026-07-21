@@ -3,12 +3,35 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 async function requirePermission(db: SupabaseClient, perm: string): Promise<void> {
   const { data: { user } } = await db.auth.getUser();
   if (!user) throw new Error('unauthorized');
-  const { data: perms } = await db
-    .from('admin_permissions')
-    .select('*')
-    .eq('profile_id', user.id)
-    .single();
-  if (!perms || !perms[perm]) throw new Error('forbidden');
+  const rolesByPermission: Record<string, string[]> = {
+    can_manage_admins: ['super_admin'],
+    can_manage_bookings: ['super_admin', 'ops_admin'],
+    can_manage_kyc: ['super_admin', 'ops_admin'],
+    can_manage_payments: ['super_admin', 'finance_admin'],
+    can_manage_promo_codes: ['super_admin', 'finance_admin'],
+    can_manage_providers: ['super_admin', 'ops_admin'],
+    can_manage_tickets: ['super_admin', 'support_agent'],
+    can_manage_users: ['super_admin', 'support_agent'],
+    can_view_audit_log: [
+      'super_admin',
+      'ops_admin',
+      'finance_admin',
+      'support_agent',
+      'analyst',
+    ],
+  };
+  const { data: memberships } = await (db as any)
+    .from('admin_user_roles')
+    .select('admin_roles!inner(code)')
+    .eq('user_id', user.id);
+  const allowedRoles = rolesByPermission[perm] ?? [perm];
+  if (
+    !memberships?.some((membership: any) =>
+      allowedRoles.includes(membership.admin_roles?.code),
+    )
+  ) {
+    throw new Error('forbidden');
+  }
 }
 
 export async function listBookings(db: SupabaseClient, limit = 50, offset = 0) {

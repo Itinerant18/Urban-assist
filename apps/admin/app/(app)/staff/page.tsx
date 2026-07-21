@@ -1,150 +1,139 @@
 'use client';
 
 import * as React from 'react';
-import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { ShieldCheck, UserPlus, X, Settings2 } from 'lucide-react';
+import { getSupabaseBrowser } from '@urban-assist/db/browser';
+import { Settings2, ShieldCheck, UserPlus, X } from 'lucide-react';
+
+const ROLE_OPTIONS = [
+  { code: 'super_admin', label: 'Super admin', description: 'Full platform and access management.' },
+  { code: 'ops_admin', label: 'Operations', description: 'Bookings, assignment, vetting, and exceptions.' },
+  { code: 'finance_admin', label: 'Finance', description: 'Payments, commissions, refunds, and payouts.' },
+  { code: 'support_agent', label: 'Support', description: 'Disputes and customer communications.' },
+  { code: 'analyst', label: 'Analyst', description: 'Read-only dashboards and audit access.' },
+] as const;
+
+type RoleCode = (typeof ROLE_OPTIONS)[number]['code'];
+type StaffMember = {
+  profile_id: string;
+  profile?: { full_name?: string | null; email?: string | null } | null;
+  roles: RoleCode[];
+};
 
 export default function StaffRolesPage() {
   const [loading, setLoading] = React.useState(true);
-  const [currentUser, setCurrentUser] = React.useState<any>(null);
+  const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
-  const [staff, setStaff] = React.useState<any[]>([]);
-
-  // Invite form state
+  const [staff, setStaff] = React.useState<StaffMember[]>([]);
   const [showInviteModal, setShowInviteModal] = React.useState(false);
+  const [editingStaff, setEditingStaff] = React.useState<StaffMember | null>(null);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [fullName, setFullName] = React.useState('');
+  const [inviteRoles, setInviteRoles] = React.useState<RoleCode[]>(['analyst']);
   const [inviteError, setInviteError] = React.useState<string | null>(null);
   const [inviteBusy, setInviteBusy] = React.useState(false);
 
-  // Manage modal state for Mobile
-  const [editingStaff, setEditingStaff] = React.useState<any | null>(null);
-
-  async function loadData() {
-    const sb = supabase();
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) return;
-    setCurrentUser(user);
-
-    // Verify if SuperAdmin
-    const { data: perms } = await sb
-      .from('admin_permissions')
-      .select('can_manage_admins')
-      .eq('profile_id', user.id)
-      .single();
-
-    if (perms?.can_manage_admins) {
-      setIsSuperAdmin(true);
-      // Fetch all staff roles
-      const res = await fetch('/api/staff');
-      if (res.ok) {
-        setStaff(await res.json());
-      }
+  const loadData = React.useCallback(async () => {
+    setLoading(true);
+    const { data: { user } } = await getSupabaseBrowser().auth.getUser();
+    setCurrentUserId(user?.id ?? null);
+    if (!user) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  }
 
-  React.useEffect(() => {
-    loadData();
+    const response = await fetch('/api/staff', { cache: 'no-store' });
+    setIsSuperAdmin(response.ok);
+    if (response.ok) setStaff(await response.json());
+    setLoading(false);
   }, []);
 
-  async function handleTogglePermission(staffId: string, permissionKey: string, currentValue: boolean) {
-    const updatedPermissions = {
-      [permissionKey]: !currentValue
-    };
-    
-    // Optimistic UI update
-    setStaff(cur => cur.map(s => {
-      if (s.profile_id === staffId) {
-        return {
-          ...s,
-          [permissionKey]: !currentValue
-        };
-      }
-      return s;
-    }));
+  React.useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
-    try {
-      const res = await fetch('/api/staff', {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          profile_id: staffId,
-          permissions: updatedPermissions
-        })
-      });
-      if (!res.ok) {
-        const j = await res.json();
-        throw new Error(j.error || 'Failed to update');
-      }
-    } catch (e: any) {
-      alert(e.message);
-      // Rollback
-      setStaff(cur => cur.map(s => {
-        if (s.profile_id === staffId) {
-          return {
-            ...s,
-            [permissionKey]: currentValue
-          };
-        }
-        return s;
-      }));
+  async function updateRoles(member: StaffMember, nextRoles: RoleCode[]) {
+    if (nextRoles.length === 0) return;
+    const previous = member.roles;
+    setStaff((current) => current.map((entry) =>
+      entry.profile_id === member.profile_id ? { ...entry, roles: nextRoles } : entry,
+    ));
+    setEditingStaff((current) => current?.profile_id === member.profile_id
+      ? { ...current, roles: nextRoles }
+      : current);
+
+    const response = await fetch('/api/staff', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ profile_id: member.profile_id, roles: nextRoles }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({ error: 'Failed to update roles' }));
+      setStaff((current) => current.map((entry) =>
+        entry.profile_id === member.profile_id ? { ...entry, roles: previous } : entry,
+      ));
+      setEditingStaff((current) => current?.profile_id === member.profile_id
+        ? { ...current, roles: previous }
+        : current);
+      window.alert(payload.error || 'Failed to update roles');
     }
   }
 
-  async function handleInviteSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function toggleMemberRole(member: StaffMember, role: RoleCode) {
+    const removingOwnSuperAdmin =
+      member.profile_id === currentUserId && role === 'super_admin' && member.roles.includes(role);
+    if (removingOwnSuperAdmin) return;
+    const nextRoles = member.roles.includes(role)
+      ? member.roles.filter((item) => item !== role)
+      : [...member.roles, role];
+    void updateRoles(member, nextRoles);
+  }
+
+  function toggleInviteRole(role: RoleCode) {
+    setInviteRoles((current) => current.includes(role)
+      ? current.filter((item) => item !== role)
+      : [...current, role]);
+  }
+
+  async function handleInviteSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (inviteRoles.length === 0) {
+      setInviteError('Select at least one role.');
+      return;
+    }
     setInviteError(null);
     setInviteBusy(true);
-
     try {
-      const res = await fetch('/api/staff', {
+      const response = await fetch('/api/staff', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          full_name: fullName,
-          permissions: {
-            can_manage_bookings: false,
-            can_manage_kyc: false,
-            can_manage_tickets: false,
-            can_manage_admins: false,
-          }
-        })
+        body: JSON.stringify({ email, password, full_name: fullName, roles: inviteRoles }),
       });
-
-      if (!res.ok) {
-        const j = await res.json();
-        throw new Error(j.error || 'Invite failed');
+      if (!response.ok) {
+        const payload = await response.json();
+        throw new Error(payload.error || 'Invite failed');
       }
-
-      // Reload
       setEmail('');
       setPassword('');
       setFullName('');
+      setInviteRoles(['analyst']);
       setShowInviteModal(false);
       await loadData();
-    } catch (e: any) {
-      setInviteError(e.message);
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : 'Invite failed');
     } finally {
       setInviteBusy(false);
     }
   }
 
-  if (loading) {
-    return <div className="py-12 text-center text-muted">Loading staff roles…</div>;
-  }
+  if (loading) return <div className="py-12 text-center text-muted">Loading admin roles…</div>;
 
   if (!isSuperAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-        <ShieldCheck className="h-12 w-12 text-danger opacity-40 animate-pulse" />
-        <h1 className="font-display text-xl font-bold text-ink">Access Denied</h1>
-        <p className="text-sm text-muted max-w-sm">
-          You must have the `can_manage_admins` permission to view or manage staff access rights.
-        </p>
+      <div className="flex flex-col items-center justify-center space-y-3 py-20 text-center">
+        <ShieldCheck className="h-12 w-12 text-danger opacity-40" />
+        <h1 className="font-display text-xl font-bold text-ink">Access denied</h1>
+        <p className="max-w-sm text-sm text-muted">Only super admins can manage admin role memberships.</p>
       </div>
     );
   }
@@ -153,74 +142,43 @@ export default function StaffRolesPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Staff Permissions</h1>
-          <p className="text-sm text-muted mt-1">Manage platform access for your operations team.</p>
+          <h1 className="font-display text-2xl font-bold text-ink">Admin roles</h1>
+          <p className="mt-1 text-sm text-muted">Assign explicit operational, finance, support, and read-only access.</p>
         </div>
-        <button
-          onClick={() => setShowInviteModal(true)}
-          className="tap flex items-center gap-2 rounded-xl bg-accent text-white px-4 py-2 text-sm font-semibold hover:bg-accent/90 transition-colors"
-        >
-          <UserPlus className="h-4 w-4" />
-          <span>Invite New Staff</span>
+        <button className="btn-primary flex items-center gap-2" onClick={() => setShowInviteModal(true)}>
+          <UserPlus className="h-4 w-4" /> Invite admin
         </button>
       </header>
 
-      {/* Desktop View Table */}
-      <div className="hidden md:block overflow-hidden rounded-xl border border-hairline bg-white shadow-sm">
-        <table className="w-full text-left border-collapse">
+      <div className="overflow-x-auto rounded-xl border border-hairline bg-white shadow-sm">
+        <table className="w-full min-w-[720px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-hairline bg-hairline/25 text-xs font-mono-utility text-muted uppercase">
-              <th className="px-6 py-4 font-semibold">Staff Member</th>
-              <th className="px-6 py-4 font-semibold text-center">Bookings</th>
-              <th className="px-6 py-4 font-semibold text-center">KYC</th>
-              <th className="px-6 py-4 font-semibold text-center">Tickets</th>
-              <th className="px-6 py-4 font-semibold text-center">SuperAdmin</th>
+            <tr className="border-b border-hairline bg-hairline/25 text-xs uppercase text-muted">
+              <th className="px-5 py-3 font-semibold">Admin</th>
+              <th className="px-5 py-3 font-semibold">Roles</th>
+              <th className="px-5 py-3 text-right font-semibold">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-hairline">
-            {staff.map((s) => (
-              <tr key={s.id} className="text-sm text-ink hover:bg-hairline/10">
-                <td className="px-6 py-4">
-                  <div className="font-medium">{s.profile?.full_name || 'Unnamed'}</div>
-                  <div className="text-xs text-muted font-mono-utility">{s.profile?.email}</div>
-                  {s.profile_id === currentUser?.id && (
-                    <span className="inline-block mt-1 text-[9px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-full font-bold">
-                      YOU
-                    </span>
-                  )}
+            {staff.map((member) => (
+              <tr key={member.profile_id} className="text-sm hover:bg-hairline/10">
+                <td className="px-5 py-4">
+                  <div className="font-medium text-ink">{member.profile?.full_name || 'Unnamed admin'}</div>
+                  <div className="text-xs text-muted">{member.profile?.email}</div>
                 </td>
-                <td className="px-6 py-4 text-center">
-                  <input
-                    type="checkbox"
-                    checked={!!s.can_manage_bookings}
-                    onChange={() => handleTogglePermission(s.profile_id, 'can_manage_bookings', !!s.can_manage_bookings)}
-                    className="h-4 w-4 rounded border-hairline text-accent focus:ring-accent"
-                  />
+                <td className="px-5 py-4">
+                  <div className="flex flex-wrap gap-1.5">
+                    {member.roles.map((role) => (
+                      <span key={role} className="rounded-md bg-hairline/50 px-2 py-1 text-[10px] font-semibold uppercase text-ink">
+                        {ROLE_OPTIONS.find((option) => option.code === role)?.label ?? role}
+                      </span>
+                    ))}
+                  </div>
                 </td>
-                <td className="px-6 py-4 text-center">
-                  <input
-                    type="checkbox"
-                    checked={!!s.can_manage_kyc}
-                    onChange={() => handleTogglePermission(s.profile_id, 'can_manage_kyc', !!s.can_manage_kyc)}
-                    className="h-4 w-4 rounded border-hairline text-accent focus:ring-accent"
-                  />
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <input
-                    type="checkbox"
-                    checked={!!s.can_manage_tickets}
-                    onChange={() => handleTogglePermission(s.profile_id, 'can_manage_tickets', !!s.can_manage_tickets)}
-                    className="h-4 w-4 rounded border-hairline text-accent focus:ring-accent"
-                  />
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <input
-                    type="checkbox"
-                    checked={!!s.can_manage_admins}
-                    disabled={s.profile_id === currentUser?.id} // Prevent self lock-out
-                    onChange={() => handleTogglePermission(s.profile_id, 'can_manage_admins', !!s.can_manage_admins)}
-                    className="h-4 w-4 rounded border-hairline text-accent focus:ring-accent"
-                  />
+                <td className="px-5 py-4 text-right">
+                  <button className="btn-secondary inline-flex items-center gap-1.5" onClick={() => setEditingStaff(member)}>
+                    <Settings2 className="h-3.5 w-3.5" /> Manage
+                  </button>
                 </td>
               </tr>
             ))}
@@ -228,134 +186,92 @@ export default function StaffRolesPage() {
         </table>
       </div>
 
-      {/* Mobile View Card List */}
-      <div className="md:hidden space-y-3">
-        {staff.map((s) => (
-          <div key={s.id} className="card p-4 space-y-3 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-ink text-sm">{s.profile?.full_name || 'Unnamed'}</p>
-                {s.profile_id === currentUser?.id && (
-                  <span className="text-[9px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-full font-bold">
-                    YOU
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted font-mono-utility mt-0.5">{s.profile?.email}</p>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {s.can_manage_bookings && <span className="text-[10px] bg-hairline/50 px-2 py-0.5 rounded font-mono-utility text-ink">Bookings</span>}
-                {s.can_manage_kyc && <span className="text-[10px] bg-hairline/50 px-2 py-0.5 rounded font-mono-utility text-ink">KYC</span>}
-                {s.can_manage_tickets && <span className="text-[10px] bg-hairline/50 px-2 py-0.5 rounded font-mono-utility text-ink">Tickets</span>}
-                {s.can_manage_admins && <span className="text-[10px] bg-accent/10 px-2 py-0.5 rounded font-mono-utility text-accent font-medium">SuperAdmin</span>}
-                {!s.can_manage_bookings && !s.can_manage_kyc && !s.can_manage_tickets && !s.can_manage_admins && (
-                  <span className="text-[10px] text-muted font-mono-utility italic">No permissions</span>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={() => setEditingStaff(s)}
-              className="tap w-full flex items-center justify-center gap-1.5 py-2 border border-hairline text-xs font-semibold text-ink rounded-lg hover:border-ink transition-colors"
-            >
-              <Settings2 className="h-3.5 w-3.5 text-muted" />
-              Manage Roles
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Invite Staff Modal */}
       {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm bg-bg rounded-2xl shadow-2xl border border-hairline overflow-hidden flex flex-col p-6 space-y-4">
-            <header className="flex justify-between items-center">
-              <h2 className="font-display font-bold text-lg text-ink">Invite Staff</h2>
-              <button onClick={() => setShowInviteModal(false)} className="tap p-1.5 hover:bg-hairline/40 rounded-full">
-                <X className="h-4 w-4 text-muted" />
-              </button>
-            </header>
-            <form onSubmit={handleInviteSubmit} className="space-y-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-muted">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="border border-hairline rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-muted">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="border border-hairline rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-muted">Initial Password</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="border border-hairline rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                />
-              </div>
-              {inviteError && <p className="text-xs text-danger">{inviteError}</p>}
-              <button
-                type="submit"
-                disabled={inviteBusy}
-                className="w-full py-2.5 rounded-xl bg-accent text-white font-semibold text-sm hover:bg-accent/90 transition-colors"
-              >
-                {inviteBusy ? 'Inviting…' : 'Invite Staff Member'}
-              </button>
-            </form>
-          </div>
-        </div>
+        <Modal title="Invite admin" subtitle="Create an account and assign its initial roles." onClose={() => setShowInviteModal(false)}>
+          <form onSubmit={handleInviteSubmit} className="space-y-4">
+            <Field label="Full name" type="text" value={fullName} onChange={setFullName} />
+            <Field label="Email" type="email" value={email} onChange={setEmail} />
+            <Field label="Initial password" type="password" value={password} onChange={setPassword} />
+            <RolePicker roles={inviteRoles} onToggle={toggleInviteRole} />
+            {inviteError && <p className="text-xs text-danger">{inviteError}</p>}
+            <button type="submit" disabled={inviteBusy || inviteRoles.length === 0} className="btn-primary w-full disabled:opacity-50">
+              {inviteBusy ? 'Inviting…' : 'Invite admin'}
+            </button>
+          </form>
+        </Modal>
       )}
 
-      {/* Edit Permission Modal for Mobile */}
       {editingStaff && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:hidden">
-          <div className="w-full max-w-sm bg-bg rounded-2xl shadow-2xl border border-hairline overflow-hidden flex flex-col p-6 space-y-4">
-            <header className="flex justify-between items-center">
-              <div>
-                <h2 className="font-display font-bold text-base text-ink">Manage Access</h2>
-                <p className="text-xs text-muted">{editingStaff.profile?.full_name}</p>
-              </div>
-              <button onClick={() => setEditingStaff(null)} className="tap p-1.5 hover:bg-hairline/40 rounded-full">
-                <X className="h-4 w-4 text-muted" />
-              </button>
-            </header>
-            <div className="space-y-3">
-              {[
-                { key: 'can_manage_bookings', label: 'Bookings Management' },
-                { key: 'can_manage_kyc', label: 'KYC Reviews' },
-                { key: 'can_manage_tickets', label: 'Support Tickets' },
-                { key: 'can_manage_admins', label: 'SuperAdmin Access', disabled: editingStaff.profile_id === currentUser?.id },
-              ].map(({ key, label, disabled }) => (
-                <label key={key} className="flex items-center justify-between p-3 border border-hairline rounded-xl hover:bg-hairline/10 transition-colors">
-                  <span className="text-xs font-semibold text-ink">{label}</span>
-                  <input
-                    type="checkbox"
-                    disabled={disabled}
-                    checked={!!editingStaff[key]}
-                    onChange={() => {
-                      handleTogglePermission(editingStaff.profile_id, key, !!editingStaff[key]);
-                      // Update editing local state
-                      setEditingStaff((cur: any) => ({ ...cur, [key]: !cur[key] }));
-                    }}
-                    className="h-4 w-4 rounded border-hairline text-accent focus:ring-accent"
-                  />
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
+        <Modal
+          title="Manage roles"
+          subtitle={editingStaff.profile?.full_name || editingStaff.profile?.email || 'Admin account'}
+          onClose={() => setEditingStaff(null)}
+        >
+          <RolePicker
+            roles={editingStaff.roles}
+            onToggle={(role) => toggleMemberRole(editingStaff, role)}
+            disabledRole={editingStaff.profile_id === currentUserId ? 'super_admin' : undefined}
+          />
+          <p className="mt-4 text-xs text-muted">Changes are applied immediately and written to the immutable audit log.</p>
+        </Modal>
       )}
     </div>
+  );
+}
+
+function Modal({ title, subtitle, onClose, children }: {
+  title: string;
+  subtitle: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-2xl border border-hairline bg-bg p-6 shadow-2xl">
+        <header className="mb-5 flex items-start justify-between gap-4">
+          <div><h2 className="font-display text-lg font-bold text-ink">{title}</h2><p className="text-xs text-muted">{subtitle}</p></div>
+          <button aria-label="Close" onClick={onClose} className="tap rounded-full p-1.5 hover:bg-hairline/40"><X className="h-4 w-4" /></button>
+        </header>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, type, value, onChange }: {
+  label: string;
+  type: 'text' | 'email' | 'password';
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block text-xs font-semibold text-muted">
+      {label}
+      <input className="input mt-1 w-full" type={type} required value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  );
+}
+
+function RolePicker({ roles, onToggle, disabledRole }: {
+  roles: RoleCode[];
+  onToggle: (role: RoleCode) => void;
+  disabledRole?: RoleCode;
+}) {
+  return (
+    <fieldset className="space-y-2">
+      <legend className="mb-2 text-xs font-semibold text-muted">Role memberships</legend>
+      {ROLE_OPTIONS.map((role) => (
+        <label key={role.code} className="flex items-start justify-between gap-4 rounded-xl border border-hairline bg-white p-3">
+          <span><span className="block text-sm font-semibold text-ink">{role.label}</span><span className="block text-xs text-muted">{role.description}</span></span>
+          <input
+            type="checkbox"
+            checked={roles.includes(role.code)}
+            disabled={disabledRole === role.code || (roles.length === 1 && roles[0] === role.code)}
+            onChange={() => onToggle(role.code)}
+            className="mt-1 h-4 w-4 rounded border-hairline text-accent focus:ring-accent"
+          />
+        </label>
+      ))}
+    </fieldset>
   );
 }

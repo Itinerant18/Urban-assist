@@ -43,10 +43,13 @@ export function getFirebaseAdminApp(): App | null {
 let warnedMissingConfig = false;
 
 /**
- * Append one immutable status event. This function never updates or deletes
- * status_stream documents; the Admin SDK bypasses client Firestore rules.
+ * Append one immutable event below bookings/{bookingId}/status_stream. The
+ * Admin SDK bypasses client Firestore rules; browser clients remain read-only.
  */
-export async function appendBookingStatus(input: BookingStatusEventInput): Promise<string | null> {
+export async function appendBookingStatus(
+  input: BookingStatusEventInput,
+  eventId?: string,
+): Promise<string | null> {
   const app = getFirebaseAdminApp();
   if (!app) {
     if (!warnedMissingConfig) {
@@ -57,7 +60,12 @@ export async function appendBookingStatus(input: BookingStatusEventInput): Promi
   }
 
   try {
-    const ref = await getFirestore(app).collection('status_stream').add({
+    const collection = getFirestore(app)
+      .collection('bookings')
+      .doc(input.booking_id)
+      .collection('status_stream');
+    const ref = eventId ? collection.doc(eventId) : collection.doc();
+    await ref.set({
       ...input,
       occurred_at: FieldValue.serverTimestamp(),
     });

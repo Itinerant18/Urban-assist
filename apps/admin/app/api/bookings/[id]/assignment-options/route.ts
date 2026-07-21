@@ -1,39 +1,36 @@
 import { NextResponse } from 'next/server';
 import { requireAdminPermission } from '../../../../../lib/admin-auth';
 
+import { AssignmentEngine, resolveAssignmentStrategy } from '../../../../../lib/assignment-engine';
+
 export const dynamic = 'force-dynamic';
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
-    const { db } = await requireAdminPermission('can_manage_bookings');
+    const { db, user, roles } = await requireAdminPermission('can_manage_bookings');
     const { data: booking, error: bookingError } = await db
       .from('bookings')
       .select('category_id, status, provider_id')
       .eq('id', params.id)
       .single();
     if (bookingError || !booking) throw new Error('booking_not_found');
-    if (!['pending_match', 'unmatched'].includes(booking.status) || booking.provider_id) {
+    if (['completed', 'in_progress'].includes(booking.status)) {
       return NextResponse.json({ providers: [] });
     }
 
-    const { data, error } = await db
-      .from('provider_services')
-      .select(
-        'provider_id, profiles!inner(id, full_name, email, rating_avg, is_online, kyc_status, registration_completed)',
-      )
-      .eq('category_id', booking.category_id)
-      .eq('is_active', true)
-      .eq('profiles.role', 'provider')
-      .eq('profiles.kyc_status', 'approved')
-      .eq('profiles.registration_completed', true)
-      .order('provider_id');
-    if (error) throw error;
-
-    const providers = Array.from(
-      new Map(
-        (data ?? []).map((row: any) => [row.provider_id, { ...row.profiles, id: row.provider_id }]),
-      ).values(),
+    const requestedStrategy = new URL(req.url).searchParams.get('strategy') ?? 'manual_admin';
+    if (!['manual_admin', 'ml_recommendation'].includes(requestedStrategy)) {
+      return NextResponse.json({ error: 'invalid_assignment_strategy' }, { status: 400 });
+    }
+    const strategy = resolveAssignmentStrategy(requestedStrategy as 'manual_admin' | 'ml_recommendation');
+    const engine = new AssignmentEngine(
+      db as any,
+      { id: user.id, roles },
+      strategy,
+      async () => null,
     );
+    const providers = await engine.getCandidates(params.id);
+
     return NextResponse.json({ providers });
   } catch (error: any) {
     const status =

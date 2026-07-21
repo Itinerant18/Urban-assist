@@ -52,7 +52,8 @@ export default async function SupportTicketDetailPage({ params }: { params: { id
   // 4. Fetch consolidated system audit timeline & analytics events
   const timeline: any[] = [];
 
-  // Fetch from audit_log
+  // This legacy table is intentionally the separate DB-level audit stream
+  // (trigger-generated row changes), not the immutable admin-action table.
   const { data: auditEvents } = await db
     .from('audit_log')
     .select('*, actor:profiles!audit_log_actor_id_fkey(full_name)')

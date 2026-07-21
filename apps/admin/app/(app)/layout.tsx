@@ -26,20 +26,25 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
 
   // All admin application data reads use the service-role client.
   const db = createServiceRole();
-  const [{ data: profile }, kycPendingRes] = await Promise.all([
+  const [{ data: profile }, kycPendingRes, { data: memberships }] = await Promise.all([
     db.from('profiles').select('role, full_name, email').eq('id', user.id).single(),
     db
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('role', 'provider')
       .eq('kyc_status', 'pending'),
+    (db as any)
+      .from('admin_user_roles')
+      .select('admin_roles!inner(code)')
+      .eq('user_id', user.id),
   ]);
 
-  if (!profile || profile.role !== 'admin') redirect('/login');
+  if (!profile || !memberships?.length) redirect('/login');
 
   const kycPending = kycPendingRes.count ?? 0;
   const identityName = profile.full_name ?? 'Admin';
   const identityEmail = profile.email ?? user.email ?? '';
+  const identityRole = memberships[0]?.admin_roles?.code?.replaceAll('_', ' ') ?? 'admin';
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-bg">
@@ -67,6 +72,7 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
           <div className="border-t border-hairline px-2 py-3">
             <p className="truncate text-xs font-medium text-ink">{identityName}</p>
             <p className="truncate text-[11px] text-muted">{identityEmail}</p>
+            <p className="truncate text-[10px] capitalize text-muted">{identityRole}</p>
           </div>
           <form action="/api/auth/logout" method="POST">
             <button

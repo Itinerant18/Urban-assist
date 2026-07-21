@@ -2,8 +2,9 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /status_stream/{eventId} {
+    match /bookings/{bookingId}/status_stream/{eventId} {
       allow read: if request.auth != null
+        && resource.data.booking_id == bookingId
         && (
           resource.data.customer_id == request.auth.uid
           || resource.data.provider_id == request.auth.uid

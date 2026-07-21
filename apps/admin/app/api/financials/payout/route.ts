@@ -16,7 +16,7 @@ const Schema = z
 
 export async function POST(req: Request) {
   try {
-    const { db, user } = await requireAdminPermission('can_manage_payments');
+    const { db, user, roles } = await requireAdminPermission('can_manage_payments');
     const parsed = Schema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -24,12 +24,15 @@ export async function POST(req: Request) {
 
     if (parsed.data.providerId) {
       const result = await releaseProviderEarnings(db, parsed.data.providerId);
-      await db.from('audit_log').insert({
-        actor_id: user.id,
-        action: 'payout.release_requested',
-        entity_type: 'provider',
-        entity_id: parsed.data.providerId,
-        new_data: result,
+      await (db as any).rpc('append_admin_action_log', {
+        p_actor_user_id: user.id,
+        p_actor_role_code: roles[0] ?? null,
+        p_action_type: 'PAYOUT_TRIGGER',
+        p_entity_type: 'provider',
+        p_entity_id: parsed.data.providerId,
+        p_context: result,
+        p_ip_address: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+        p_user_agent: req.headers.get('user-agent'),
       });
       return NextResponse.json({ success: true, ...result });
     }
@@ -50,12 +53,15 @@ export async function POST(req: Request) {
       processed.push({ provider_id: providerId, ...result });
     }
 
-    await db.from('audit_log').insert({
-      actor_id: user.id,
-      action: 'payout.batch_release_requested',
-      entity_type: 'payout',
-      entity_id: user.id,
-      new_data: { provider_count: providerIds.length, processed },
+    await (db as any).rpc('append_admin_action_log', {
+      p_actor_user_id: user.id,
+      p_actor_role_code: roles[0] ?? null,
+      p_action_type: 'PAYOUT_BATCH_TRIGGER',
+      p_entity_type: 'payout',
+      p_entity_id: user.id,
+      p_context: { provider_count: providerIds.length, processed },
+      p_ip_address: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+      p_user_agent: req.headers.get('user-agent'),
     });
     return NextResponse.json({ success: true, processed });
   } catch (error: unknown) {

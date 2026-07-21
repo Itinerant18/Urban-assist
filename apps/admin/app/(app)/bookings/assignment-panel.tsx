@@ -4,11 +4,15 @@ import * as React from 'react';
 import { Button } from '@urban-assist/ui';
 
 type Provider = {
-  id: string;
+  provider_id: string;
   full_name: string | null;
   email: string | null;
-  rating_avg: number;
-  is_online: boolean;
+  rating: number;
+  completed_jobs: number;
+  cancellation_rate: number;
+  last_seen_at: string | null;
+  earnings_pence: number;
+  is_available: boolean;
 };
 
 export function AssignmentPanel({ bookingId }: { bookingId: string }) {
@@ -56,16 +60,17 @@ export function AssignmentPanel({ bookingId }: { bookingId: string }) {
         !message &&
         providers.map((provider) => (
           <button
-            key={provider.id}
-            onClick={() => assign(provider.id)}
+            key={provider.provider_id}
+            onClick={() => assign(provider.provider_id)}
+            disabled={!provider.is_available}
             className="rounded-lg border border-hairline px-3 py-2 text-left text-xs hover:bg-bg"
           >
             <span className="block font-semibold text-ink">
-              {provider.full_name || provider.email || provider.id.slice(0, 8)}
+              {provider.full_name || provider.email || provider.provider_id.slice(0, 8)}
             </span>
             <span className="text-muted">
-              {provider.is_online ? 'Online' : 'Offline'} ·{' '}
-              {Number(provider.rating_avg ?? 0).toFixed(1)} rating
+              {provider.is_available ? 'Available' : 'Unavailable'} ·{' '}
+              {Number(provider.rating ?? 0).toFixed(1)} rating · {provider.completed_jobs} jobs
             </span>
           </button>
         ))}

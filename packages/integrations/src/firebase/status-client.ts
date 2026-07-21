@@ -33,8 +33,7 @@ export async function subscribeToBookingStatus(options: {
   const { app, uid } = await authenticateFirebase(options.customToken);
   const db = getFirestore(app);
   const statusQuery = query(
-    collection(db, 'status_stream'),
-    where('booking_id', '==', options.bookingId),
+    collection(db, 'bookings', options.bookingId, 'status_stream'),
     where(options.participant, '==', uid),
     orderBy('occurred_at', 'asc'),
   );

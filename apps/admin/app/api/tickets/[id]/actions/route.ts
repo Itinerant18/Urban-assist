@@ -23,7 +23,7 @@ const ActionSchema = z.discriminatedUnion('action', [
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { db: admin, user } = await requireAdminPermission('can_manage_tickets');
+    const { db: admin, user, roles } = await requireAdminPermission('can_manage_tickets');
 
     const parsed = ActionSchema.safeParse(await req.json());
     if (!parsed.success) {
@@ -86,12 +86,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       });
 
       // Log event to audit log
-      await admin.from('audit_log').insert({
-        actor_id: user.id,
-        action: 'ticket.issue_refund',
-        entity_type: 'booking',
-        entity_id: booking.id,
-        new_data: { payment_id: payment.id, refunded: true },
+      await (admin as any).rpc('append_admin_action_log', {
+        p_actor_user_id: user.id,
+        p_actor_role_code: roles[0] ?? null,
+        p_action_type: 'DISPUTE_REFUND',
+        p_entity_type: 'booking',
+        p_entity_id: booking.id,
+        p_context: { ticket_id: ticket.id, payment_id: payment.id, refunded: true },
+        p_ip_address: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+        p_user_agent: req.headers.get('user-agent'),
       });
 
       return NextResponse.json({ ok: true });
@@ -113,13 +116,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         },
       });
 
-      // Log action to audit_log
-      await admin.from('audit_log').insert({
-        actor_id: user.id,
-        action: 'ticket.penalize_provider',
-        entity_type: 'profile',
-        entity_id: booking.provider_id,
-        new_data: { ticket_id: ticket.id, reason: body.reason },
+      // Append the immutable UI/admin action record.
+      await (admin as any).rpc('append_admin_action_log', {
+        p_actor_user_id: user.id,
+        p_actor_role_code: roles[0] ?? null,
+        p_action_type: 'PENALIZE_PROVIDER',
+        p_entity_type: 'provider',
+        p_entity_id: booking.provider_id,
+        p_context: { ticket_id: ticket.id, reason: body.reason },
+        p_ip_address: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+        p_user_agent: req.headers.get('user-agent'),
       });
 
       return NextResponse.json({ ok: true });
@@ -136,13 +142,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         },
       });
 
-      // Add to audit_log
-      await admin.from('audit_log').insert({
-        actor_id: user.id,
-        action: 'ticket.add_note',
-        entity_type: 'support_ticket',
-        entity_id: ticket.id,
-        new_data: { note: body.content },
+      // Append the immutable UI/admin action record.
+      await (admin as any).rpc('append_admin_action_log', {
+        p_actor_user_id: user.id,
+        p_actor_role_code: roles[0] ?? null,
+        p_action_type: 'ADD_DISPUTE_NOTE',
+        p_entity_type: 'support_ticket',
+        p_entity_id: ticket.id,
+        p_context: { note: body.content },
+        p_ip_address: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+        p_user_agent: req.headers.get('user-agent'),
       });
 
       return NextResponse.json({ ok: true });

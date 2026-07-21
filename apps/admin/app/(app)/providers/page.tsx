@@ -1,19 +1,32 @@
-import { getSupabaseServer } from '@urban-assist/db/server';
+import Link from 'next/link';
 import { Users, ChevronRight } from 'lucide-react';
+
+import { requireAdminPermission } from '../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
+type ProviderSummary = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  is_online: boolean;
+  is_blocked: boolean;
+  kyc_status: 'pending' | 'approved' | 'rejected';
+  rating_avg: number | null;
+};
+
 export default async function ProvidersPage() {
-  const db = getSupabaseServer();
-  const { data: providers } = await db
+  const { db } = await requireAdminPermission('can_manage_providers');
+  const { data } = await (db as any)
     .from('profiles')
-    .select('id, full_name, email, is_online, kyc_status, created_at')
+    .select('id, full_name, email, is_online, is_blocked, kyc_status, rating_avg, created_at')
     .eq('role', 'provider')
     .order('created_at', { ascending: false })
     .limit(50);
+  const providers = (data ?? []) as ProviderSummary[];
 
-  const count = providers?.length ?? 0;
-  const onlineCount = providers?.filter((p) => p.is_online).length ?? 0;
+  const count = providers.length;
+  const onlineCount = providers.filter((provider) => provider.is_online).length;
 
   return (
     <div>
@@ -24,16 +37,17 @@ export default async function ProvidersPage() {
         </p>
       </div>
 
-      {!providers || providers.length === 0 ? (
+      {providers.length === 0 ? (
         <div className="card flex flex-col items-center py-12 gap-3">
           <Users className="h-8 w-8 text-muted" />
           <p className="text-sm text-muted">No providers registered yet.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {providers.map((p) => (
-            <div
+          {providers.map((p: ProviderSummary) => (
+            <Link
               key={p.id}
+              href={`/providers/${p.id}`}
               className="card flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
@@ -57,9 +71,11 @@ export default async function ProvidersPage() {
                 {p.is_online && (
                   <span className="text-xs text-green-600 font-medium">Online</span>
                 )}
+                {p.is_blocked && <span className="text-xs font-semibold text-danger">Blocked</span>}
+                <span className="text-xs text-muted">★ {Number(p.rating_avg ?? 0).toFixed(1)}</span>
               </div>
               <ChevronRight className="h-4 w-4 text-muted" />
-            </div>
+            </Link>
           ))}
         </div>
       )}

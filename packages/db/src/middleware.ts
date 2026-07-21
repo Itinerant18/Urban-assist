@@ -4,6 +4,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 export interface SessionMiddlewareOptions {
   isProtectedRoute: boolean;
   loginPath?: string;
+  requireAdmin?: boolean;
+  requireAal2?: boolean;
 }
 
 function copySessionCookies(source: NextResponse, target: NextResponse) {
@@ -53,6 +55,30 @@ export async function updateSupabaseSession(
     loginUrl.search = '';
     loginUrl.searchParams.set('redirect', requestedPath);
     return copySessionCookies(response, NextResponse.redirect(loginUrl));
+  }
+
+  if (user && options.isProtectedRoute && options.requireAdmin) {
+    const { data: isAdmin, error } = await (db as any).rpc('is_admin_user', {
+      user_id: user.id,
+    });
+    if (error || !isAdmin) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = options.loginPath ?? '/login';
+      loginUrl.search = '';
+      loginUrl.searchParams.set('error', 'admin_access_required');
+      return copySessionCookies(response, NextResponse.redirect(loginUrl));
+    }
+  }
+
+  if (user && options.isProtectedRoute && options.requireAal2) {
+    const { data: assurance, error } = await db.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error || assurance.currentLevel !== 'aal2') {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = options.loginPath ?? '/login';
+      loginUrl.search = '';
+      loginUrl.searchParams.set('error', 'mfa_required');
+      return copySessionCookies(response, NextResponse.redirect(loginUrl));
+    }
   }
 
   return response;

@@ -4,6 +4,8 @@ import { updateSupabaseSession } from '@urban-assist/db/middleware';
 export function middleware(request: NextRequest) {
   return updateSupabaseSession(request, {
     isProtectedRoute: request.nextUrl.pathname !== '/login',
+    requireAdmin: true,
+    requireAal2: true,
   });
 }
 
