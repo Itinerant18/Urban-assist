@@ -1,6 +1,7 @@
 # SKU Hierarchy — Phases 3–5 Implementation Plan
 
 Continues the SKU build. Phases 1–2 are done and live:
+
 - **P1** (`790107e`): tables `service_subcategories` / `service_skus` / `service_attributes` seeded (48 subs, 146 SKUs) + nullable `bookings.service_sku_id` and `provider_services.sku_id`.
 - **P2** (`abb4b3c`): admin `/services` catalog CRUD.
 
@@ -23,6 +24,7 @@ Continues the SKU build. Phases 1–2 are done and live:
 ## Phase 0 — Pre-flight (before any P3–P5 work)
 
 The Grok redesign touched `apps/admin` (pages now import `@/components/bento`). Verify + lock it first:
+
 - `pnpm --filter @urban-assist/admin typecheck` and admin production build — must be green.
 - Confirm the redesign is committed; review the diff is markup-only (no server→client conversions, server actions + `append_admin_action_log` intact, nothing outside `apps/admin` + `packages/ui`).
 - Only then start P4.
@@ -36,6 +38,7 @@ The Grok redesign touched `apps/admin` (pages now import `@/components/bento`). 
 **Files:** `apps/provider/app/onboarding/services/services-editor.tsx` (client, main), `apps/provider/app/(app)/services/page.tsx` (list + data), `apps/provider/app/onboarding/services/page.tsx` (server data fetch).
 
 **Approach:**
+
 1. Server pages fetch the catalog tree: `service_subcategories` + `service_skus` (joined to categories) alongside the existing `service_categories`, pass to the editor.
 2. Editor: replace the freetext `title` input with a cascading select — Category → Subcategory → SKU. On SKU select: prefill `title` from `sku.name`, and validate `price_pence` against **`sku.min/max_price_pence`** (tighter than the category band; fall back to category band if no SKU).
 3. Insert/update `provider_services` with `sku_id` set (plus existing `category_id` — keep it, derive from the SKU's subcategory→category so old queries still work).
@@ -54,6 +57,7 @@ The Grok redesign touched `apps/admin` (pages now import `@/components/bento`). 
 **Files:** `packages/domain/src/bookings/services/booking-service.ts` (`createBooking`).
 
 **Approach:**
+
 1. In `createBooking`, add `sku_id` to the `provider_services` select (currently selects `id, provider_id, category_id, price_pence`).
 2. Set `service_sku_id: svc.sku_id ?? null` in the `bookings.insert`.
 3. That's it — no schema change, no pricing change.
@@ -73,6 +77,7 @@ The Grok redesign touched `apps/admin` (pages now import `@/components/bento`). 
 **Files (~11 consumers):** `apps/customer/app/services/catalog-client.tsx`, `services/[category]/page.tsx`, `services/[category]/[subcategory]/page.tsx` (+ `subcategory-client.tsx`), `services/[category]/[subcategory]/[service]/page.tsx`, `components/services/*` (category-section, category-tabs, service-card, service-search, subcategory-block), `lib/homepage-data.ts`, and `lib/services-data.ts` itself.
 
 **Approach:**
+
 1. Add a data-access module `apps/customer/lib/catalog.ts` that fetches the tree (categories → subcategories → skus) from Supabase and returns the **same shape** the components already expect (so component JSX barely changes).
 2. Slugs match (the DB was seeded from `services-data.ts`), so **all existing URLs keep working** — verify slug parity as the first step.
 3. Icons: `services-data.ts` carries lucide icon *names* as strings; those seeded into `subcategories.icon`. Keep the string→lucide map (`categoryIcons`) client-side; DB supplies the string.

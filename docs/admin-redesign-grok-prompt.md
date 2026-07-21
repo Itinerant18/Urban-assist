@@ -48,6 +48,7 @@ Then step 2, step 3, … verifying `pnpm --filter @urban-assist/admin typecheck`
 ## Post-run checklist (for Claude)
 
 After Grok finishes each batch:
+
 - Review the diff (design = markup/classes only; confirm no server→client conversions, no touched server actions/audit calls, no edits outside apps/admin + packages/ui).
 - `pnpm --filter @urban-assist/admin typecheck` + admin production build.
 - No new migrations expected (redesign is UI-only). If Grok added a token, confirm it's additive in the preset + globals.css.

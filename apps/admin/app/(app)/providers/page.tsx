@@ -2,6 +2,13 @@ import Link from 'next/link';
 import { Users, ChevronRight } from 'lucide-react';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
+import {
+  PageHeader,
+  TableTile,
+  StatusChip,
+  statusToneFrom,
+  BentoEmpty,
+} from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,54 +37,39 @@ export default async function ProvidersPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-ink">Providers</h1>
-        <p className="text-sm text-muted mt-1">
-          {count} registered · {onlineCount} online now.
-        </p>
-      </div>
+      <PageHeader
+        title="Providers"
+        subtitle={`${count} registered · ${onlineCount} online now.`}
+      />
 
       {providers.length === 0 ? (
-        <div className="card flex flex-col items-center py-12 gap-3">
-          <Users className="h-8 w-8 text-muted" />
-          <p className="text-sm text-muted">No providers registered yet.</p>
-        </div>
+        <TableTile>
+          <BentoEmpty icon={Users} message="No providers registered yet." />
+        </TableTile>
       ) : (
-        <div className="flex flex-col gap-2">
+        <TableTile>
           {providers.map((p: ProviderSummary) => (
             <Link
               key={p.id}
               href={`/providers/${p.id}`}
-              className="card flex items-center justify-between"
+              className="flex items-center gap-3 px-5 py-3 min-h-[44px] hover:bg-bg/60 transition-colors"
             >
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="font-medium text-ink text-sm">
-                    {p.full_name ?? 'Unnamed'}
-                  </p>
-                  <p className="text-xs text-muted">{p.email}</p>
-                </div>
-                <span
-                  className={`text-xs font-mono-utility px-2 py-0.5 rounded-full ${
-                    p.kyc_status === 'approved'
-                      ? 'bg-green-100 text-green-700'
-                      : p.kyc_status === 'pending'
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-red-100 text-red-700'
-                  }`}
-                >
-                  {p.kyc_status}
-                </span>
-                {p.is_online && (
-                  <span className="text-xs text-green-600 font-medium">Online</span>
-                )}
-                {p.is_blocked && <span className="text-xs font-semibold text-danger">Blocked</span>}
-                <span className="text-xs text-muted">★ {Number(p.rating_avg ?? 0).toFixed(1)}</span>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-ink text-sm truncate">{p.full_name ?? 'Unnamed'}</p>
+                <p className="text-xs text-muted font-mono truncate">{p.email}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted" />
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <StatusChip tone={statusToneFrom(p.kyc_status)}>{p.kyc_status}</StatusChip>
+                {p.is_online ? <StatusChip tone="success">Online</StatusChip> : null}
+                {p.is_blocked ? <StatusChip tone="danger">Blocked</StatusChip> : null}
+                <span className="text-xs text-muted font-mono">
+                  ★ {Number(p.rating_avg ?? 0).toFixed(1)}
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted shrink-0" aria-hidden />
             </Link>
           ))}
-        </div>
+        </TableTile>
       )}
     </div>
   );

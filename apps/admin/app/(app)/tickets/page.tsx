@@ -1,15 +1,15 @@
 import Link from 'next/link';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { TicketCheck, ChevronRight } from 'lucide-react';
-import { Badge } from '@urban-assist/ui';
+import {
+  PageHeader,
+  TableTile,
+  StatusChip,
+  statusToneFrom,
+  BentoEmpty,
+} from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
-
-function statusTone(status: string) {
-  if (status === 'open') return 'accent' as const;
-  if (status === 'resolved') return 'success' as const;
-  return 'muted' as const;
-}
 
 export default async function SupportTicketsPage() {
   const db = getSupabaseServer();
@@ -24,42 +24,41 @@ export default async function SupportTicketsPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-ink">Support Tickets</h1>
-        <p className="text-sm text-muted mt-1">
-          {count} total · {openCount} open.
-        </p>
-      </div>
+      <PageHeader
+        title="Support Tickets"
+        subtitle={`${count} total · ${openCount} open.`}
+        action={<TicketCheck className="h-5 w-5 text-muted" aria-hidden />}
+      />
 
       {!tickets || tickets.length === 0 ? (
-        <div className="card flex flex-col items-center py-12 gap-3">
-          <TicketCheck className="h-8 w-8 text-muted" />
-          <p className="text-sm text-muted">No support tickets yet.</p>
-        </div>
+        <TableTile>
+          <BentoEmpty icon={TicketCheck} message="No support tickets yet." />
+        </TableTile>
       ) : (
-        <div className="flex flex-col gap-2">
+        <TableTile>
           {tickets.map((t) => (
             <Link
               key={t.id}
               href={`/tickets/${t.id}`}
-              className="card flex items-center justify-between hover:bg-bg/40 transition cursor-pointer"
+              className="flex items-center justify-between gap-3 px-5 py-3 min-h-[44px] hover:bg-bg/60 transition-colors"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="min-w-0">
-                  <p className="font-medium text-ink text-sm truncate">
-                    {t.category} — {t.description}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {new Date(t.created_at).toLocaleDateString('en-GB')}
-                  </p>
-                </div>
-                <Badge tone={statusTone(t.status)}>{t.status}</Badge>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-ink text-sm truncate">
+                  {t.category} — {t.description}
+                </p>
+                <p className="text-xs text-muted font-mono mt-0.5">
+                  {new Date(t.created_at).toLocaleDateString('en-GB')}
+                </p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted shrink-0" />
+              <div className="flex items-center gap-3 shrink-0">
+                <StatusChip tone={statusToneFrom(t.status)}>{t.status}</StatusChip>
+                <ChevronRight className="h-4 w-4 text-muted shrink-0" aria-hidden />
+              </div>
             </Link>
           ))}
-        </div>
+        </TableTile>
       )}
     </div>
   );
 }
+

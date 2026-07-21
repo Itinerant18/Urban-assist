@@ -1,12 +1,10 @@
 import { CalendarDays } from 'lucide-react';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
+import { PageHeader, TableTile, BentoEmpty } from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
-// ponytail: read-only oversight. Providers manage their own availability_slots
-// and time_off in the provider app; admin needs visibility, not another editor.
-// Add write actions here only if ops starts overriding provider schedules.
 export default async function SchedulingPage() {
   const { db } = await requireAdminPermission('can_manage_bookings');
   const today = new Date().toISOString().slice(0, 10);
@@ -36,29 +34,33 @@ export default async function SchedulingPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-2">
-        <CalendarDays className="h-5 w-5 text-muted" />
-        <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Scheduling</h1>
-          <p className="text-sm text-muted mt-1">Upcoming provider time-off ({timeOff.length}).</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Scheduling"
+        subtitle={`Upcoming provider time-off (${timeOff.length}).`}
+        action={<CalendarDays className="h-5 w-5 text-muted" aria-hidden />}
+      />
 
       {timeOff.length === 0 ? (
-        <p className="text-sm text-muted">No upcoming time-off booked.</p>
+        <TableTile>
+          <BentoEmpty icon={CalendarDays} message="No upcoming time-off booked." />
+        </TableTile>
       ) : (
-        <div className="flex flex-col gap-2">
+        <TableTile>
           {timeOff.map((t) => (
-            <div key={t.id} className="card flex items-center justify-between">
+            <div
+              key={t.id}
+              className="flex items-center justify-between gap-3 px-5 py-3 min-h-[44px] hover:bg-bg/60 transition-colors"
+            >
               <p className="text-sm font-medium text-ink">{name.get(t.provider_id) ?? '—'}</p>
-              <p className="text-xs text-muted">
+              <p className="text-xs font-mono text-muted">
                 {d(t.start_date)}
                 {t.end_date !== t.start_date && ` → ${d(t.end_date)}`}
               </p>
             </div>
           ))}
-        </div>
+        </TableTile>
       )}
     </div>
   );
 }
+

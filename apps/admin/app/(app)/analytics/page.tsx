@@ -1,13 +1,16 @@
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, PoundSterling, TrendingUp, Users, Star } from 'lucide-react';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
+import { BentoGrid, StatTile, PageHeader, SectionHeader } from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
 const gbp = (pence: number) =>
-  new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(
-    pence / 100,
-  );
+  new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+    maximumFractionDigits: 0,
+  }).format(pence / 100);
 
 type Analytics = {
   total_bookings: number;
@@ -34,38 +37,87 @@ export default async function AnalyticsPage() {
     ? Math.round(((a.completed ?? 0) / a.total_bookings) * 100)
     : 0;
 
-  const tiles: [string, string, string?][] = [
-    ['GMV (completed)', gbp(a.gmv_pence ?? 0)],
-    ['GMV last 30d', gbp(a.gmv_30d_pence ?? 0)],
-    ['Refunds', gbp(a.refunds_pence ?? 0)],
-    ['Completion rate', `${completionRate}%`, `${a.completed ?? 0} of ${a.total_bookings ?? 0}`],
-    ['Bookings', String(a.total_bookings ?? 0), `${a.bookings_30d ?? 0} in last 30d`],
-    ['Active now', String(a.active ?? 0), `${a.disputed ?? 0} disputed`],
-    ['Cancelled', String(a.cancelled ?? 0)],
-    ['Customers', String(a.customers ?? 0)],
-    ['Providers', String(a.providers ?? 0), `${a.providers_approved ?? 0} approved`],
-    ['Avg provider rating', a.avg_provider_rating != null ? `★ ${a.avg_provider_rating}` : '—'],
-  ];
-
   return (
     <div>
-      <div className="mb-8 flex items-center gap-2">
-        <BarChart3 className="h-5 w-5 text-muted" />
-        <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Analytics</h1>
-          <p className="text-sm text-muted mt-1">Marketplace KPIs across all bookings.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Analytics"
+        subtitle="Marketplace KPIs across all bookings."
+        action={<BarChart3 className="h-5 w-5 text-muted" aria-hidden />}
+      />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {tiles.map(([label, value, sub]) => (
-          <div key={label} className="card">
-            <p className="text-xs text-muted">{label}</p>
-            <p className="text-xl font-semibold text-ink mt-1">{value}</p>
-            {sub && <p className="text-[11px] text-muted mt-0.5">{sub}</p>}
-          </div>
-        ))}
-      </div>
+      <SectionHeader title="Revenue" className="mb-3" />
+      <BentoGrid className="mb-6">
+        <StatTile
+          accent
+          label="GMV (completed)"
+          value={gbp(a.gmv_pence ?? 0)}
+          icon={PoundSterling}
+          className="col-span-2 md:col-span-3 lg:col-span-4"
+        />
+        <StatTile
+          label="GMV last 30d"
+          value={gbp(a.gmv_30d_pence ?? 0)}
+          icon={TrendingUp}
+          className="col-span-1 md:col-span-3 lg:col-span-4"
+        />
+        <StatTile
+          label="Refunds"
+          value={gbp(a.refunds_pence ?? 0)}
+          deltaTone="danger"
+          className="col-span-1 md:col-span-3 lg:col-span-4"
+        />
+      </BentoGrid>
+
+      <SectionHeader title="Volume" className="mb-3" />
+      <BentoGrid className="mb-6">
+        <StatTile
+          label="Completion rate"
+          value={`${completionRate}%`}
+          sub={`${a.completed ?? 0} of ${a.total_bookings ?? 0}`}
+          className="col-span-1 md:col-span-2 lg:col-span-3"
+        />
+        <StatTile
+          label="Bookings"
+          value={String(a.total_bookings ?? 0)}
+          sub={`${a.bookings_30d ?? 0} in last 30d`}
+          className="col-span-1 md:col-span-2 lg:col-span-3"
+        />
+        <StatTile
+          label="Active now"
+          value={String(a.active ?? 0)}
+          sub={`${a.disputed ?? 0} disputed`}
+          deltaTone={(a.disputed ?? 0) > 0 ? 'danger' : 'muted'}
+          className="col-span-1 md:col-span-2 lg:col-span-3"
+        />
+        <StatTile
+          label="Cancelled"
+          value={String(a.cancelled ?? 0)}
+          className="col-span-1 md:col-span-2 lg:col-span-3"
+        />
+      </BentoGrid>
+
+      <SectionHeader title="Quality & people" className="mb-3" />
+      <BentoGrid>
+        <StatTile
+          label="Customers"
+          value={String(a.customers ?? 0)}
+          icon={Users}
+          className="col-span-1 md:col-span-2 lg:col-span-4"
+        />
+        <StatTile
+          label="Providers"
+          value={String(a.providers ?? 0)}
+          sub={`${a.providers_approved ?? 0} approved`}
+          icon={Users}
+          className="col-span-1 md:col-span-2 lg:col-span-4"
+        />
+        <StatTile
+          label="Avg provider rating"
+          value={a.avg_provider_rating != null ? `★ ${a.avg_provider_rating}` : '—'}
+          icon={Star}
+          className="col-span-2 md:col-span-2 lg:col-span-4"
+        />
+      </BentoGrid>
     </div>
   );
 }

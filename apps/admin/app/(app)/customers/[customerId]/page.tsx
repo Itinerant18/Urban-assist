@@ -1,9 +1,20 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ChevronRight } from 'lucide-react';
 
 import { requireAdminPermission } from '../../../../lib/admin-auth';
+import {
+  PageHeader,
+  BentoGrid,
+  BentoTile,
+  StatTile,
+  SectionHeader,
+  StatusChip,
+  statusToneFrom,
+  TableTile,
+  BentoEmpty,
+} from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +65,7 @@ export default async function CustomerDetailPage({
   const [{ data: bookingRows }, walletRes, { data: ledgerRows }] = await Promise.all([
     (db as any)
       .from('bookings')
-      .select('id, status, scheduled_at, total_pence')
+      .select('id, short_code, status, scheduled_at, total_pence')
       .eq('customer_id', params.customerId)
       .order('scheduled_at', { ascending: false })
       .limit(100),
@@ -75,6 +86,7 @@ export default async function CustomerDetailPage({
   }[];
   const bookings = (bookingRows ?? []) as {
     id: string;
+    short_code: string | null;
     status: string;
     scheduled_at: string | null;
     total_pence: number | null;
@@ -86,61 +98,64 @@ export default async function CustomerDetailPage({
   const spend = bookings
     .filter((b) => b.status === 'completed')
     .reduce((sum, b) => sum + (b.total_pence ?? 0), 0);
-  // ponytail: flat threshold for a risk flag — enough completed history plus a
-  // high cancel/no-show rate. Swap for a scored model when there's data to tune it.
   const risky = total >= 3 && cancelled / total > 0.4;
 
   return (
-    <div className="max-w-3xl">
-      <Link href="/customers" className="inline-flex items-center gap-1.5 text-sm text-muted mb-6 hover:text-ink">
-        <ArrowLeft className="h-4 w-4" /> Customers
-      </Link>
-
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-ink">
-            {customer.full_name ?? 'Unnamed customer'}
-          </h1>
-          <p className="text-sm text-muted mt-1">{customer.email}</p>
-          <p className="text-xs text-muted mt-0.5">
-            Joined {new Date(customer.created_at).toLocaleDateString('en-GB')}
-            {customer.last_seen_at &&
-              ` · last seen ${new Date(customer.last_seen_at).toLocaleDateString('en-GB')}`}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-1.5">
-          {customer.is_blocked && (
-            <span className="text-xs font-semibold text-danger">Blocked</span>
-          )}
-          {risky && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-              <AlertTriangle className="h-3 w-3" /> High cancellation rate
-            </span>
-          )}
-        </div>
+    <div>
+      <div className="mb-2">
+        <Link href="/customers" className="text-xs text-muted hover:text-ink transition-colors">
+          ← Back to Customers
+        </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        {[
-          ['Bookings', String(total)],
-          ['Completed', String(completed)],
-          ['Cancelled', String(cancelled)],
-          ['Lifetime spend', gbp(spend)],
-        ].map(([label, value]) => (
-          <div key={label} className="card">
-            <p className="text-xs text-muted">{label}</p>
-            <p className="text-lg font-semibold text-ink mt-0.5">{value}</p>
+      <PageHeader
+        title={customer.full_name ?? 'Unnamed customer'}
+        subtitle={`${customer.email ?? 'No email'} · Joined ${new Date(customer.created_at).toLocaleDateString('en-GB')}${customer.last_seen_at ? ` · last seen ${new Date(customer.last_seen_at).toLocaleDateString('en-GB')}` : ''}`}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            {customer.is_blocked ? <StatusChip tone="danger">Blocked</StatusChip> : null}
+            {risky ? (
+              <StatusChip tone="danger" className="gap-1">
+                <AlertTriangle className="h-3 w-3" aria-hidden /> High cancellation rate
+              </StatusChip>
+            ) : null}
           </div>
-        ))}
-      </div>
+        }
+      />
 
-      <div className="card mb-8">
-        <div className="flex items-center justify-between">
+      <BentoGrid className="mb-6">
+        <StatTile
+          label="Total bookings"
+          value={String(total)}
+          className="col-span-1 md:col-span-3 lg:col-span-3"
+        />
+        <StatTile
+          label="Completed"
+          value={String(completed)}
+          className="col-span-1 md:col-span-3 lg:col-span-3"
+        />
+        <StatTile
+          label="Cancelled / No-show"
+          value={String(cancelled)}
+          deltaTone={cancelled > 0 ? 'danger' : 'muted'}
+          className="col-span-1 md:col-span-3 lg:col-span-3"
+        />
+        <StatTile
+          accent
+          label="Lifetime spend"
+          value={gbp(spend)}
+          className="col-span-1 md:col-span-3 lg:col-span-3"
+        />
+      </BentoGrid>
+
+      {/* Wallet tile */}
+      <BentoTile static className="mb-8 !justify-start">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline pb-4">
           <div>
             <p className="text-xs text-muted">Wallet balance</p>
-            <p className="text-lg font-semibold text-ink mt-0.5">{gbp(walletBalance)}</p>
+            <p className="text-2xl font-bold font-mono text-ink mt-0.5">{gbp(walletBalance)}</p>
           </div>
-          <form action={grantCredit} className="flex items-end gap-2">
+          <form action={grantCredit} className="flex flex-wrap items-end gap-2">
             <input type="hidden" name="customer_id" value={customer.id} />
             <label className="text-xs text-muted">
               Grant £
@@ -150,63 +165,84 @@ export default async function CustomerDetailPage({
                 min="0.01"
                 step="0.01"
                 required
-                className="mt-1 w-24 rounded-lg border border-hairline bg-bg px-2 py-1.5 text-sm text-ink focus:border-ink focus:outline-none"
+                placeholder="10.00"
+                className="mt-1 w-24 rounded-xl border border-hairline bg-bg px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none"
               />
             </label>
-            <input
-              name="reason"
-              placeholder="reason (optional)"
-              className="rounded-lg border border-hairline bg-bg px-2 py-1.5 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none"
-            />
-            <button type="submit" className="rounded-lg bg-ink px-3 py-1.5 text-sm font-semibold text-white">
-              Grant
+            <label className="text-xs text-muted">
+              Reason
+              <input
+                name="reason"
+                placeholder="Reason (optional)"
+                className="mt-1 rounded-xl border border-hairline bg-bg px-3 py-1.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+              />
+            </label>
+            <button
+              type="submit"
+              className="rounded-xl bg-accent px-4 py-1.5 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
+            >
+              Grant credit
             </button>
           </form>
         </div>
-        {ledger.length > 0 && (
-          <div className="mt-3 border-t border-hairline pt-3 flex flex-col gap-1">
-            {ledger.map((l) => (
-              <div key={l.id} className="flex items-center justify-between text-xs">
-                <span className="text-muted">
-                  {new Date(l.created_at).toLocaleDateString('en-GB')} · {l.reason.replace(/_/g, ' ')}
-                </span>
-                <span className={l.amount_pence >= 0 ? 'text-green-600' : 'text-ink'}>
-                  {l.amount_pence >= 0 ? '+' : '−'}
-                  {gbp(Math.abs(l.amount_pence))}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      <h2 className="font-display text-sm font-bold text-ink mb-3">Booking history</h2>
+        {ledger.length > 0 ? (
+          <div className="mt-4">
+            <p className="text-xs font-semibold text-muted mb-2">Recent ledger activity</p>
+            <div className="divide-y divide-hairline">
+              {ledger.map((l) => (
+                <div key={l.id} className="flex items-center justify-between py-2 text-xs">
+                  <span className="text-muted">
+                    {new Date(l.created_at).toLocaleDateString('en-GB')} · {l.reason.replace(/_/g, ' ')}
+                  </span>
+                  <span className={l.amount_pence >= 0 ? 'text-success font-mono font-medium' : 'text-ink font-mono'}>
+                    {l.amount_pence >= 0 ? '+' : '−'}
+                    {gbp(Math.abs(l.amount_pence))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </BentoTile>
+
+      <SectionHeader title="Booking history" />
       {bookings.length === 0 ? (
-        <p className="text-sm text-muted">No bookings yet.</p>
+        <TableTile>
+          <BentoEmpty message="No bookings for this customer yet." />
+        </TableTile>
       ) : (
-        <div className="flex flex-col gap-2">
+        <TableTile>
           {bookings.map((b) => (
             <Link
               key={b.id}
               href={`/bookings/${b.id}`}
-              className="card flex items-center justify-between"
+              className="flex items-center justify-between gap-3 px-5 py-3 min-h-[44px] hover:bg-bg/60 transition-colors"
             >
-              <div>
-                <p className="text-sm text-ink font-mono-utility">{b.id.slice(0, 8)}</p>
-                <p className="text-xs text-muted">
+              <div className="min-w-0">
+                <p className="text-xs font-mono text-muted">
+                  #{b.short_code ?? b.id.slice(0, 8)}
+                </p>
+                <p className="text-xs text-muted mt-0.5">
                   {b.scheduled_at
                     ? new Date(b.scheduled_at).toLocaleString('en-GB')
                     : 'Unscheduled'}
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted capitalize">{b.status.replace(/_/g, ' ')}</span>
-                <span className="text-sm text-ink">{gbp(b.total_pence ?? 0)}</span>
+              <div className="flex items-center gap-3 shrink-0">
+                <StatusChip tone={statusToneFrom(b.status)}>
+                  {b.status.replace(/_/g, ' ')}
+                </StatusChip>
+                <span className="text-sm font-mono font-semibold text-ink">
+                  {gbp(b.total_pence ?? 0)}
+                </span>
+                <ChevronRight className="h-4 w-4 text-muted shrink-0" aria-hidden />
               </div>
             </Link>
           ))}
-        </div>
+        </TableTile>
       )}
     </div>
   );
 }
+

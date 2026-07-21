@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Star } from 'lucide-react';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
+import { PageHeader, TableTile, StatusChip, BentoEmpty } from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,47 +45,88 @@ export default async function RatingsPage({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Star className="h-5 w-5 text-muted" />
-          <div>
-            <h1 className="font-display text-2xl font-bold text-ink">Ratings & Reviews</h1>
-            <p className="text-sm text-muted mt-1">{reviews.length} {lowOnly ? '≤2★' : 'recent'}.</p>
+      <PageHeader
+        title="Ratings & Reviews"
+        subtitle={`${reviews.length} ${lowOnly ? 'low (≤2★)' : 'recent'} reviews.`}
+        action={
+          <div className="flex items-center gap-2">
+            <Link
+              href="/ratings"
+              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
+                !lowOnly
+                  ? 'bg-accent text-white font-semibold'
+                  : 'border border-hairline bg-white text-ink hover:bg-bg'
+              }`}
+            >
+              All reviews
+            </Link>
+            <Link
+              href="/ratings?low=1"
+              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
+                lowOnly
+                  ? 'bg-accent text-white font-semibold'
+                  : 'border border-hairline bg-white text-ink hover:bg-bg'
+              }`}
+            >
+              Low (≤2★)
+            </Link>
           </div>
-        </div>
-        <div className="flex gap-2 text-xs">
-          <Link href="/ratings" className={`rounded-lg px-3 py-1.5 ${!lowOnly ? 'bg-ink text-white' : 'border border-hairline text-muted'}`}>All</Link>
-          <Link href="/ratings?low=1" className={`rounded-lg px-3 py-1.5 ${lowOnly ? 'bg-ink text-white' : 'border border-hairline text-muted'}`}>Low (≤2★)</Link>
-        </div>
-      </div>
+        }
+      />
 
       {reviews.length === 0 ? (
-        <p className="text-sm text-muted">No reviews{lowOnly ? ' ≤2★' : ''} yet.</p>
+        <TableTile>
+          <BentoEmpty icon={Star} message={`No reviews${lowOnly ? ' ≤2★' : ''} found.`} />
+        </TableTile>
       ) : (
-        <div className="flex flex-col gap-2">
-          {reviews.map((r) => (
-            <div key={r.id} className="card">
-              <div className="flex items-center justify-between">
-                <span className={`text-sm font-semibold ${r.rating <= 2 ? 'text-danger' : 'text-ink'}`}>
-                  {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
-                </span>
-                <Link href={`/bookings/${r.booking_id}`} className="text-xs font-mono-utility text-muted hover:text-ink">
-                  {r.booking_id.slice(0, 8)}
-                </Link>
+        <TableTile>
+          {reviews.map((r) => {
+            const isLow = r.rating <= 2;
+            return (
+              <div
+                key={r.id}
+                className={`flex flex-col gap-1 px-5 py-3.5 hover:bg-bg/60 transition-colors ${
+                  isLow ? 'bg-danger/5' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-sm font-semibold font-mono tracking-wider ${
+                        isLow ? 'text-danger' : 'text-amber-600'
+                      }`}
+                    >
+                      {'★'.repeat(r.rating)}
+                      <span className="text-hairline">{'★'.repeat(5 - r.rating)}</span>
+                    </span>
+                    {isLow ? <StatusChip tone="danger">Low rating</StatusChip> : null}
+                  </div>
+                  <Link
+                    href={`/bookings/${r.booking_id}`}
+                    className="text-xs font-mono text-muted hover:text-ink transition-colors"
+                  >
+                    Booking #{r.booking_id.slice(0, 8)} →
+                  </Link>
+                </div>
+                <p className="text-xs text-muted">
+                  <span className="font-medium text-ink">{name.get(r.author_id) ?? '—'}</span> →{' '}
+                  <span className="font-medium text-ink">{name.get(r.target_id) ?? '—'}</span>
+                  {' · '}
+                  <span>
+                    {r.direction === 'customer_to_provider'
+                      ? 'Customer rating provider'
+                      : 'Provider rating customer'}
+                  </span>
+                  {' · '}
+                  <span className="font-mono">{new Date(r.created_at).toLocaleDateString('en-GB')}</span>
+                </p>
+                {r.comment ? <p className="text-sm text-ink mt-1">{r.comment}</p> : null}
               </div>
-              <p className="text-xs text-muted mt-1">
-                {name.get(r.author_id) ?? '—'} →{' '}
-                {name.get(r.target_id) ?? '—'}
-                {' · '}
-                {r.direction === 'customer_to_provider' ? 'on provider' : 'on customer'}
-                {' · '}
-                {new Date(r.created_at).toLocaleDateString('en-GB')}
-              </p>
-              {r.comment && <p className="text-sm text-ink mt-2">{r.comment}</p>}
-            </div>
-          ))}
-        </div>
+            );
+          })}
+        </TableTile>
       )}
     </div>
   );
 }
+

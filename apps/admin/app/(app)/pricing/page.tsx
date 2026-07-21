@@ -2,6 +2,7 @@ import { revalidatePath } from 'next/cache';
 import { Percent } from 'lucide-react';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
+import { PageHeader, SectionHeader, BentoTile, TableTile } from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,9 +45,9 @@ export default async function PricingPage() {
   const pct = (bps: number) => (bps / 100).toString();
 
   const Row = ({ id, label, bps }: { id: string; label: string; bps: number }) => (
-    <form action={setCommission} className="card flex items-center justify-between gap-3">
+    <form action={setCommission} className="flex items-center justify-between gap-3 px-5 py-3 min-h-[44px]">
       <input type="hidden" name="category_id" value={id} />
-      <span className="text-sm text-ink">{label}</span>
+      <span className="text-sm font-medium text-ink">{label}</span>
       <div className="flex items-center gap-2">
         <input
           name="percent"
@@ -55,10 +56,13 @@ export default async function PricingPage() {
           max="100"
           step="0.5"
           defaultValue={pct(bps)}
-          className="w-20 rounded-lg border border-hairline bg-bg px-2 py-1.5 text-sm text-ink text-right focus:border-ink focus:outline-none"
+          className="w-20 rounded-xl border border-hairline bg-bg px-3 py-1.5 text-sm text-ink text-right focus:border-accent focus:outline-none"
         />
         <span className="text-xs text-muted">%</span>
-        <button type="submit" className="rounded-lg bg-ink px-3 py-1.5 text-sm font-semibold text-white">
+        <button
+          type="submit"
+          className="rounded-xl bg-accent px-4 py-1.5 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
+        >
           Save
         </button>
       </div>
@@ -66,26 +70,29 @@ export default async function PricingPage() {
   );
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6 flex items-center gap-2">
-        <Percent className="h-5 w-5 text-muted" />
-        <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Pricing &amp; Commission</h1>
-          <p className="text-sm text-muted mt-1">Platform commission taken from each completed booking&apos;s net price.</p>
-        </div>
-      </div>
+    <div className="max-w-3xl">
+      <PageHeader
+        title="Pricing & Commission"
+        subtitle="Platform commission taken from each completed booking's net price."
+        action={<Percent className="h-5 w-5 text-muted" aria-hidden />}
+      />
 
-      <h2 className="font-display text-sm font-bold text-ink mb-2">Default rate</h2>
       <div className="mb-6">
-        <Row id="default" label="All categories (default)" bps={defaultBps} />
+        <SectionHeader title="Default rate" />
+        <TableTile>
+          <Row id="default" label="All categories (default)" bps={defaultBps} />
+        </TableTile>
       </div>
 
-      <h2 className="font-display text-sm font-bold text-ink mb-2">Per-category overrides</h2>
-      <div className="flex flex-col gap-2">
-        {(categories ?? []).map((c: any) => (
-          <Row key={c.id} id={c.id} label={c.name} bps={bpsByCategory.get(c.id) ?? defaultBps} />
-        ))}
+      <div>
+        <SectionHeader title="Per-category overrides" />
+        <TableTile>
+          {(categories ?? []).map((c: any) => (
+            <Row key={c.id} id={c.id} label={c.name} bps={bpsByCategory.get(c.id) ?? defaultBps} />
+          ))}
+        </TableTile>
       </div>
     </div>
   );
 }
+

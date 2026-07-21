@@ -1,6 +1,16 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireAdminRole } from '../../../../lib/admin-auth';
+import {
+  PageHeader,
+  BentoGrid,
+  BentoTile,
+  SectionHeader,
+  StatusChip,
+  statusToneFrom,
+  TableTile,
+  BentoEmpty,
+} from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,87 +52,144 @@ export default async function BookingDetailPage({
   const address = addressRes.data;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <Link className="text-xs text-muted hover:text-ink" href="/bookings">← Bookings</Link>
-          <h1 className="mt-2 font-display text-2xl font-bold text-ink">
-            {booking.short_code ?? booking.id.slice(0, 8)}
-          </h1>
-          <p className="mt-1 text-sm capitalize text-muted">{booking.status.replaceAll('_', ' ')}</p>
-        </div>
-        {canAssign && (
-          <Link className="btn-primary" href={'/bookings/' + booking.id + '/assign'}>
-            {booking.provider_id ? 'Reassign provider' : 'Assign provider'}
-          </Link>
-        )}
+    <div>
+      <div className="mb-2">
+        <Link className="text-xs text-muted hover:text-ink transition-colors" href="/bookings">
+          ← Back to Bookings
+        </Link>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <section className="card">
-          <h2 className="text-sm font-semibold text-ink">Customer</h2>
-          <p className="mt-3 text-sm text-ink">{customerRes.data?.full_name ?? 'Unnamed customer'}</p>
-          <p className="mt-1 text-xs text-muted">{customerRes.data?.email}</p>
-          <p className="mt-1 text-xs text-muted">{customerRes.data?.phone ?? 'No phone'}</p>
-        </section>
-        <section className="card">
-          <h2 className="text-sm font-semibold text-ink">Service & schedule</h2>
-          <p className="mt-3 text-sm text-ink">{categoryRes.data?.name ?? 'Unknown category'}</p>
-          <p className="mt-1 text-xs text-muted">{new Date(booking.scheduled_at).toLocaleString()}</p>
-          <p className="mt-1 text-xs text-muted">{booking.notes ?? 'No customer notes'}</p>
-        </section>
-        <section className="card">
-          <h2 className="text-sm font-semibold text-ink">Provider</h2>
-          <p className="mt-3 text-sm text-ink">{providerRes.data?.full_name ?? 'Unassigned'}</p>
-          <p className="mt-1 text-xs text-muted">{providerRes.data?.email}</p>
-          {providerRes.data && (
-            <p className="mt-1 text-xs text-muted">{Number(providerRes.data.rating_avg ?? 0).toFixed(1)} rating</p>
-          )}
-        </section>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="card">
-          <h2 className="text-sm font-semibold text-ink">Location</h2>
-          <p className="mt-3 text-sm text-ink">
-            {[address?.line1, address?.line2, address?.city, address?.postcode].filter(Boolean).join(', ')}
-          </p>
-          {address?.lat != null && address?.lng != null && (
-            <p className="mt-1 font-mono-utility text-xs text-muted">{address.lat}, {address.lng}</p>
-          )}
-        </section>
-        <section className="card">
-          <h2 className="text-sm font-semibold text-ink">Payment</h2>
-          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-            <span className="text-muted">Booking total</span><span className="text-right text-ink">{money(booking.total_pence)}</span>
-            <span className="text-muted">Method</span><span className="text-right capitalize text-ink">{booking.payment_method}</span>
-            <span className="text-muted">Payment status</span><span className="text-right capitalize text-ink">{payment?.status ?? 'not created'}</span>
-            <span className="text-muted">Stripe intent</span><span className="truncate text-right font-mono-utility text-xs text-ink">{payment?.stripe_payment_intent_id ?? '—'}</span>
+      <PageHeader
+        title={booking.short_code ? `#${booking.short_code}` : booking.id.slice(0, 8)}
+        subtitle={`Booking created on ${new Date(booking.created_at).toLocaleDateString('en-GB')}`}
+        action={
+          <div className="flex items-center gap-3">
+            <StatusChip tone={statusToneFrom(booking.status)}>
+              {booking.status.replaceAll('_', ' ')}
+            </StatusChip>
+            {canAssign && (
+              <Link
+                className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
+                href={'/bookings/' + booking.id + '/assign'}
+              >
+                {booking.provider_id ? 'Reassign provider' : 'Assign provider'}
+              </Link>
+            )}
           </div>
-        </section>
-      </div>
+        }
+      />
 
-      <section className="card">
-        <h2 className="text-sm font-semibold text-ink">Assignment and status history</h2>
+      <BentoGrid className="mb-6">
+        <BentoTile static className="col-span-2 md:col-span-3 lg:col-span-4 !justify-start">
+          <SectionHeader title="Customer" />
+          <div className="space-y-1">
+            <p className="font-semibold text-ink text-sm">
+              {customerRes.data?.full_name ?? 'Unnamed customer'}
+            </p>
+            <p className="text-xs text-muted font-mono">{customerRes.data?.email ?? '—'}</p>
+            <p className="text-xs text-muted">{customerRes.data?.phone ?? 'No phone number'}</p>
+          </div>
+        </BentoTile>
+
+        <BentoTile static className="col-span-2 md:col-span-3 lg:col-span-4 !justify-start">
+          <SectionHeader title="Service & schedule" />
+          <div className="space-y-1">
+            <p className="font-semibold text-ink text-sm">
+              {categoryRes.data?.name ?? 'Unknown category'}
+            </p>
+            <p className="text-xs text-muted font-mono">
+              {new Date(booking.scheduled_at).toLocaleString('en-GB')}
+            </p>
+            <p className="text-xs text-muted italic">{booking.notes ?? 'No customer notes'}</p>
+          </div>
+        </BentoTile>
+
+        <BentoTile static className="col-span-2 md:col-span-6 lg:col-span-4 !justify-start">
+          <SectionHeader title="Provider" />
+          <div className="space-y-1">
+            <p className="font-semibold text-ink text-sm">
+              {providerRes.data?.full_name ?? 'Unassigned'}
+            </p>
+            <p className="text-xs text-muted font-mono">{providerRes.data?.email ?? '—'}</p>
+            {providerRes.data ? (
+              <p className="text-xs text-muted font-mono">
+                ★ {Number(providerRes.data.rating_avg ?? 0).toFixed(1)} rating
+              </p>
+            ) : null}
+          </div>
+        </BentoTile>
+
+        <BentoTile static className="col-span-2 md:col-span-3 lg:col-span-6 !justify-start">
+          <SectionHeader title="Location" />
+          <p className="text-sm text-ink font-medium">
+            {[address?.line1, address?.line2, address?.city, address?.postcode]
+              .filter(Boolean)
+              .join(', ') || 'No address details'}
+          </p>
+          {address?.lat != null && address?.lng != null ? (
+            <p className="mt-2 text-xs font-mono text-muted">
+              Coordinates: {address.lat}, {address.lng}
+            </p>
+          ) : null}
+        </BentoTile>
+
+        <BentoTile static className="col-span-2 md:col-span-3 lg:col-span-6 !justify-start">
+          <SectionHeader title="Payment details" />
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <span className="text-muted">Total amount</span>
+            <span className="text-right font-mono font-semibold text-ink">
+              {money(booking.total_pence)}
+            </span>
+
+            <span className="text-muted">Payment method</span>
+            <span className="text-right capitalize text-ink">
+              {booking.payment_method ?? '—'}
+            </span>
+
+            <span className="text-muted">Payment status</span>
+            <span className="text-right">
+              <StatusChip tone={statusToneFrom(payment?.status ?? 'pending')}>
+                {payment?.status ?? 'not created'}
+              </StatusChip>
+            </span>
+
+            <span className="text-muted">Stripe Intent</span>
+            <span className="text-right font-mono text-[11px] text-muted truncate">
+              {payment?.stripe_payment_intent_id ?? '—'}
+            </span>
+          </div>
+        </BentoTile>
+      </BentoGrid>
+
+      <SectionHeader title="Assignment and status history" />
+      <TableTile>
         {!statusLogsRes.data?.length ? (
-          <p className="mt-3 text-sm text-muted">No admin status changes have been recorded yet.</p>
+          <BentoEmpty message="No status changes recorded yet." className="py-8" />
         ) : (
-          <ol className="mt-4 space-y-4 border-l border-hairline pl-4">
-            {statusLogsRes.data.map((event: any) => (
-              <li key={event.id}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-ink">{event.action_type.replaceAll('_', ' ')}</span>
-                  <time className="text-xs text-muted">{new Date(event.created_at).toLocaleString()}</time>
-                </div>
-                <p className="mt-1 text-xs text-muted">
-                  {event.from_status ?? 'created'} → {event.to_status} · {event.strategy}
+          statusLogsRes.data.map((event: any) => (
+            <div
+              key={event.id}
+              className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 min-h-[44px] hover:bg-bg/60 transition-colors"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-ink capitalize">
+                  {(event.action_type ?? '').replaceAll('_', ' ')}
                 </p>
-                {event.reason && <p className="mt-1 text-xs text-muted">Reason: {event.reason}</p>}
-              </li>
-            ))}
-          </ol>
+                <p className="text-xs text-muted mt-0.5">
+                  <span className="capitalize">{event.from_status ?? 'created'}</span> →{' '}
+                  <span className="font-medium text-ink capitalize">{event.to_status}</span>
+                  {event.strategy ? ` · ${event.strategy}` : ''}
+                  {event.reason ? ` (${event.reason})` : ''}
+                </p>
+              </div>
+              <time className="text-xs font-mono text-muted shrink-0">
+                {new Date(event.created_at).toLocaleString('en-GB')}
+              </time>
+            </div>
+          ))
         )}
-      </section>
+      </TableTile>
     </div>
   );
 }
+

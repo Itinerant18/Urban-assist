@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { ShieldCheck, ChevronRight } from 'lucide-react';
+import {
+  PageHeader,
+  TableTile,
+  StatusChip,
+  BentoEmpty,
+} from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,35 +23,37 @@ export default async function KYCQueuePage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-ink">KYC Review Queue</h1>
-        <p className="text-sm text-muted mt-1">
-          {count} provider{count !== 1 ? 's' : ''} pending verification.
-        </p>
-      </div>
+      <PageHeader
+        title="KYC Review Queue"
+        subtitle={`${count} provider${count !== 1 ? 's' : ''} pending verification.`}
+        action={<ShieldCheck className="h-5 w-5 text-muted" aria-hidden />}
+      />
 
       {!pending || pending.length === 0 ? (
-        <div className="card flex flex-col items-center py-12 gap-3">
-          <ShieldCheck className="h-8 w-8 text-muted" />
-          <p className="text-sm text-muted">All clear — no pending KYC reviews.</p>
-        </div>
+        <TableTile>
+          <BentoEmpty icon={ShieldCheck} message="All clear — no pending KYC reviews." />
+        </TableTile>
       ) : (
-        <div className="flex flex-col gap-2">
+        <TableTile>
           {pending.map((p) => (
             <Link
               href={`/kyc/${p.id}`}
               key={p.id}
-              className="card flex items-center justify-between hover:bg-bg/40 transition cursor-pointer"
+              className="flex items-center justify-between gap-3 px-5 py-3 min-h-[44px] hover:bg-bg/60 transition-colors"
             >
-              <div>
-                <p className="font-medium text-ink text-sm">{p.full_name ?? 'Unnamed'}</p>
-                <p className="text-xs text-muted">{p.email}</p>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-ink text-sm truncate">{p.full_name ?? 'Unnamed'}</p>
+                <p className="text-xs text-muted font-mono truncate">{p.email}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted" />
+              <div className="flex items-center gap-3 shrink-0">
+                <StatusChip tone="accent">Awaiting review</StatusChip>
+                <ChevronRight className="h-4 w-4 text-muted shrink-0" aria-hidden />
+              </div>
             </Link>
           ))}
-        </div>
+        </TableTile>
       )}
     </div>
   );
 }
+

@@ -2,6 +2,14 @@ import { revalidatePath } from 'next/cache';
 import { Tag } from 'lucide-react';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
+import {
+  PageHeader,
+  BentoTile,
+  TableTile,
+  StatusChip,
+  BentoEmpty,
+  SectionHeader,
+} from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +83,9 @@ function isActive(p: Promo) {
   return notExpired && underCap;
 }
 
+const fieldClass =
+  'mt-1 w-full rounded-xl border border-hairline bg-bg px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none';
+
 export default async function PromotionsPage() {
   const { db } = await requireAdminPermission('can_manage_promo_codes');
   const { data } = await (db as any)
@@ -84,56 +95,74 @@ export default async function PromotionsPage() {
   const promos = (data ?? []) as Promo[];
 
   return (
-    <div className="max-w-3xl">
-      <div className="mb-6 flex items-center gap-2">
-        <Tag className="h-5 w-5 text-muted" />
-        <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Promotions</h1>
-          <p className="text-sm text-muted mt-1">{promos.length} promo codes.</p>
-        </div>
-      </div>
+    <div>
+      <PageHeader title="Promotions" subtitle={`${promos.length} promo codes.`} />
 
-      <form action={createPromo} className="card mb-8 grid grid-cols-2 sm:grid-cols-6 gap-3 items-end">
-        <label className="col-span-2 sm:col-span-2 text-xs text-muted">
-          Code
-          <input name="code" required placeholder="WELCOME10" className="mt-1 w-full rounded-lg border border-hairline bg-bg px-2.5 py-1.5 text-sm text-ink uppercase focus:border-ink focus:outline-none" />
-        </label>
-        <label className="text-xs text-muted">
-          Type
-          <select name="discount_type" className="mt-1 w-full rounded-lg border border-hairline bg-bg px-2.5 py-1.5 text-sm text-ink focus:border-ink focus:outline-none">
-            <option value="percent">% off</option>
-            <option value="fixed">£ off</option>
-          </select>
-        </label>
-        <label className="text-xs text-muted">
-          Value
-          <input name="discount_value" type="number" min="1" required placeholder="10" className="mt-1 w-full rounded-lg border border-hairline bg-bg px-2.5 py-1.5 text-sm text-ink focus:border-ink focus:outline-none" />
-        </label>
-        <label className="text-xs text-muted">
-          Max uses
-          <input name="max_redemptions" type="number" min="1" placeholder="∞" className="mt-1 w-full rounded-lg border border-hairline bg-bg px-2.5 py-1.5 text-sm text-ink focus:border-ink focus:outline-none" />
-        </label>
-        <label className="text-xs text-muted">
-          Expires
-          <input name="expires_at" type="date" className="mt-1 w-full rounded-lg border border-hairline bg-bg px-2.5 py-1.5 text-sm text-ink focus:border-ink focus:outline-none" />
-        </label>
-        <button type="submit" className="col-span-2 sm:col-span-6 rounded-lg bg-ink py-2 text-sm font-semibold text-white">
-          Create code
-        </button>
-      </form>
+      <BentoTile static className="mb-8 !justify-start">
+        <SectionHeader title="Create promo code" />
+        <form action={createPromo} className="grid grid-cols-2 sm:grid-cols-6 gap-3 items-end">
+          <label className="col-span-2 sm:col-span-2 text-xs text-muted">
+            Code
+            <input name="code" required placeholder="WELCOME10" className={`${fieldClass} uppercase`} />
+          </label>
+          <label className="text-xs text-muted">
+            Type
+            <select name="discount_type" className={fieldClass}>
+              <option value="percent">% off</option>
+              <option value="fixed">£ off</option>
+            </select>
+          </label>
+          <label className="text-xs text-muted">
+            Value
+            <input
+              name="discount_value"
+              type="number"
+              min="1"
+              required
+              placeholder="10"
+              className={fieldClass}
+            />
+          </label>
+          <label className="text-xs text-muted">
+            Max uses
+            <input
+              name="max_redemptions"
+              type="number"
+              min="1"
+              placeholder="∞"
+              className={fieldClass}
+            />
+          </label>
+          <label className="text-xs text-muted">
+            Expires
+            <input name="expires_at" type="date" className={fieldClass} />
+          </label>
+          <button
+            type="submit"
+            className="col-span-2 sm:col-span-6 rounded-xl bg-accent py-2 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
+          >
+            Create code
+          </button>
+        </form>
+      </BentoTile>
 
       {promos.length === 0 ? (
-        <p className="text-sm text-muted">No promo codes yet.</p>
+        <TableTile>
+          <BentoEmpty icon={Tag} message="No promo codes yet." />
+        </TableTile>
       ) : (
-        <div className="flex flex-col gap-2">
+        <TableTile>
           {promos.map((p) => {
             const active = isActive(p);
             return (
-              <div key={p.id} className="card flex items-center justify-between">
-                <div>
-                  <p className="font-mono-utility text-sm font-semibold text-ink">
+              <div
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 min-h-[44px] hover:bg-bg/60 transition-colors"
+              >
+                <div className="min-w-0">
+                  <p className="font-mono text-sm font-semibold text-ink">
                     {p.code}{' '}
-                    <span className="text-muted font-normal">
+                    <span className="text-muted font-sans font-normal">
                       {p.discount_type === 'percent'
                         ? `${p.discount_value}% off`
                         : `£${(p.discount_value / 100).toFixed(2)} off`}
@@ -142,13 +171,14 @@ export default async function PromotionsPage() {
                   <p className="text-[11px] text-muted mt-0.5">
                     {p.redemption_count}
                     {p.max_redemptions != null ? `/${p.max_redemptions}` : ''} used
-                    {p.expires_at && ` · expires ${new Date(p.expires_at).toLocaleDateString('en-GB')}`}
+                    {p.expires_at &&
+                      ` · expires ${new Date(p.expires_at).toLocaleDateString('en-GB')}`}
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-semibold ${active ? 'text-green-600' : 'text-muted'}`}>
+                <div className="flex items-center gap-3 shrink-0">
+                  <StatusChip tone={active ? 'success' : 'pending'}>
                     {active ? 'Active' : 'Inactive'}
-                  </span>
+                  </StatusChip>
                   {active && (
                     <form action={deactivatePromo}>
                       <input type="hidden" name="id" value={p.id} />
@@ -161,7 +191,7 @@ export default async function PromotionsPage() {
               </div>
             );
           })}
-        </div>
+        </TableTile>
       )}
     </div>
   );

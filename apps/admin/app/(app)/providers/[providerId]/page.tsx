@@ -1,9 +1,20 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, FileCheck2 } from 'lucide-react';
+import { FileCheck2 } from 'lucide-react';
 
 import { getAdminProviderDetail } from '../../../../lib/admin-providers';
 import { ProviderOperations } from './provider-operations';
+import {
+  PageHeader,
+  BentoGrid,
+  BentoTile,
+  StatTile,
+  SectionHeader,
+  StatusChip,
+  statusToneFrom,
+  TableTile,
+  BentoEmpty,
+} from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,33 +38,70 @@ export default async function ProviderDetailPage({ params }: { params: { provide
     .map((service: any) => service.category_id);
 
   return (
-    <div className="space-y-6">
-      <Link href="/providers" className="inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-ink">
-        <ChevronLeft className="h-4 w-4" /> Providers
-      </Link>
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-2xl font-bold text-ink">{profile.full_name || 'Unnamed provider'}</h1>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${profile.is_blocked ? 'bg-danger/10 text-danger' : 'bg-green-100 text-green-700'}`}>
-              {profile.is_blocked ? 'Blocked' : 'Active'}
-            </span>
-            <span className="rounded-full bg-hairline/60 px-2 py-0.5 text-[10px] font-bold uppercase text-muted">{profile.kyc_status}</span>
-          </div>
-          <p className="mt-1 text-sm text-muted">{profile.email} · {profile.phone || 'No phone'}</p>
-          <p className="mt-1 text-xs text-muted">Last seen {profile.last_seen_at ? new Date(profile.last_seen_at).toLocaleString('en-GB') : 'never'}</p>
-        </div>
-        <Link href={`/kyc/${profile.id}`} className="btn-secondary inline-flex items-center gap-2"><FileCheck2 className="h-4 w-4" /> Review documents ({documents.length})</Link>
-      </header>
+    <div>
+      <div className="mb-2">
+        <Link href="/providers" className="text-xs text-muted hover:text-ink transition-colors">
+          ← Back to Providers
+        </Link>
+      </div>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        <Metric label="Completed" value={String(metrics.completedJobs)} />
-        <Metric label="Rating" value={metrics.averageRating.toFixed(2)} />
-        <Metric label="Cancellation" value={`${(metrics.cancellationRate * 100).toFixed(1)}%`} />
-        <Metric label="Revenue" value={money(metrics.revenueGeneratedPence)} />
-        <Metric label="Disputes" value={String(metrics.disputesCount)} />
-        <Metric label="Repeat customers" value={`${(metrics.repeatCustomerRate * 100).toFixed(1)}%`} />
-      </section>
+      <PageHeader
+        title={profile.full_name || 'Unnamed provider'}
+        subtitle={`${profile.email ?? 'No email'} · ${profile.phone || 'No phone'} · Last seen ${profile.last_seen_at ? new Date(profile.last_seen_at).toLocaleString('en-GB') : 'never'}`}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusChip tone={profile.is_blocked ? 'danger' : 'success'}>
+              {profile.is_blocked ? 'Blocked' : 'Active'}
+            </StatusChip>
+            <StatusChip tone={statusToneFrom(profile.kyc_status)}>
+              KYC: {profile.kyc_status}
+            </StatusChip>
+            <Link
+              href={`/kyc/${profile.id}`}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-hairline bg-white px-3 py-2 text-xs font-medium text-ink hover:bg-bg transition-colors"
+            >
+              <FileCheck2 className="h-4 w-4 text-muted" aria-hidden />
+              Review docs ({documents.length})
+            </Link>
+          </div>
+        }
+      />
+
+      <BentoGrid className="mb-6">
+        <StatTile
+          label="Completed"
+          value={String(metrics.completedJobs)}
+          className="col-span-1 md:col-span-2 lg:col-span-2"
+        />
+        <StatTile
+          label="Rating"
+          value={`★ ${metrics.averageRating.toFixed(2)}`}
+          className="col-span-1 md:col-span-2 lg:col-span-2"
+        />
+        <StatTile
+          label="Cancellation"
+          value={`${(metrics.cancellationRate * 100).toFixed(1)}%`}
+          deltaTone={metrics.cancellationRate > 0.15 ? 'danger' : 'muted'}
+          className="col-span-1 md:col-span-2 lg:col-span-2"
+        />
+        <StatTile
+          accent
+          label="Revenue"
+          value={money(metrics.revenueGeneratedPence)}
+          className="col-span-1 md:col-span-2 lg:col-span-2"
+        />
+        <StatTile
+          label="Disputes"
+          value={String(metrics.disputesCount)}
+          deltaTone={metrics.disputesCount > 0 ? 'danger' : 'muted'}
+          className="col-span-1 md:col-span-2 lg:col-span-2"
+        />
+        <StatTile
+          label="Repeat customers"
+          value={`${(metrics.repeatCustomerRate * 100).toFixed(1)}%`}
+          className="col-span-1 md:col-span-2 lg:col-span-2"
+        />
+      </BentoGrid>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)]">
         <ProviderOperations
@@ -66,37 +114,55 @@ export default async function ProviderDetailPage({ params }: { params: { provide
         />
 
         <aside className="space-y-6">
-          <section className="card">
-            <h2 className="font-display text-base font-bold text-ink">Configured services</h2>
-            <div className="mt-3 space-y-2">
-              {services.length === 0 && <p className="text-xs text-muted">No services configured.</p>}
-              {services.map((service: any) => (
-                <div key={service.id} className="flex items-center justify-between rounded-lg border border-hairline p-3 text-xs">
-                  <div><p className="font-semibold text-ink">{service.category?.name ?? service.title}</p><p className="text-muted">{service.duration_mins} min · {money(service.price_pence)}</p></div>
-                  <span className={service.is_active ? 'text-green-700' : 'text-muted'}>{service.is_active ? 'Active' : 'Inactive'}</span>
-                </div>
-              ))}
-            </div>
-          </section>
+          <BentoTile static className="!justify-start">
+            <SectionHeader title="Configured services" />
+            {services.length === 0 ? (
+              <BentoEmpty message="No services configured." className="py-4" />
+            ) : (
+              <TableTile>
+                {services.map((service: any) => (
+                  <div
+                    key={service.id}
+                    className="flex items-center justify-between gap-2 px-4 py-2.5 min-h-[40px]"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-semibold text-ink text-xs truncate">
+                        {service.category?.name ?? service.title}
+                      </p>
+                      <p className="text-[11px] text-muted font-mono">
+                        {service.duration_mins} min · {money(service.price_pence)}
+                      </p>
+                    </div>
+                    <StatusChip tone={service.is_active ? 'success' : 'pending'}>
+                      {service.is_active ? 'Active' : 'Inactive'}
+                    </StatusChip>
+                  </div>
+                ))}
+              </TableTile>
+            )}
+          </BentoTile>
 
-          <section className="card">
-            <h2 className="font-display text-base font-bold text-ink">Internal notes</h2>
-            <div className="mt-3 space-y-3">
-              {notes.length === 0 && <p className="text-xs text-muted">No internal notes.</p>}
-              {notes.map((note: any) => (
-                <div key={note.id} className="border-l-2 border-hairline pl-3">
-                  <p className="whitespace-pre-wrap text-xs text-ink">{note.note}</p>
-                  <p className="mt-1 text-[10px] text-muted">{note.admin?.full_name || note.admin?.email || 'Admin'} · {new Date(note.created_at).toLocaleString('en-GB')}</p>
-                </div>
-              ))}
-            </div>
-          </section>
+          <BentoTile static className="!justify-start">
+            <SectionHeader title="Internal notes" />
+            {notes.length === 0 ? (
+              <BentoEmpty message="No internal notes." className="py-4" />
+            ) : (
+              <div className="space-y-3">
+                {notes.map((note: any) => (
+                  <div key={note.id} className="border-l-2 border-hairline pl-3 py-1">
+                    <p className="whitespace-pre-wrap text-xs text-ink">{note.note}</p>
+                    <p className="mt-1 text-[10px] text-muted font-mono">
+                      {note.admin?.full_name || note.admin?.email || 'Admin'} ·{' '}
+                      {new Date(note.created_at).toLocaleString('en-GB')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </BentoTile>
         </aside>
       </div>
     </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return <div className="card"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</p><p className="mt-1 font-display text-xl font-bold text-ink">{value}</p></div>;
-}

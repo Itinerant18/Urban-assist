@@ -2,6 +2,13 @@ import Link from 'next/link';
 import { Users, ChevronRight } from 'lucide-react';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
+import {
+  PageHeader,
+  BentoTile,
+  TableTile,
+  StatusChip,
+  BentoEmpty,
+} from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,49 +43,47 @@ export default async function CustomersPage({
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-ink">Customers</h1>
-        <p className="text-sm text-muted mt-1">
-          {customers.length}{q ? ` matching “${q}”` : ' most recent'}.
-        </p>
-      </div>
+      <PageHeader
+        title="Customers"
+        subtitle={`${customers.length}${q ? ` matching “${q}”` : ' most recent'}.`}
+      />
 
-      <form action="/customers" className="mb-4">
-        <input
-          type="search"
-          name="q"
-          defaultValue={q ?? ''}
-          placeholder="Search name or email…"
-          className="w-full max-w-sm rounded-lg border border-hairline bg-bg px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none"
-        />
-      </form>
+      <BentoTile static className="mb-4 !justify-start !p-4 max-w-md">
+        <form action="/customers">
+          <label className="text-xs text-muted">
+            Search
+            <input
+              type="search"
+              name="q"
+              defaultValue={q ?? ''}
+              placeholder="Search name or email…"
+              className="mt-1 w-full rounded-xl border border-hairline bg-bg px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+            />
+          </label>
+        </form>
+      </BentoTile>
 
       {customers.length === 0 ? (
-        <div className="card flex flex-col items-center py-12 gap-3">
-          <Users className="h-8 w-8 text-muted" />
-          <p className="text-sm text-muted">No customers found.</p>
-        </div>
+        <TableTile>
+          <BentoEmpty icon={Users} message="No customers found." />
+        </TableTile>
       ) : (
-        <div className="flex flex-col gap-2">
+        <TableTile>
           {customers.map((c) => (
             <Link
               key={c.id}
               href={`/customers/${c.id}`}
-              className="card flex items-center justify-between"
+              className="flex items-center gap-3 px-5 py-3 min-h-[44px] hover:bg-bg/60 transition-colors"
             >
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="font-medium text-ink text-sm">{c.full_name ?? 'Unnamed'}</p>
-                  <p className="text-xs text-muted">{c.email}</p>
-                </div>
-                {c.is_blocked && (
-                  <span className="text-xs font-semibold text-danger">Blocked</span>
-                )}
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-ink text-sm truncate">{c.full_name ?? 'Unnamed'}</p>
+                <p className="text-xs text-muted font-mono truncate">{c.email}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted" />
+              {c.is_blocked ? <StatusChip tone="danger">Blocked</StatusChip> : null}
+              <ChevronRight className="h-4 w-4 text-muted shrink-0" aria-hidden />
             </Link>
           ))}
-        </div>
+        </TableTile>
       )}
     </div>
   );
