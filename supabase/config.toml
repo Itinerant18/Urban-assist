@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.notification-dispatch]
 verify_jwt = false
+
+[functions.support-ticket-webhook]
+verify_jwt = false
