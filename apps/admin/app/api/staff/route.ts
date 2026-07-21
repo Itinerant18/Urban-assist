@@ -1,7 +1,33 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
 
 export const dynamic = 'force-dynamic';
+
+const RoleSchema = z.enum([
+  'super_admin',
+  'ops_admin',
+  'finance_admin',
+  'support_agent',
+  'analyst',
+]);
+const PermissionsSchema = z.object({}).passthrough();
+const PostSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(12),
+  full_name: z.string().min(1),
+  roles: z.array(RoleSchema).optional(),
+  permissions: PermissionsSchema.optional(),
+});
+const PatchSchema = z
+  .object({
+    profile_id: z.string().uuid(),
+    roles: z.array(RoleSchema).optional(),
+    permissions: PermissionsSchema.optional(),
+  })
+  .refine((body) => body.roles !== undefined || body.permissions !== undefined, {
+    message: 'roles or permissions is required',
+  });
 
 // Helper to check if current user is SuperAdmin
 async function checkSuperAdmin() {
@@ -103,10 +129,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
 
-    const { email, password, full_name, permissions, roles } = await req.json();
-    if (!email || !password || !full_name) {
-      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    const parsed = PostSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
+    const { email, password, full_name, permissions, roles } = parsed.data;
 
     const supabaseAdmin = createServiceRole();
 
@@ -150,10 +177,11 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
 
-    const { profile_id, permissions, roles } = await req.json();
-    if (!profile_id || (!permissions && !roles)) {
-      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    const parsed = PatchSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
+    const { profile_id, permissions, roles } = parsed.data;
 
     const db = createServiceRole();
     const { data: updated, error } = await (db as any).rpc('set_admin_user_roles', {

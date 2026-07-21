@@ -125,26 +125,6 @@ export async function getProviderKyc(db: SupabaseClient, providerId: string) {
   return { profile: profile.data, documents: docs.data ?? [] };
 }
 
-export async function approveKyc(db: SupabaseClient, admin: SupabaseClient, providerId: string) {
-  await requirePermission(db, 'can_manage_kyc');
-  const { error } = await admin
-    .from('profiles')
-    .update({ kyc_status: 'approved' })
-    .eq('id', providerId)
-    .eq('role', 'provider');
-  if (error) throw error;
-}
-
-export async function rejectKyc(db: SupabaseClient, admin: SupabaseClient, providerId: string) {
-  await requirePermission(db, 'can_manage_kyc');
-  const { error } = await admin
-    .from('profiles')
-    .update({ kyc_status: 'rejected' })
-    .eq('id', providerId)
-    .eq('role', 'provider');
-  if (error) throw error;
-}
-
 export async function listTickets(
   db: SupabaseClient,
   limit = 50,

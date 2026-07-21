@@ -5,15 +5,23 @@ import { redis } from '@urban-assist/integrations/redis';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_req: NextRequest) {
-  return handleAggregation();
+export async function GET(req: NextRequest) {
+  return handleAggregation(req);
 }
 
-export async function POST(_req: NextRequest) {
-  return handleAggregation();
+export async function POST(req: NextRequest) {
+  return handleAggregation(req);
 }
 
-async function handleAggregation() {
+async function handleAggregation(req: NextRequest) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return NextResponse.json({ error: 'cron_not_configured' }, { status: 503 });
+  }
+  if (req.headers.get('authorization') !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
   try {
     const db = createServiceRole();
 
