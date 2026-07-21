@@ -171,3 +171,25 @@ To log in or test the **Customer** and **Provider** apps without generating real
 * **No Firebase Firestore** — real-time booking status uses Supabase Realtime instead, simplifying the stack while keeping the option open for Phase 2.
 
 # Urban-assist
+
+## Scheduled notification delivery
+
+Notification delivery and stale-offer cascading require the two Edge Functions and a shared
+scheduler secret:
+
+```bash
+supabase functions deploy notification-dispatch match-cascade --no-verify-jwt
+supabase secrets set EDGE_FUNCTION_SECRET=<value>
+```
+
+Migration `202607220004_schedule_edge_dispatch.sql` reuses the `0022` pg_net configuration
+pattern: set `app.settings.edge_function_url` on the `postgres` database to the project’s
+`/functions/v1` base URL, then store the same `<value>` in Vault as `edge_function_secret`:
+
+```sql
+alter database postgres set app.settings.edge_function_url =
+  'https://<project-ref>.supabase.co/functions/v1';
+select vault.create_secret(
+  '<value>', 'edge_function_secret', 'Bearer secret for scheduled Edge Functions'
+);
+```

@@ -4,7 +4,7 @@
 //   - Scheduled (cron) to expire stale offers
 //
 // Deploy: supabase functions deploy match-cascade --no-verify-jwt
-// Cron:   `* * * * *` (every minute) — see supabase/config.toml
+// Cron:   `* * * * *` (every minute) — see migration 202607220004.
 
 // @ts-expect-error Deno globals
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
@@ -17,6 +17,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const REDIS_URL = Deno.env.get('UPSTASH_REDIS_REST_URL')!;
 const REDIS_TOKEN = Deno.env.get('UPSTASH_REDIS_REST_TOKEN')!;
+const EDGE_FUNCTION_SECRET = Deno.env.get('EDGE_FUNCTION_SECRET') ?? '';
 const OFFER_TTL = 90;
 
 const db = createClient(SUPABASE_URL, SERVICE, {
@@ -25,6 +26,9 @@ const db = createClient(SUPABASE_URL, SERVICE, {
 const redis = new Redis({ url: REDIS_URL, token: REDIS_TOKEN });
 
 serve(async (req: Request) => {
+  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  if (!isAuthorized(req)) return json({ error: 'unauthorized' }, 401);
+
   const url = new URL(req.url);
   const mode = url.searchParams.get('mode') ?? 'tick';
 
@@ -35,23 +39,30 @@ serve(async (req: Request) => {
   }
 
   // Tick: expire stale offers + cascade.
+  const now = new Date().toISOString();
   const { data: stale } = await db
     .from('booking_offers')
     .select('id, booking_id')
     .eq('status', 'pending')
-    .lt('responds_by', new Date().toISOString());
+    .lt('responds_by', now);
 
+  let expired = 0;
   for (const offer of stale ?? []) {
-    await db
+    const { data: claimed } = await db
       .from('booking_offers')
-      .update({ status: 'expired', responded_at: new Date().toISOString() })
-      .eq('id', offer.id);
+      .update({ status: 'expired', responded_at: now })
+      .eq('id', offer.id)
+      .eq('status', 'pending')
+      .lt('responds_by', now)
+      .select('id')
+      .maybeSingle();
+    if (!claimed) continue;
+
+    expired += 1;
     await sendNext(offer.booking_id);
   }
 
-  return new Response(JSON.stringify({ expired: stale?.length ?? 0 }), {
-    headers: { 'content-type': 'application/json' },
-  });
+  return json({ expired });
 });
 
 async function onlineSet(ids: string[]): Promise<Set<string>> {
@@ -144,7 +155,7 @@ async function sendNext(bookingId: string) {
       .eq('booking_id', bookingId);
     const seen = new Set((prev ?? []).map((o: any) => o.provider_id));
 
-    let cands = (services as any[])
+    const cands = (services as any[])
       .filter((s: any) => {
         const pid = s.profiles?.id ?? s.provider_id;
         return online.has(pid) && s.profiles?.kyc_status === 'approved' && !seen.has(s.provider_id);
@@ -157,44 +168,8 @@ async function sendNext(bookingId: string) {
         const accept = Number(s.profiles.acceptance_rate ?? 1);
         return { id: s.provider_id, score: distScore * 0.5 + rating * 0.3 + accept * 0.2 };
       })
-      .sort((a: any, b: any) => b.score - a.score);
-
-    // Availability filter — skipped when the booking has no scheduled time.
-    const scheduledAt = (booking as any).scheduled_at;
-    if (scheduledAt && cands.length) {
-      // Bookings are UK-only: derive the booking's local calendar date, weekday
-      // and wall-clock time in Europe/London via Intl (no tz library needed).
-      // en-CA gives ISO YYYY-MM-DD; h23 gives HH:MM:SS matching Postgres `time` text.
-      const when = new Date(scheduledAt);
-      const dateStr = when.toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
-      const timeStr = when.toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hourCycle: 'h23' });
-      const weekday = new Date(`${dateStr}T00:00:00Z`).getUTCDay(); // 0=Sunday, same as availability_slots.weekday
-
-      const candIds = cands.map((c: any) => c.id);
-      const [{ data: offs }, { data: slots }] = await Promise.all([
-        db
-          .from('time_off')
-          .select('provider_id')
-          .in('provider_id', candIds)
-          .lte('start_date', dateStr)
-          .gte('end_date', dateStr),
-        db
-          .from('availability_slots')
-          .select('provider_id, weekday, start_time, end_time')
-          .in('provider_id', candIds),
-      ]);
-
-      const away = new Set((offs ?? []).map((o: any) => o.provider_id));
-      const hasSlots = new Set((slots ?? []).map((s: any) => s.provider_id));
-      const fits = new Set(
-        (slots ?? [])
-          .filter((s: any) => s.weekday === weekday && s.start_time <= timeStr && s.end_time >= timeStr)
-          .map((s: any) => s.provider_id),
-      );
-
-      // ponytail: no slots defined = always available; flip to opt-in once all providers set hours
-      cands = cands.filter((c: any) => !away.has(c.id) && (!hasSlots.has(c.id) || fits.has(c.id)));
-    }
+      .sort((a: any, b: any) => b.score - a.score)
+      .slice(0, 20);
 
     if (!cands.length) {
       await db.from('bookings').update({ status: 'unmatched' }).eq('id', bookingId);
@@ -207,7 +182,7 @@ async function sendNext(bookingId: string) {
       .eq('booking_id', bookingId);
 
     const respondsBy = new Date(Date.now() + OFFER_TTL * 1000).toISOString();
-    const { data: offer } = await db
+    const { data: offer, error } = await db
       .from('booking_offers')
       .insert({
         booking_id: bookingId,
@@ -218,9 +193,10 @@ async function sendNext(bookingId: string) {
       })
       .select()
       .single();
+    if (error) throw error;
 
     await redis.setex(`offer:active:${bookingId}`, OFFER_TTL, {
-      offer_id: offer?.id,
+      offer_id: offer.id,
       provider_id: cands[0].id,
       rank: (count ?? 0) + 1,
     });
@@ -228,7 +204,7 @@ async function sendNext(bookingId: string) {
     await db.from('notifications').insert({
       profile_id: cands[0].id,
       type: 'offer.new',
-      payload: { booking_id: bookingId, offer_id: offer?.id, responds_by: respondsBy },
+      payload: { booking_id: bookingId, offer_id: offer.id, responds_by: respondsBy },
     });
   } finally {
     await releaseLock(lockKey);
@@ -245,4 +221,21 @@ function hav(a: number, b: number, c: number, d: number) {
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+}
+
+function isAuthorized(req: Request): boolean {
+  const secret = req.headers.get('x-edge-function-secret') ?? '';
+  const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  return Boolean(
+    (EDGE_FUNCTION_SECRET &&
+      (secret === EDGE_FUNCTION_SECRET || bearer === EDGE_FUNCTION_SECRET)) ||
+      (SERVICE && bearer === SERVICE),
+  );
+}
+
+function json(body: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
 }
