@@ -36,12 +36,14 @@ export async function createBooking(
   let promo: { id: string; discount_type: 'percent' | 'fixed'; discount_value: number } | null =
     null;
   if (input.promoCode) {
-    const { data: p } = await admin
-      .from('promo_codes')
-      .select('id, discount_type, discount_value, expires_at')
-      .eq('code', input.promoCode.toUpperCase())
-      .single();
-    if (p && (!p.expires_at || new Date(p.expires_at) > new Date())) {
+    // Atomically reserves one redemption; returns nothing if expired/exhausted.
+    // ponytail: over-counts by one if the booking insert below then fails —
+    // acceptable until createBooking is wrapped in a single DB transaction.
+    const { data: redeemed } = await admin.rpc('redeem_promo_code', {
+      p_code: input.promoCode,
+    });
+    const p = Array.isArray(redeemed) ? redeemed[0] : redeemed;
+    if (p) {
       promo = { id: p.id, discount_type: p.discount_type as any, discount_value: p.discount_value };
     }
   }
