@@ -11,6 +11,9 @@ import {
   ScrollText,
   MoreHorizontal,
   Wallet,
+  CalendarDays,
+  Star,
+  BarChart3,
 } from 'lucide-react';
 
 const nav = [
@@ -26,8 +29,11 @@ const nav = [
     ]
   },
   { href: '/kyc', label: 'KYC Queue', icon: ShieldCheck },
+  { href: '/scheduling', label: 'Scheduling', icon: CalendarDays },
+  { href: '/ratings', label: 'Ratings', icon: Star },
   { href: '/tickets', label: 'Support', icon: TicketCheck },
   { href: '/financials', label: 'Financials', icon: Wallet },
+  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/audit', label: 'Audit Logs', icon: ScrollText },
 ];
 
