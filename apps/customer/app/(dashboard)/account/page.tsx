@@ -417,9 +417,9 @@ export default function AccountPage() {
       </h3>
       <GiftIllustration />
       <div className="space-y-2 mt-4 max-w-sm mx-auto">
-        <h4 className="font-display text-xl font-bold text-ink">Give £10, Get £10!</h4>
+        <h4 className="font-display text-xl font-bold text-ink">Invite friends to Urban Assist</h4>
         <p className="text-xs text-muted leading-relaxed">
-          Share your code with friends. When they book their first service, you both earn!
+          Share your code so friends can discover trusted local professionals.
         </p>
       </div>
       {referralCode && (
@@ -441,7 +441,7 @@ export default function AccountPage() {
         <Button
           className="w-full py-2.5 text-xs"
           onClick={() => {
-            const msg = `Get £10 off your first Urban Assist booking with my code ${referralCode ?? ''}! Sign up at https://urbanassist.co.uk`;
+            const msg = `Take a look at Urban Assist for trusted home services. My referral code is ${referralCode ?? ''}. https://urbanassist.co.uk`;
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
           }}
         >
@@ -451,8 +451,8 @@ export default function AccountPage() {
           variant="outline"
           className="w-full py-2.5 text-xs"
           onClick={() => {
-            const msg = `Get £10 off your first Urban Assist booking with my code ${referralCode ?? ''}! Sign up at https://urbanassist.co.uk`;
-            window.location.href = `mailto:?subject=${encodeURIComponent('£10 off your first Urban Assist booking')}&body=${encodeURIComponent(msg)}`;
+            const msg = `Take a look at Urban Assist for trusted home services. My referral code is ${referralCode ?? ''}. https://urbanassist.co.uk`;
+            window.location.href = `mailto:?subject=${encodeURIComponent('Take a look at Urban Assist')}&body=${encodeURIComponent(msg)}`;
           }}
         >
           Share via Email

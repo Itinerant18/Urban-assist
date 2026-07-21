@@ -20,8 +20,8 @@ export function ReferralClient({
 }) {
   const [copied, setCopied] = React.useState(false);
 
-  const shareText = `Get £10 off your first home service with Urban Assist! Use my code: ${referralCode}`;
-  const shareUrl = `https://urbanassist.co.uk/signup?ref=${referralCode}`;
+  const shareText = `Take a look at Urban Assist for trusted home services. My referral code is ${referralCode}.`;
+  const shareUrl = 'https://urbanassist.co.uk';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralCode);
@@ -49,18 +49,18 @@ export function ReferralClient({
     <div className="space-y-8 max-w-4xl mx-auto py-2">
       {/* Page Header */}
       <div>
-        <h1 className="font-display text-2xl font-bold text-ink">Refer & Earn</h1>
-        <p className="text-sm text-muted mt-1">Spread the word, share the savings.</p>
+        <h1 className="font-display text-2xl font-bold text-ink">Refer a Friend</h1>
+        <p className="text-sm text-muted mt-1">Share Urban Assist with friends and family.</p>
       </div>
 
       {/* Hero Gift Section */}
       <Card className="overflow-hidden border border-hairline bg-gradient-to-br from-ink via-ink to-ink/90 text-bg p-8 relative rounded-3xl flex flex-col md:flex-row items-center gap-6">
         <div className="flex-1 space-y-4 text-center md:text-left z-10">
           <h2 className="font-display text-2xl md:text-3xl font-extrabold tracking-tight">
-            Give £10, Get £10!
+            Invite friends to Urban Assist
           </h2>
           <p className="text-sm text-bg/85 max-w-md leading-relaxed">
-            Share your unique referral code with friends. When they complete their first booking, you both earn £10.00 wallet credits!
+            Share your unique referral code so friends can discover trusted local professionals.
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row gap-2 max-w-md justify-center md:justify-start">
@@ -112,7 +112,7 @@ export function ReferralClient({
           <Twitter className="h-5 w-5 text-accent" /> SHARE VIA TWITTER
         </a>
         <a
-          href={`mailto:?subject=${encodeURIComponent('£10 off your first booking!')}&body=${encodeURIComponent(shareText + '\n\nSign up here: ' + shareUrl)}`}
+          href={`mailto:?subject=${encodeURIComponent('Take a look at Urban Assist')}&body=${encodeURIComponent(shareText + '\n\nVisit: ' + shareUrl)}`}
           className="flex items-center justify-center gap-2 border border-hairline hover:bg-bg/40 transition rounded-2xl p-4 font-semibold text-ink text-sm cursor-pointer"
         >
           <Mail className="h-5 w-5 text-muted" /> SHARE VIA EMAIL

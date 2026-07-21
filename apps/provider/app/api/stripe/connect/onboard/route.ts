@@ -1,14 +1,13 @@
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { createPayoutOnboardingLink } from '@urban-assist/integrations/stripe';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   const db = getSupabaseServer();
   const { data: { user } } = await db.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
-  const returnUrl = `${appUrl}/earnings`;
+  const returnUrl = new URL('/earnings', req.nextUrl.origin).toString();
 
   try {
     const result = await createPayoutOnboardingLink(db, user.id, returnUrl);

@@ -32,6 +32,10 @@ const COUNTRIES: Country[] = [
   },
 ];
 
+const PROVIDER_APP_URL = (
+  process.env.NEXT_PUBLIC_PROVIDER_APP_URL ?? 'http://localhost:3001'
+).replace(/\/$/, '');
+
 export function LoginForm() {
   const [phase, setPhase] = React.useState<'enter' | 'otp'>('enter');
 
@@ -202,7 +206,7 @@ export function LoginForm() {
       {/* Professional Apply Footer (Only Customer login) */}
       <div className="text-center text-xs text-muted">
         Are you a professional?{' '}
-        <a href="http://localhost:3001/register" className="text-accent font-bold hover:underline">
+        <a href={`${PROVIDER_APP_URL}/register`} className="text-accent font-bold hover:underline">
           Apply Here
         </a>
       </div>
