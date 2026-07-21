@@ -2,13 +2,18 @@ import { Header } from '../../components/header';
 import { Footer } from '../../components/footer';
 import { CatalogClient } from './catalog-client';
 import { Suspense } from 'react';
+import { getCatalogTree } from '../../lib/catalog';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'All Services · Urban Assist',
   description: 'Browse every home service category, room and job Urban Assist covers.',
 };
 
-export default function AllServicesPage() {
+export default async function AllServicesPage() {
+  const categories = await getCatalogTree();
+
   return (
     <>
       <Header />
@@ -23,10 +28,11 @@ export default function AllServicesPage() {
 
         {/* Dense Catalog & Directory Client */}
         <Suspense fallback={<div className="h-96 animate-pulse bg-bg/5 rounded-3xl" />}>
-          <CatalogClient />
+          <CatalogClient categories={categories} />
         </Suspense>
       </main>
       <Footer />
     </>
   );
 }
+

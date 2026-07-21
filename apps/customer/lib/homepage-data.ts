@@ -1,5 +1,5 @@
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { getCategoriesForHomepage } from './services-data';
+import { getCatalogTree } from './catalog';
 
 /* Icon resolution lives in the central taxonomy (services-data.ts) so the
    homepage and the /services pages share one source of truth. */
@@ -70,11 +70,9 @@ const FALLBACK_MOST_BOOKED: HomepageService[] = [
 
 /* ── Fetch functions ────────────────────────────────────── */
 
-// Categories come from the central taxonomy (services-data.ts), not the DB,
-// so homepage slugs always resolve on /services/[category]. To add or rename a
-// category, edit SERVICE_CATEGORIES there — this stays in sync automatically.
 async function fetchCategories(): Promise<HomepageCategory[]> {
-  return getCategoriesForHomepage().map((c) => ({
+  const tree = await getCatalogTree();
+  return tree.map((c) => ({
     id: c.id,
     slug: c.slug,
     name: c.name,

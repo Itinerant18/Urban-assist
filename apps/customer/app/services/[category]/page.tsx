@@ -1,4 +1,4 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { getSupabaseServer } from '@urban-assist/db/server';
@@ -6,12 +6,13 @@ import { Header } from '../../../components/header';
 import { Footer } from '../../../components/footer';
 import { ProviderList } from './provider-list';
 import { Suspense } from 'react';
-import { getCategoryBySlug, getCategoryIcon } from '../../../lib/services-data';
+import { getCategoryBySlug } from '../../../lib/catalog';
+import { getCategoryIcon } from '../../../lib/services-data';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: { category: string } }) {
-  const cat = getCategoryBySlug(params.category);
+  const cat = await getCategoryBySlug(params.category);
   return {
     title: cat ? `${cat.name} - Urban Assist` : 'Services - Urban Assist',
     description: cat?.description,
@@ -21,30 +22,19 @@ export async function generateMetadata({ params }: { params: { category: string 
 export default async function CategoryPage({ params }: { params: { category: string } }) {
   const db = getSupabaseServer();
 
-  const { data: dbCategory, error: catError } = await db
-    .from('service_categories')
-    .select('*')
-    .eq('slug', params.category)
-    .single();
+  const taxonomyCategory = await getCategoryBySlug(params.category);
 
-  const taxonomyCategory = getCategoryBySlug(params.category);
-
-  if (catError && !taxonomyCategory) {
+  if (!taxonomyCategory) {
     notFound();
   }
 
-  const category = dbCategory ?? {
-    id: null,
-    name: taxonomyCategory!.name,
-    description: taxonomyCategory!.description,
-    slug: params.category,
-  };
+  const category = taxonomyCategory;
 
-  const { data: services } = dbCategory
+  const { data: services } = category.id
     ? await db
         .from('provider_services')
         .select(`id, title, price_pence, duration_mins, description, profiles!inner (id, full_name, avatar_url, rating_avg, rating_count, kyc_status)`)
-        .eq('category_id', dbCategory.id)
+        .eq('category_id', category.id)
         .eq('is_active', true)
         .eq('profiles.kyc_status', 'approved')
         .order('price_pence', { ascending: true })

@@ -1,9 +1,10 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Clock } from 'lucide-react';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { pence } from '@urban-assist/lib';
-import { getCategoryBySlug, getCategoryIcon, getServiceBySlug } from '../../../../../lib/services-data';
+import { getCategoryBySlug, getServiceBySlug } from '../../../../../lib/catalog';
+import { getCategoryIcon } from '../../../../../lib/services-data';
 import { Header } from '../../../../../components/header';
 import { Footer } from '../../../../../components/footer';
 import { ServiceCard } from '../../../../../components/services/service-card';
@@ -29,8 +30,8 @@ async function fetchProviders(categorySlug: string, serviceName: string) {
   }
 }
 
-export function generateMetadata({ params }: { params: { category: string; subcategory: string; service: string } }) {
-  const service = getServiceBySlug(params.category, params.subcategory, params.service);
+export async function generateMetadata({ params }: { params: { category: string; subcategory: string; service: string } }) {
+  const service = await getServiceBySlug(params.category, params.subcategory, params.service);
   return {
     title: service ? `${service.name} - Urban Assist` : 'Service - Urban Assist',
     description: service?.description,
@@ -42,8 +43,10 @@ export default async function ServiceDetailPage({
 }: {
   params: { category: string; subcategory: string; service: string };
 }) {
-  const category = getCategoryBySlug(params.category);
-  const service = getServiceBySlug(params.category, params.subcategory, params.service);
+  const [category, service] = await Promise.all([
+    getCategoryBySlug(params.category),
+    getServiceBySlug(params.category, params.subcategory, params.service),
+  ]);
   const subcategory = category?.subcategories.find((s) => s.slug === params.subcategory);
 
   if (!service || !category || !subcategory) notFound();

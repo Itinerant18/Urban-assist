@@ -1,21 +1,26 @@
 'use client';
 
 import * as React from 'react';
-import { SERVICE_CATEGORIES, categoryIcons } from '../../lib/services-data';
+import { SERVICE_CATEGORIES, categoryIcons, type Category } from '../../lib/services-data';
 import { Card } from '@urban-assist/ui';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 
-export function CatalogClient() {
+interface CatalogClientProps {
+  categories?: Category[];
+}
+
+export function CatalogClient({ categories = SERVICE_CATEGORIES }: CatalogClientProps) {
+  const serviceCategories = categories.length > 0 ? categories : SERVICE_CATEGORIES;
   const [search, setSearch] = React.useState('');
-  const [activeCategory, setActiveCategory] = React.useState<string>(SERVICE_CATEGORIES[0]?.id ?? '');
+  const [activeCategory, setActiveCategory] = React.useState<string>(serviceCategories[0]?.id ?? '');
   const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
   // Fuzzy search filtering
   const query = search.trim().toLowerCase();
 
   const filteredCategories = React.useMemo(() => {
-    return SERVICE_CATEGORIES.map((cat) => {
+    return serviceCategories.map((cat) => {
       // Filter subcategories matching search query
       const matchingSubs = cat.subcategories.filter((sub) => {
         const matchesSubName = sub.name.toLowerCase().includes(query);
@@ -31,7 +36,7 @@ export function CatalogClient() {
         subcategories: matchingSubs,
       };
     }).filter((cat) => cat.subcategories.length > 0 || cat.name.toLowerCase().includes(query));
-  }, [query]);
+  }, [query, serviceCategories]);
 
   // Scroll spy implementation using IntersectionObserver
   React.useEffect(() => {
@@ -99,7 +104,7 @@ export function CatalogClient() {
           <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pr-2 space-y-4">
             <h3 className="text-xs font-bold text-muted font-mono-utility tracking-wider uppercase">Categories</h3>
             <ul className="space-y-1">
-              {SERVICE_CATEGORIES.map((cat) => {
+              {serviceCategories.map((cat) => {
                 const isActive = activeCategory === cat.id;
                 const IconComponent = categoryIcons[cat.icon];
                 return (
@@ -124,7 +129,7 @@ export function CatalogClient() {
 
         {/* STICKY HORIZONTAL PILL MENU (Mobile) */}
         <div className="lg:hidden sticky top-[56px] z-20 bg-bg/95 backdrop-blur-md border-b border-hairline py-3 -mx-4 px-4 overflow-x-auto whitespace-nowrap scrollbar-none flex gap-2">
-          {SERVICE_CATEGORIES.map((cat) => {
+          {serviceCategories.map((cat) => {
             const isActive = activeCategory === cat.id;
             const IconComponent = categoryIcons[cat.icon];
             return (

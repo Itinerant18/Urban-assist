@@ -3,7 +3,7 @@ import { getSupabaseServer } from '@urban-assist/db/server';
 import {
   getCategoryBySlug,
   getSubcategoryBySlug,
-} from '../../../../lib/services-data';
+} from '../../../../lib/catalog';
 import { Header } from '../../../../components/header';
 import { Footer } from '../../../../components/footer';
 import { SubcategoryClient } from './subcategory-client';
@@ -15,8 +15,10 @@ export async function generateMetadata({
 }: {
   params: { category: string; subcategory: string };
 }) {
-  const sub = getSubcategoryBySlug(params.category, params.subcategory);
-  const cat = getCategoryBySlug(params.category);
+  const [sub, cat] = await Promise.all([
+    getSubcategoryBySlug(params.category, params.subcategory),
+    getCategoryBySlug(params.category),
+  ]);
   return {
     title: sub ? `${sub.name} - ${cat?.name} - Urban Assist` : 'Services - Urban Assist',
     description: sub?.description,
@@ -82,8 +84,10 @@ export default async function SubcategoryPage({
 }: {
   params: { category: string; subcategory: string };
 }) {
-  const category = getCategoryBySlug(params.category);
-  const subcategory = getSubcategoryBySlug(params.category, params.subcategory);
+  const [category, subcategory] = await Promise.all([
+    getCategoryBySlug(params.category),
+    getSubcategoryBySlug(params.category, params.subcategory),
+  ]);
 
   if (!subcategory || !category) {
     notFound();
