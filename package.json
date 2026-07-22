@@ -14,7 +14,7 @@
     "format":       "prettier --write \"**/*.{ts,tsx,js,json,md}\" --ignore-path .gitignore",
     "db:types":     "node tooling/generate-db-types.mjs",
     "db:migrate":   "supabase db push",
-    "bootstrap:admin": "node scripts/bootstrap-admin.mjs"
+    "bootstrap:admin": "node --env-file=apps/customer/.env scripts/bootstrap-admin.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"
