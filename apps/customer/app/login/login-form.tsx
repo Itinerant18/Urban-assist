@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { Button, Field, Input, Card } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
+import { normaliseMobile } from '@urban-assist/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 type Country = {
@@ -46,10 +47,18 @@ export function LoginForm() {
 
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [cooldown, setCooldown] = React.useState(0);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const redirectTo = searchParams.get('redirect') || '/';
+  const wrongApp = searchParams.get('error') === 'wrong_app';
+
+  React.useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   const cleanNationalNumber = (num: string) => {
     const raw = num.replace(/\D/g, '');
@@ -60,8 +69,10 @@ export function LoginForm() {
     setPhoneVal(cleanNationalNumber(e.target.value));
   };
 
+  // Must match what /api/auth/start sent the OTP to, or verification fails.
   const getFullE164 = () => {
-    return `${selectedCountry.dial}${phoneVal}`;
+    const raw = `${selectedCountry.dial}${phoneVal}`;
+    return normaliseMobile(raw) ?? raw;
   };
 
   async function handleSendOtp(e?: React.FormEvent) {
@@ -86,6 +97,7 @@ export function LoginForm() {
         throw new Error(j.error ?? 'Could not send verification code');
       }
       setPhase('otp');
+      setCooldown(30);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -119,6 +131,12 @@ export function LoginForm() {
 
   return (
     <div className="space-y-6">
+      {wrongApp && (
+        <div className="rounded-xl border border-danger/30 bg-danger/5 p-3 text-xs font-semibold text-danger">
+          This account is registered as a professional. Use the provider app, or sign in with a
+          different number.
+        </div>
+      )}
       <Card className="space-y-4 shadow-card border border-hairline bg-white p-5 rounded-xl">
         {phase === 'enter' ? (
           <form onSubmit={handleSendOtp} className="space-y-4">
@@ -191,10 +209,10 @@ export function LoginForm() {
               <button
                 type="button"
                 onClick={() => handleSendOtp()}
-                disabled={loading}
+                disabled={loading || cooldown > 0}
                 className="text-xs font-semibold text-accent hover:underline disabled:opacity-50"
               >
-                Resend code
+                {cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
               </button>
             </div>
           </form>

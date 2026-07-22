@@ -7,6 +7,8 @@ function readArgs(argv) {
     if (key === '--email' || key === '--password' || key === '--name') {
       args[key.slice(2)] = argv[index + 1];
       index += 1;
+    } else if (key === '--reset-mfa') {
+      args.resetMfa = true;
     }
   }
   return args;
@@ -26,7 +28,7 @@ async function findUserByEmail(admin, email) {
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const { email: rawEmail, password, name: rawName } = readArgs(process.argv.slice(2));
+  const { email: rawEmail, password, name: rawName, resetMfa } = readArgs(process.argv.slice(2));
   const email = rawEmail?.trim().toLowerCase();
   const name = rawName?.trim();
 
@@ -35,7 +37,7 @@ async function main() {
   }
   if (!email || !password || !name) {
     throw new Error(
-      'Usage: pnpm bootstrap:admin -- --email <email> --password <password> --name <name>',
+      'Usage: pnpm bootstrap:admin -- --email <email> --password <password> --name <name> [--reset-mfa]',
     );
   }
 
@@ -82,6 +84,24 @@ async function main() {
     { onConflict: 'user_id,role_id' },
   );
   if (membershipError) throw membershipError;
+
+  // Recovery path for a lost authenticator: the login route only clears
+  // unverified factors, so a verified TOTP factor locks the admin out forever.
+  if (resetMfa) {
+    const { data: factorData, error: listError } = await supabase.auth.admin.mfa.listFactors({
+      userId: user.id,
+    });
+    if (listError) throw listError;
+    const factors = factorData?.factors ?? [];
+    for (const factor of factors) {
+      const { error: deleteError } = await supabase.auth.admin.mfa.deleteFactor({
+        id: factor.id,
+        userId: user.id,
+      });
+      if (deleteError) throw deleteError;
+    }
+    console.log(`MFA reset: removed ${factors.length} factor(s); next login re-enrolls TOTP.`);
+  }
 
   console.log(`Super admin ready: ${email} (${user.id})`);
 }

@@ -1,16 +1,25 @@
 'use client';
 import * as React from 'react';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const wrongApp = searchParams.get('error') === 'wrong_app';
   const [phase, setPhase] = React.useState<'phone' | 'otp'>('phone');
   const [local, setLocal] = React.useState(''); // digits after +44, e.g. 7700900000
   const [e164, setE164] = React.useState('');
   const [otp, setOtp] = React.useState('');
   const [err, setErr] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [cooldown, setCooldown] = React.useState(0);
+
+  React.useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   async function sendCode(e?: React.FormEvent) {
     if (e) e.preventDefault();
@@ -26,6 +35,7 @@ export function LoginForm() {
       if (!res.ok) throw new Error(j.error ?? 'Could not send code');
       setE164(j.phone ?? `+44${local}`);
       setPhase('otp');
+      setCooldown(30);
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -61,6 +71,12 @@ export function LoginForm() {
 
   return (
     <div className="space-y-6">
+      {wrongApp && (
+        <div className="rounded-xl border border-danger/30 bg-danger/5 p-3 text-xs font-semibold text-danger">
+          You&apos;re signed in with a customer account. Use the customer app, or sign in with your
+          provider number.
+        </div>
+      )}
       <div className="rounded-xl border border-hairline bg-white p-5 shadow-card space-y-4">
         {phase === 'phone' ? (
           <form onSubmit={sendCode} className="space-y-4">
@@ -124,17 +140,27 @@ export function LoginForm() {
             >
               {busy ? 'Verifying…' : 'Verify and continue'}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPhase('phone');
-                setOtp('');
-                setErr(null);
-              }}
-              className="tap w-full rounded-xl px-5 py-2 text-sm font-medium text-muted transition hover:text-ink"
-            >
-              Use a different number
-            </button>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setPhase('phone');
+                  setOtp('');
+                  setErr(null);
+                }}
+                className="tap rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:text-ink"
+              >
+                Use a different number
+              </button>
+              <button
+                type="button"
+                onClick={() => sendCode()}
+                disabled={busy || cooldown > 0}
+                className="tap rounded-xl px-3 py-2 text-sm font-semibold text-accent transition hover:underline disabled:pointer-events-none disabled:opacity-50"
+              >
+                {cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
+              </button>
+            </div>
           </form>
         )}
       </div>

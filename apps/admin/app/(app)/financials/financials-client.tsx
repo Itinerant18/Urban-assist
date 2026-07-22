@@ -6,6 +6,7 @@ import type {
   ProviderPayoutReleaseResult,
   ProviderPayoutSummary,
 } from '@urban-assist/types';
+import { pence as formatPence } from '@urban-assist/lib';
 import { Button } from '@urban-assist/ui';
 import {
   AlertTriangle,
@@ -26,15 +27,6 @@ interface FinancialsProps {
 
 interface BatchReleaseResponse {
   processed: Array<ProviderPayoutReleaseResult & { provider_id: string }>;
-}
-
-const currencyFormatter = new Intl.NumberFormat('en-GB', {
-  style: 'currency',
-  currency: 'GBP',
-});
-
-function formatPence(value: number) {
-  return currencyFormatter.format(value / 100);
 }
 
 function releaseSummary(result: ProviderPayoutReleaseResult) {

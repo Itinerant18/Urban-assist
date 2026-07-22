@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect('/login');
 
   // Provider profile sanity check.
-  const [{ data: profile }, { count }] = await Promise.all([
+  const [{ data: profile }, { count }, { data: docs }, { count: serviceCount }] = await Promise.all([
     db
       .from('profiles')
       .select('role,kyc_status,registration_completed')
@@ -31,11 +31,24 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .select('*', { count: 'exact', head: true })
       .eq('profile_id', user.id)
       .is('read_at', null),
+    db
+      .from('provider_documents')
+      .select('doc_type')
+      .eq('provider_id', user.id)
+      .in('doc_type', ['id', 'selfie']),
+    db
+      .from('provider_services')
+      .select('*', { count: 'exact', head: true })
+      .eq('provider_id', user.id),
   ]);
   if (!profile || profile.role !== 'provider') redirect('/login?error=wrong_app');
 
-  // Registration wall — /register lives outside this route group, so no loop.
+  // Onboarding walls — /register and /onboarding/* live outside this route
+  // group, so no loop. Order: register → identity documents → services.
   if (!profile.registration_completed) redirect('/register');
+  const docTypes = new Set((docs ?? []).map((d) => d.doc_type));
+  if (!docTypes.has('id') || !docTypes.has('selfie')) redirect('/onboarding');
+  if (!serviceCount) redirect('/onboarding/services');
 
   return (
     <AppShell
