@@ -43,6 +43,8 @@ export function LoginForm() {
   // Phone components
   const [selectedCountry, setSelectedCountry] = React.useState<Country>(COUNTRIES[1]); // Default to India as per wireframe +91
   const [phoneVal, setPhoneVal] = React.useState('');
+  const [showReferralCode, setShowReferralCode] = React.useState(false);
+  const [referralCode, setReferralCode] = React.useState('');
   const [otp, setOtp] = React.useState('');
 
   const [error, setError] = React.useState<string | null>(null);
@@ -90,7 +92,11 @@ export function LoginForm() {
       const res = await fetch('/api/auth/start', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ mode: 'phone', value: e164 }),
+        body: JSON.stringify({
+          mode: 'phone',
+          value: e164,
+          referralCode: referralCode.trim() || undefined,
+        }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -167,6 +173,27 @@ export function LoginForm() {
                 />
               </div>
             </Field>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setShowReferralCode((shown) => !shown)}
+                className="text-xs font-semibold text-accent hover:underline"
+                aria-expanded={showReferralCode}
+              >
+                Have a referral code?
+              </button>
+              {showReferralCode && (
+                <Field label="Referral code" hint="Optional">
+                  <Input
+                    maxLength={32}
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
+                    autoComplete="off"
+                  />
+                </Field>
+              )}
+            </div>
 
             {error && <p className="text-xs text-danger font-semibold">{error}</p>}
 

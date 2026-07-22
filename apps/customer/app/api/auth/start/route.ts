@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { otpRateLimit } from '@urban-assist/integrations/redis';
 import { inPhoneE164, normaliseMobile, ukPhoneE164 } from '@urban-assist/utils';
+import { z } from 'zod';
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? 'anon';
@@ -18,7 +19,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { mode, value } = (await req.json()) as { mode: 'email' | 'phone'; value: string };
+  const { mode, value, referralCode: rawReferralCode } = (await req.json()) as {
+    mode: 'email' | 'phone';
+    value: string;
+    referralCode?: unknown;
+  };
+  const referralResult = z.string().trim().max(32).optional().safeParse(rawReferralCode);
+  if (!referralResult.success) {
+    return NextResponse.json({ error: 'Invalid referral code' }, { status: 400 });
+  }
+  const referralCode = referralResult.data || undefined;
   if (!value) return NextResponse.json({ error: 'Missing value' }, { status: 400 });
 
   // STRICTLY phone-only authentication
@@ -42,7 +52,10 @@ export async function POST(req: NextRequest) {
   const db = getSupabaseServer();
   const { error } = await db.auth.signInWithOtp({
     phone: phone!,
-    options: { shouldCreateUser: true },
+    options: {
+      shouldCreateUser: true,
+      data: referralCode ? { referral_code: referralCode } : undefined,
+    },
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

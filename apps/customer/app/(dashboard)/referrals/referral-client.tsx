@@ -20,7 +20,8 @@ export function ReferralClient({
 }) {
   const [copied, setCopied] = React.useState(false);
 
-  const shareText = `Take a look at Urban Assist for trusted home services. My referral code is ${referralCode}.`;
+  const rewardCopy = 'Give a friend your code - when their first booking completes, you get £5 wallet credit.';
+  const shareText = `${rewardCopy} My referral code is ${referralCode}.`;
   const shareUrl = 'https://urbanassist.co.uk';
 
   const handleCopy = () => {
@@ -50,7 +51,7 @@ export function ReferralClient({
       {/* Page Header */}
       <div>
         <h1 className="font-display text-2xl font-bold text-ink">Refer a Friend</h1>
-        <p className="text-sm text-muted mt-1">Share Urban Assist with friends and family.</p>
+        <p className="text-sm text-muted mt-1">{rewardCopy}</p>
       </div>
 
       {/* Hero Gift Section */}
@@ -60,7 +61,7 @@ export function ReferralClient({
             Invite friends to Urban Assist
           </h2>
           <p className="text-sm text-bg/85 max-w-md leading-relaxed">
-            Share your unique referral code so friends can discover trusted local professionals.
+            {rewardCopy}
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row gap-2 max-w-md justify-center md:justify-start">

@@ -21,6 +21,7 @@ import {
   SectionHeader,
   BentoEmpty,
 } from '@/components/bento';
+import { buildLiquidityData } from '@/lib/dashboard-metrics';
 
 function SparkBars({
   values,
@@ -68,6 +69,7 @@ export default async function AdminDashboardPage() {
     urgentRes,
     activeJobsRes,
     paymentsTodayRes,
+    bookingsCreatedTodayRes,
     exceptionsRes,
     recentStatusRes,
   ] = await Promise.all([
@@ -92,6 +94,7 @@ export default async function AdminDashboardPage() {
       .select('id', { count: 'exact', head: true })
       .in('status', ['assigned', 'on_the_way', 'arrived', 'in_progress']),
     db.from('payments').select('amount_pence').eq('status', 'succeeded').gte('created_at', todayStart.toISOString()),
+    db.from('bookings').select('created_at').gte('created_at', todayStart.toISOString()),
     db
       .from('bookings')
       .select('id, short_code, status, scheduled_start, customer:profiles!bookings_customer_id_fkey(full_name)')
@@ -111,29 +114,22 @@ export default async function AdminDashboardPage() {
     0,
   );
 
-  const grossVolumePence = cachedStats?.grossVolumePence ?? processedTodayPence;
-  const activeJobs = cachedStats?.activeJobsCount ?? (activeJobsRes.count ?? 0);
-  const openTickets = cachedStats?.openTicketsCount ?? (ticketsRes.count ?? 0);
+  const trustedCache = cachedStats?.comparisonWindow === 'today_vs_yesterday';
+  const grossVolumePence = trustedCache ? cachedStats.grossVolumePence : processedTodayPence;
+  const activeJobs = trustedCache ? cachedStats.activeJobsCount : (activeJobsRes.count ?? 0);
+  const openTickets = trustedCache ? cachedStats.openTicketsCount : (ticketsRes.count ?? 0);
   const kycPending = kycRes.count ?? 0;
   const pendingBookings = bookingsRes.count ?? 0;
   const providersOnline = providersRes.count ?? 0;
 
-  const liquidityData = cachedStats?.liquidityData ?? [
-    { hour: '08:00', bookings: 12, providers: 15 },
-    { hour: '10:00', bookings: 24, providers: 20 },
-    { hour: '12:00', bookings: 32, providers: 28 },
-    { hour: '14:00', bookings: 18, providers: 22 },
-  ];
+  const liquidityData = trustedCache
+    ? cachedStats.liquidityData
+    : buildLiquidityData(bookingsCreatedTodayRes.data ?? [], providersOnline);
 
-  // Sparkline values from liquidity (or pad to ~14 bars for visual rhythm)
   const sparkValues: number[] = liquidityData.flatMap((d: any) => [d.bookings, d.providers]);
-  while (sparkValues.length < 14) {
-    sparkValues.push(sparkValues[sparkValues.length % Math.max(sparkValues.length, 1)] ?? 4);
-  }
-
-  const volumeChange = cachedStats?.grossVolumeChange ?? 12;
-  const jobsChange = cachedStats?.activeJobsChange ?? -2;
-  const ticketsChange = cachedStats?.openTicketsChange ?? 4;
+  const volumeChange: number | undefined = trustedCache
+    ? cachedStats.grossVolumeChange
+    : undefined;
 
   const exceptions = (exceptionsRes.data ?? []) as any[];
   const activity = (recentStatusRes.data ?? []) as any[];
@@ -159,17 +155,19 @@ export default async function AdminDashboardPage() {
               <p className="mt-1 text-3xl lg:text-4xl font-bold font-mono tracking-tight text-accent">
                 £{(grossVolumePence / 100).toFixed(2)}
               </p>
-              <p
-                className={`text-[11px] mt-1 ${volumeChange >= 0 ? 'text-success' : 'text-danger'}`}
-              >
-                {volumeChange >= 0 ? '↑' : '↓'} {Math.abs(volumeChange)}% vs yesterday
-              </p>
+              {volumeChange !== undefined && (
+                <p
+                  className={`text-[11px] mt-1 ${volumeChange >= 0 ? 'text-success' : 'text-danger'}`}
+                >
+                  {volumeChange >= 0 ? '↑' : '↓'} {Math.abs(volumeChange)}% vs yesterday
+                </p>
+              )}
             </div>
             <Briefcase className="h-4 w-4 text-muted shrink-0" aria-hidden />
           </div>
           <div className="mt-6">
             <p className="text-[11px] text-muted mb-2">Volume rhythm (supply / demand)</p>
-            <SparkBars values={sparkValues.slice(0, 14)} />
+            <SparkBars values={sparkValues} />
           </div>
           <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-muted">
             <span>
@@ -185,16 +183,12 @@ export default async function AdminDashboardPage() {
           label="Active jobs"
           value={activeJobs}
           icon={Users}
-          sub={`${jobsChange >= 0 ? '↑' : '↓'} ${Math.abs(jobsChange)}% vs yesterday`}
-          deltaTone={jobsChange >= 0 ? 'success' : 'danger'}
           className="col-span-1 md:col-span-3 lg:col-span-3"
         />
         <StatTile
           label="Open tickets"
           value={openTickets}
           icon={TicketCheck}
-          sub={`${ticketsChange >= 0 ? '↑' : '↓'} ${Math.abs(ticketsChange)}% vs yesterday`}
-          deltaTone={ticketsChange > 0 ? 'danger' : 'success'}
           className="col-span-1 md:col-span-3 lg:col-span-3"
         />
         <StatTile

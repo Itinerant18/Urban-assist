@@ -4,6 +4,7 @@ import { Card, Button } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { pence, ukDate } from '@urban-assist/lib';
 import { Printer } from 'lucide-react';
+import { buildWeeklyEarnings, weeklyWindow } from '../../../lib/weekly-earnings';
 
 interface Transaction {
   id: string;
@@ -35,7 +36,7 @@ export default function EarningsPage() {
 
         const { data: bookings } = await sb
           .from('bookings')
-          .select('id, short_code, completed_at, total_pence, payment_method, category:service_categories(name)')
+          .select('id, short_code, completed_at, created_at, price_pence, payment_method, category:service_categories(name)')
           .eq('provider_id', user.id)
           .eq('status', 'completed')
           .order('completed_at', { ascending: false });
@@ -54,8 +55,8 @@ export default function EarningsPage() {
             type: 'booking',
             title: b.category?.name || 'Service',
             short_code: b.short_code,
-            date: b.completed_at || new Date().toISOString(),
-            amount_pence: b.total_pence,
+            date: b.completed_at || b.created_at,
+            amount_pence: b.price_pence,
             status: 'succeeded',
             method: b.payment_method,
           });
@@ -66,7 +67,7 @@ export default function EarningsPage() {
             id: po.id,
             type: 'payout',
             title: 'Stripe Payout',
-            date: po.created_at || new Date().toISOString(),
+            date: po.created_at,
             amount_pence: po.amount_pence,
             status: po.status,
           });
@@ -127,10 +128,22 @@ export default function EarningsPage() {
     );
   }
 
-  // Calculate chart data (stub for 3 weeks)
-  const chartData = [40, 75, 100]; // Dummy percentage heights
-
-  const recentJobs = transactions.filter(t => t.type === 'booking').slice(0, 5);
+  const weeklyEarnings = buildWeeklyEarnings(
+    transactions
+      .filter((transaction) => transaction.type === 'booking')
+      .map((transaction) => ({
+        completed_at: transaction.date,
+        price_pence: transaction.amount_pence,
+      })),
+  );
+  const weekMax = Math.max(...weeklyEarnings.map((entry) => entry.amountPence));
+  const { start: weekStart } = weeklyWindow();
+  const recentJobs = transactions
+    .filter(
+      (transaction) =>
+        transaction.type === 'booking' && new Date(transaction.date) >= weekStart,
+    )
+    .slice(0, 5);
   const recentPayouts = transactions.filter(t => t.type === 'payout').slice(0, 5);
 
   return (
@@ -152,11 +165,6 @@ export default function EarningsPage() {
               <p className="text-xs font-bold text-muted uppercase tracking-wider">Available Balance</p>
               <div className="font-display text-4xl mt-1 text-ink">{pence(balancePending)}</div>
             </div>
-            <div className="hidden md:block">
-              <p className="text-xs font-bold text-muted uppercase tracking-wider">Next Automatic Payout</p>
-              <div className="text-base font-medium mt-1">Friday, 24 Oct</div>
-              <div className="text-xs text-muted">(Stripe Connect)</div>
-            </div>
           </div>
           
           <div className="mt-6 md:mt-0 hidden md:block">
@@ -168,13 +176,6 @@ export default function EarningsPage() {
               <div className="text-xs text-danger max-w-[200px] text-right">Connect Stripe in Settings to receive payouts</div>
             )}
           </div>
-          {/* Mobile next payout info */}
-          <div className="md:hidden mt-4 pt-4 border-t border-hairline">
-             <div className="flex justify-between items-center text-sm">
-                <span className="text-muted">Next Payout:</span>
-                <span className="font-medium">Friday, 24 Oct</span>
-             </div>
-          </div>
         </Card>
         {stripeError && <p className="text-xs text-danger">{stripeError}</p>}
 
@@ -184,24 +185,24 @@ export default function EarningsPage() {
             
             {/* Earnings History Chart */}
             <section className="space-y-3">
-               <h2 className="text-xs font-bold text-muted uppercase tracking-wider">Earnings History (October)</h2>
+               <h2 className="text-xs font-bold text-muted uppercase tracking-wider">Earnings History (Last 7 Days)</h2>
                <Card className="!p-6 flex flex-col justify-end h-48 bg-bg/30">
                   <div className="flex items-end gap-4 h-full border-b border-hairline pb-2">
                      <div className="flex flex-col justify-between h-full text-[10px] text-muted font-mono-utility pr-2">
-                       <span>£500</span>
-                       <span>£250</span>
-                       <span>£0</span>
+                       <span>{pence(weekMax)}</span>
+                       <span>{pence(Math.round(weekMax / 2))}</span>
+                       <span>{pence(0)}</span>
                      </div>
                      <div className="flex-1 flex items-end justify-around h-full">
-                       {chartData.map((h, i) => (
-                         <div key={i} className="w-12 bg-accent rounded-t-sm transition-all duration-500 hover:bg-ink" style={{ height: `${h}%` }}></div>
+                       {weeklyEarnings.map((entry) => (
+                         <div key={entry.date} className="w-12 bg-accent rounded-t-sm transition-all duration-500 hover:bg-ink" style={{ height: `${entry.heightPercent}%` }}></div>
                        ))}
                      </div>
                   </div>
                   <div className="flex pl-10 mt-2 justify-around text-[10px] text-muted font-mono-utility">
-                     <span>Week 1</span>
-                     <span>Week 2</span>
-                     <span>Week 3</span>
+                     {weeklyEarnings.map((entry) => (
+                       <span key={entry.date}>{entry.day}</span>
+                     ))}
                   </div>
                </Card>
             </section>

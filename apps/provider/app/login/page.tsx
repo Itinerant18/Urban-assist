@@ -1,4 +1,5 @@
 import { LoginForm } from './login-form';
+import { Suspense } from 'react';
 
 export const metadata = { title: 'Provider sign in — Urban Assist Pro' };
 
@@ -27,7 +28,9 @@ export default function Page() {
           <h1 className="font-display text-2xl font-extrabold text-ink">Welcome back</h1>
           <p className="mt-2 text-sm text-muted">Sign in to manage your jobs and earnings.</p>
         </div>
-        <LoginForm />
+        <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-hairline" />}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );

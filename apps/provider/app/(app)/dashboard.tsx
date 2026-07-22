@@ -5,27 +5,22 @@ import { Button, Card, Badge, EmptyState, RatingStars } from '@urban-assist/ui';
 import { pence, ukDateTime } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { OfferCard } from './offer-card';
-
-const WEEKLY_EARNINGS = [
-  { day: 'Mon', amount: 80, height: 'h-[40%]' },
-  { day: 'Tue', amount: 120, height: 'h-[60%]' },
-  { day: 'Wed', amount: 45, height: 'h-[25%]' },
-  { day: 'Thu', amount: 160, height: 'h-[80%]' },
-  { day: 'Fri', amount: 200, height: 'h-full' },
-  { day: 'Sat', amount: 140, height: 'h-[70%]' },
-  { day: 'Sun', amount: 90, height: 'h-[45%]' },
-];
+import type { WeeklyEarning } from '../../lib/weekly-earnings';
 
 export function Dashboard({
   profile,
   jobsToday,
   openOffer: initialOffer,
   servicesCount,
+  weeklyEarnings,
+  completionRate,
 }: {
   profile: any;
   jobsToday: any[];
   openOffer: any | null;
   servicesCount: number;
+  weeklyEarnings: WeeklyEarning[];
+  completionRate: number | null;
 }) {
   const [online, setOnline] = React.useState<boolean>(!!profile?.is_online);
   const [offer, setOffer] = React.useState(initialOffer);
@@ -71,7 +66,7 @@ export function Dashboard({
 
   const earningsToday = jobsToday
     .filter((j) => j.status === 'completed')
-    .reduce((s, j) => s + (j.total_pence ?? 0), 0);
+    .reduce((s, j) => s + (j.price_pence ?? 0), 0);
 
   return (
     <div className="space-y-4 py-2">
@@ -98,7 +93,9 @@ export function Dashboard({
         </Card>
         <Card className="flex flex-col gap-1 border border-hairline p-4 bg-white shadow-card rounded-xl">
           <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">Completion Rate</span>
-          <span className="font-display text-2xl font-extrabold text-success">98%</span>
+          <span className="font-display text-2xl font-extrabold text-success">
+            {completionRate === null ? '-' : `${completionRate}%`}
+          </span>
         </Card>
         <Card className="col-span-2 sm:col-span-1 flex flex-col gap-1 border border-hairline p-4 bg-white shadow-card rounded-xl">
           <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">New Requests</span>
@@ -127,14 +124,17 @@ export function Dashboard({
           <span className="text-xs text-muted">Last 7 Days</span>
         </div>
         <div className="flex items-end justify-between h-40 px-4 pt-4 border-b border-hairline">
-          {WEEKLY_EARNINGS.map((bar) => (
+          {weeklyEarnings.map((bar) => (
             <div key={bar.day} className="flex flex-col items-center gap-2 w-10 group relative justify-end h-full">
               {/* Tooltip */}
               <span className="absolute -top-8 scale-0 transition-all rounded bg-ink px-2 py-1 text-[10px] text-bg group-hover:scale-100 font-mono-utility">
-                £{bar.amount}
+                {pence(bar.amountPence)}
               </span>
               {/* Bar */}
-              <div className={`w-6 rounded-t bg-accent/80 transition group-hover:bg-accent ${bar.height}`} />
+              <div
+                className="w-6 rounded-t bg-accent/80 transition group-hover:bg-accent"
+                style={{ height: `${bar.heightPercent}%` }}
+              />
               {/* Label */}
               <span className="text-[10px] text-muted font-mono-utility">{bar.day}</span>
             </div>
@@ -149,10 +149,13 @@ export function Dashboard({
           <span className="text-xs text-muted">Last 7 days</span>
         </div>
         <div className="flex h-28 items-end justify-between gap-2 border-b border-hairline px-1 pt-2">
-          {WEEKLY_EARNINGS.map((bar) => (
+          {weeklyEarnings.map((bar) => (
             <div key={bar.day} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
-              <span className="font-mono-utility text-[9px] text-muted">£{bar.amount}</span>
-              <div className={`w-full max-w-5 rounded-t bg-accent/80 ${bar.height}`} />
+              <span className="font-mono-utility text-[9px] text-muted">{pence(bar.amountPence)}</span>
+              <div
+                className="w-full max-w-5 rounded-t bg-accent/80"
+                style={{ height: `${bar.heightPercent}%` }}
+              />
               <span className="font-mono-utility text-[9px] text-muted">{bar.day.slice(0, 1)}</span>
             </div>
           ))}

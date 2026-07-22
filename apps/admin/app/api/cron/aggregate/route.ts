@@ -2,6 +2,7 @@ import type { NextRequest} from 'next/server';
 import { NextResponse } from 'next/server';
 import { createServiceRole } from '@urban-assist/db/server';
 import { redis } from '@urban-assist/integrations/redis';
+import { buildLiquidityData, percentageChange } from '@/lib/dashboard-metrics';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,52 +25,74 @@ async function handleAggregation(req: NextRequest) {
 
   try {
     const db = createServiceRole();
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
 
-    // 1. Gross Volume (Sum of successful payments)
-    const { data: payments } = await db
-      .from('payments')
-      .select('amount_pence')
-      .eq('status', 'succeeded');
-    
-    const grossVolumePence = (payments ?? []).reduce((sum, p) => sum + (p.amount_pence ?? 0), 0);
+    const [
+      paymentsResult,
+      activeJobsResult,
+      openTicketsResult,
+      pendingKycResult,
+      bookingsTodayResult,
+      onlineProvidersResult,
+    ] = await Promise.all([
+      db
+        .from('payments')
+        .select('amount_pence,created_at')
+        .eq('status', 'succeeded')
+        .gte('created_at', yesterdayStart.toISOString())
+        .lt('created_at', tomorrowStart.toISOString()),
+      db
+        .from('bookings')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['assigned', 'on_the_way', 'arrived', 'in_progress']),
+      db
+        .from('support_tickets')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'open'),
+      db
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'provider')
+        .eq('kyc_status', 'pending'),
+      db
+        .from('bookings')
+        .select('created_at')
+        .gte('created_at', todayStart.toISOString())
+        .lt('created_at', tomorrowStart.toISOString()),
+      db
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'provider')
+        .eq('is_online', true),
+    ]);
 
-    // 2. Active Jobs Count (bookings in active statuses)
-    const { count: activeJobsCount } = await db
-      .from('bookings')
-      .select('id', { count: 'exact', head: true })
-      .in('status', ['assigned', 'on_the_way', 'arrived', 'in_progress']);
-
-    // 3. Open Tickets Count
-    const { count: openTicketsCount } = await db
-      .from('support_tickets')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'open');
-
-    // 4. Pending KYC Count
-    const { count: pendingKycCount } = await db
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', 'provider')
-      .eq('kyc_status', 'pending');
-
-    // 5. Marketplace Liquidity (Mock/Calculate demand vs supply)
-    // Blue = Bookings (demand), Green = Active Providers (supply)
-    const liquidityData = [
-      { hour: '08:00', bookings: Math.max(5, (activeJobsCount ?? 0) - 10), providers: 15 },
-      { hour: '10:00', bookings: Math.max(12, (activeJobsCount ?? 0) + 5), providers: 22 },
-      { hour: '12:00', bookings: Math.max(18, (activeJobsCount ?? 0) + 12), providers: 28 },
-      { hour: '14:00', bookings: Math.max(8, (activeJobsCount ?? 0) - 2), providers: 19 },
-    ];
+    const payments = paymentsResult.data ?? [];
+    const grossVolumePence = payments
+      .filter((payment) => payment.created_at >= todayStart.toISOString())
+      .reduce((sum, payment) => sum + payment.amount_pence, 0);
+    const yesterdayGrossVolumePence = payments
+      .filter((payment) => payment.created_at < todayStart.toISOString())
+      .reduce((sum, payment) => sum + payment.amount_pence, 0);
+    const grossVolumeChange = percentageChange(grossVolumePence, yesterdayGrossVolumePence);
+    const liquidityData = buildLiquidityData(
+      bookingsTodayResult.data ?? [],
+      onlineProvidersResult.count ?? 0,
+    );
 
     const stats = {
       grossVolumePence,
-      grossVolumeChange: 12, // 12% up vs yesterday
-      activeJobsCount: activeJobsCount ?? 0,
-      activeJobsChange: -2,  // 2% down vs yesterday
-      openTicketsCount: openTicketsCount ?? 0,
-      openTicketsChange: 4,  // 4% up vs yesterday
-      pendingKycCount: pendingKycCount ?? 0,
+      ...(grossVolumeChange === undefined ? {} : { grossVolumeChange }),
+      activeJobsCount: activeJobsResult.count ?? 0,
+      openTicketsCount: openTicketsResult.count ?? 0,
+      pendingKycCount: pendingKycResult.count ?? 0,
       liquidityData,
+      comparisonWindow: 'today_vs_yesterday',
       updatedAt: new Date().toISOString(),
     };
 

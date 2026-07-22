@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Star, SlidersHorizontal, X } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 import { Card, Badge, Button, EmptyState } from '@urban-assist/ui';
+import { miles } from '@urban-assist/utils';
 
 interface ServiceItem {
   id: string;
@@ -18,34 +19,41 @@ interface ServiceItem {
     rating_avg: number;
     rating_count: number;
     kyc_status: string;
+    location: { lat: number; lng: number } | null;
   };
+}
+
+interface CategoryItem {
+  id: string;
+  name: string;
+  slug: string;
 }
 
 interface BrowseClientProps {
   initialServices: ServiceItem[];
   categoryName: string | null;
+  categories: CategoryItem[];
+  customerLocation: { lat: number; lng: number } | null;
 }
 
-export function BrowseClient({ initialServices, categoryName }: BrowseClientProps) {
-  // Enhance services with stable mock distances (between 1.0 and 5.5 miles)
+export function BrowseClient({
+  initialServices,
+  categoryName,
+  categories,
+  customerLocation,
+}: BrowseClientProps) {
   const services = React.useMemo(() => {
     return initialServices.map((s) => {
-      const codeSum = s.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const mockDistance = ((codeSum % 45) / 10 + 1).toFixed(1);
+      const providerLocation = s.provider.location;
       return {
         ...s,
-        distance: parseFloat(mockDistance),
+        distanceKm:
+          customerLocation && providerLocation
+            ? haversineKm(customerLocation, providerLocation)
+            : null,
       };
     });
-  }, [initialServices]);
-
-  // Unique categories in results for filter list
-  const categoriesList = [
-    { name: 'Cleaning Services', slug: 'cleaning-services' },
-    { name: 'Plumbing', slug: 'plumbing' },
-    { name: 'Electrical', slug: 'electrical' },
-    { name: 'Gardening & Outdoor', slug: 'gardening-outdoor' },
-  ];
+  }, [customerLocation, initialServices]);
 
   // Filtering states
   const [selectedCats, setSelectedCats] = React.useState<string[]>([]);
@@ -62,8 +70,7 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
       // Category filter (if selected)
       if (selectedCats.length > 0) {
         // Simple mapping or check
-        const isMatch = selectedCats.some((cat) => s.title.toLowerCase().includes(cat.split('-')[0]));
-        if (!isMatch) return false;
+        if (!selectedCats.includes(s.category_id)) return false;
       }
       // Price filter (convert pence to pounds)
       const pricePounds = s.price_pence / 100;
@@ -73,7 +80,7 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
       if (s.provider.rating_avg < minRating) return false;
 
       // Distance filter
-      if (s.distance > maxDistance) return false;
+      if (s.distanceKm != null && s.distanceKm * 0.621371 > maxDistance) return false;
 
       return true;
     });
@@ -94,7 +101,7 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
             {categoryName ? categoryName : 'All services'}
           </h1>
           <p className="mt-1 text-sm text-muted">
-            {filteredServices.length} Providers Found near you
+            {filteredServices.length} Providers Found{customerLocation ? ' near you' : ''}
           </p>
         </div>
         <Link href="/" className="text-xs text-muted hover:text-ink font-semibold">
@@ -120,14 +127,16 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
           4★+
         </button>
 
-        <button
-          onClick={() => setMaxDistance(maxDistance === 5 ? 20 : 5)}
-          className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition ${
-            maxDistance <= 5 ? 'border-accent bg-accent/10 text-accent' : 'border-hairline bg-white text-muted'
-          }`}
-        >
-          &lt; 5 Miles
-        </button>
+        {customerLocation && (
+          <button
+            onClick={() => setMaxDistance(maxDistance === 5 ? 20 : 5)}
+            className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition ${
+              maxDistance <= 5 ? 'border-accent bg-accent/10 text-accent' : 'border-hairline bg-white text-muted'
+            }`}
+          >
+            &lt; 5 Miles
+          </button>
+        )}
 
         <button
           onClick={() => setMaxPrice(maxPrice === 30 ? 100 : 30)}
@@ -150,12 +159,12 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
           <div className="space-y-2">
             <label className="text-xs font-bold text-muted uppercase tracking-wider">Categories</label>
             <div className="space-y-1.5">
-              {categoriesList.map((cat) => (
-                <label key={cat.slug} className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+              {categories.map((cat) => (
+                <label key={cat.id} className="flex cursor-pointer items-center gap-2 text-sm text-ink">
                   <input
                     type="checkbox"
-                    checked={selectedCats.includes(cat.slug)}
-                    onChange={() => toggleCategory(cat.slug)}
+                    checked={selectedCats.includes(cat.id)}
+                    onChange={() => toggleCategory(cat.id)}
                     className="rounded border-hairline text-accent focus:ring-accent"
                   />
                   <span>{cat.name}</span>
@@ -209,7 +218,7 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
           </div>
 
           {/* Distance */}
-          <div className="space-y-2">
+          {customerLocation && <div className="space-y-2">
             <label className="text-xs font-bold text-muted uppercase tracking-wider">Distance</label>
             <select
               value={maxDistance}
@@ -221,7 +230,7 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
               <option value="10">Within 10 Miles</option>
               <option value="25">Within 25 Miles</option>
             </select>
-          </div>
+          </div>}
 
           <Button
             onClick={() => {
@@ -285,9 +294,12 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
 
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="text-[10px] text-muted uppercase font-mono-utility">Rate / Distance</div>
+                          <div className="text-[10px] text-muted uppercase font-mono-utility">
+                            {s.distanceKm != null ? 'Rate / Distance' : 'Rate'}
+                          </div>
                           <div className="text-sm font-extrabold text-ink">
-                            {pence(s.price_pence)}/hr • {s.distance} mi
+                            {pence(s.price_pence)}/hr
+                            {s.distanceKm != null ? ` • ${miles(s.distanceKm)}` : ''}
                           </div>
                         </div>
                         <Link href={`/providers/${s.provider.id}`}>
@@ -326,8 +338,12 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
                           </span>
                           <span>•</span>
                           <span className="font-extrabold text-ink">{pence(s.price_pence)}/hr</span>
-                          <span>•</span>
-                          <span>{s.distance} mi</span>
+                          {s.distanceKm != null && (
+                            <>
+                              <span>•</span>
+                              <span>{miles(s.distanceKm)}</span>
+                            </>
+                          )}
                         </div>
                       </div>
 
@@ -378,12 +394,12 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
             <div className="space-y-3">
               <label className="text-xs font-bold text-muted uppercase tracking-wider">Categories</label>
               <div className="grid grid-cols-2 gap-2">
-                {categoriesList.map((cat) => {
-                  const isSelected = selectedCats.includes(cat.slug);
+                {categories.map((cat) => {
+                  const isSelected = selectedCats.includes(cat.id);
                   return (
                     <button
-                      key={cat.slug}
-                      onClick={() => toggleCategory(cat.slug)}
+                      key={cat.id}
+                      onClick={() => toggleCategory(cat.id)}
                       className={`tap rounded-xl border py-2 px-3 text-left text-xs font-medium transition ${
                         isSelected
                           ? 'border-accent bg-accent/10 text-accent font-bold'
@@ -443,7 +459,7 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
             </div>
 
             {/* Distance */}
-            <div className="space-y-3">
+            {customerLocation && <div className="space-y-3">
               <label className="text-xs font-bold text-muted uppercase tracking-wider">Maximum Distance</label>
               <div className="grid grid-cols-4 gap-2">
                 {[2, 5, 10, 25].map((dist) => (
@@ -460,7 +476,7 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
                   </button>
                 ))}
               </div>
-            </div>
+            </div>}
           </div>
 
           {/* Sticky Bottom Apply CTA */}
@@ -476,4 +492,20 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
       )}
     </div>
   );
+}
+
+function haversineKm(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+) {
+  const earthRadiusKm = 6371;
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+  const latitudeDelta = toRadians(to.lat - from.lat);
+  const longitudeDelta = toRadians(to.lng - from.lng);
+  const startLatitude = toRadians(from.lat);
+  const endLatitude = toRadians(to.lat);
+  const a =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(startLatitude) * Math.cos(endLatitude) * Math.sin(longitudeDelta / 2) ** 2;
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }

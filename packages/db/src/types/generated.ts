@@ -739,6 +739,7 @@ export type Database = {
           is_online: boolean
           kyc_status: Database["public"]["Enums"]["kyc_status"]
           last_seen_at: string | null
+          notification_prefs: Json
           phone: string | null
           rating_avg: number
           rating_count: number
@@ -755,6 +756,7 @@ export type Database = {
           is_online?: boolean
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           last_seen_at?: string | null
+          notification_prefs?: Json
           phone?: string | null
           rating_avg?: number
           rating_count?: number
@@ -771,6 +773,7 @@ export type Database = {
           is_online?: boolean
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           last_seen_at?: string | null
+          notification_prefs?: Json
           phone?: string | null
           rating_avg?: number
           rating_count?: number
