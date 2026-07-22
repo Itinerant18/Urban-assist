@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Bell, BellDot, CheckCircle2 } from 'lucide-react';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { ukDateTime } from '@urban-assist/lib';
-import { Button, Card } from '@urban-assist/ui';
+import { Button, Card, EmptyState, Skeleton } from '@urban-assist/ui';
 
 type Notification = {
   id: string;
@@ -112,15 +112,24 @@ export default function NotificationsPage() {
   }
 
   if (loading) {
-    return <div className="py-10 text-center text-muted">Loading notifications…</div>;
+    return (
+      <div className="space-y-3" aria-label="Loading notifications">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+      </div>
+    );
   }
 
   const unreadCount = notifications.filter((notification) => !notification.read_at).length;
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-between">
-        <h1 className="font-display text-2xl">Notifications</h1>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-ink">Notifications</h1>
+          <p className="mt-1 text-sm text-muted">Jobs, payments, reviews, and account updates.</p>
+        </div>
         {unreadCount > 0 && (
           <Button variant="ghost" size="sm" onClick={markAllRead}>
             Mark all read
@@ -129,10 +138,10 @@ export default function NotificationsPage() {
       </header>
 
       {notifications.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-12 text-muted">
-          <Bell className="mb-4 h-12 w-12 opacity-20" />
-          <p>You have no notifications yet.</p>
-        </Card>
+        <EmptyState
+          title="No notifications yet"
+          description="Jobs, payments, reviews, and account updates will appear here."
+        />
       ) : (
         <div className="space-y-2">
           {notifications.map((notification) => (
@@ -174,9 +183,10 @@ export default function NotificationsPage() {
                 {!notification.read_at && (
                   <div className="flex items-center">
                     <Button
+                      aria-label="Mark notification as read"
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 rounded-full p-0"
+                      className="rounded-full px-3"
                       onClick={() => markRead(notification.id)}
                     >
                       <CheckCircle2 className="h-4 w-4" />

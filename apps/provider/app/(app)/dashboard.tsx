@@ -6,6 +6,16 @@ import { pence, ukDateTime } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { OfferCard } from './offer-card';
 
+const WEEKLY_EARNINGS = [
+  { day: 'Mon', amount: 80, height: 'h-[40%]' },
+  { day: 'Tue', amount: 120, height: 'h-[60%]' },
+  { day: 'Wed', amount: 45, height: 'h-[25%]' },
+  { day: 'Thu', amount: 160, height: 'h-[80%]' },
+  { day: 'Fri', amount: 200, height: 'h-full' },
+  { day: 'Sat', amount: 140, height: 'h-[70%]' },
+  { day: 'Sun', amount: 90, height: 'h-[45%]' },
+];
+
 export function Dashboard({
   profile,
   jobsToday,
@@ -117,15 +127,7 @@ export function Dashboard({
           <span className="text-xs text-muted">Last 7 Days</span>
         </div>
         <div className="flex items-end justify-between h-40 px-4 pt-4 border-b border-hairline">
-          {[
-            { day: 'Mon', amount: 80, height: 'h-[40%]' },
-            { day: 'Tue', amount: 120, height: 'h-[60%]' },
-            { day: 'Wed', amount: 45, height: 'h-[25%]' },
-            { day: 'Thu', amount: 160, height: 'h-[80%]' },
-            { day: 'Fri', amount: 200, height: 'h-[100%]' },
-            { day: 'Sat', amount: 140, height: 'h-[70%]' },
-            { day: 'Sun', amount: 90, height: 'h-[45%]' },
-          ].map((bar) => (
+          {WEEKLY_EARNINGS.map((bar) => (
             <div key={bar.day} className="flex flex-col items-center gap-2 w-10 group relative justify-end h-full">
               {/* Tooltip */}
               <span className="absolute -top-8 scale-0 transition-all rounded bg-ink px-2 py-1 text-[10px] text-bg group-hover:scale-100 font-mono-utility">
@@ -135,6 +137,23 @@ export function Dashboard({
               <div className={`w-6 rounded-t bg-accent/80 transition group-hover:bg-accent ${bar.height}`} />
               {/* Label */}
               <span className="text-[10px] text-muted font-mono-utility">{bar.day}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Weekly earnings — compact mobile view */}
+      <Card className="border border-hairline bg-white p-4 shadow-card lg:hidden">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-display text-xs font-bold uppercase tracking-wider text-ink">Weekly earnings</h3>
+          <span className="text-xs text-muted">Last 7 days</span>
+        </div>
+        <div className="flex h-28 items-end justify-between gap-2 border-b border-hairline px-1 pt-2">
+          {WEEKLY_EARNINGS.map((bar) => (
+            <div key={bar.day} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
+              <span className="font-mono-utility text-[9px] text-muted">£{bar.amount}</span>
+              <div className={`w-full max-w-5 rounded-t bg-accent/80 ${bar.height}`} />
+              <span className="font-mono-utility text-[9px] text-muted">{bar.day.slice(0, 1)}</span>
             </div>
           ))}
         </div>

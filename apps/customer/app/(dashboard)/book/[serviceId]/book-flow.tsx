@@ -251,7 +251,7 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
   return (
     <div className="mx-auto max-w-6xl py-4 pb-28 lg:py-6 lg:pb-0">
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-ink lg:text-3xl">Secure Checkout</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">Secure Checkout</h1>
         <p className="text-sm text-muted mt-1">Review your service details, choose an address, and confirm your scheduling.</p>
       </div>
 

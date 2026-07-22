@@ -80,7 +80,7 @@ function isActive(pathname: string, href: string) {
 export function DesktopNav({ kycPending }: { kycPending: number }) {
   const pathname = usePathname();
   return (
-    <div className="space-y-1">
+    <nav aria-label="Admin primary navigation" className="space-y-1">
       {navSections.map((section) => (
         <div key={section.label}>
           <p className="text-[10px] uppercase tracking-wider text-muted px-2 mt-4 mb-1 first:mt-0">
@@ -93,7 +93,7 @@ export function DesktopNav({ kycPending }: { kycPending: number }) {
                 <Link
                   key={href}
                   href={href}
-                  className={`flex items-center gap-2.5 px-2 py-2 min-h-[40px] rounded-lg text-sm transition-colors ${
+                  className={`tap flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors ${
                     active
                       ? 'bg-accent/10 font-semibold text-ink'
                       : 'text-ink hover:bg-hairline/40'
@@ -114,7 +114,7 @@ export function DesktopNav({ kycPending }: { kycPending: number }) {
           </div>
         </div>
       ))}
-    </div>
+    </nav>
   );
 }
 
@@ -135,7 +135,7 @@ export function MobileNav({ kycPending }: { kycPending: number }) {
           <li key={href}>
             <Link
               href={href}
-              className={`relative flex flex-col items-center gap-0.5 px-3 min-h-[40px] justify-center text-[10px] font-mono ${
+              className={`tap relative flex flex-col items-center justify-center gap-0.5 px-3 text-[10px] font-mono ${
                 active ? 'text-accent' : 'text-muted hover:text-ink'
               }`}
             >

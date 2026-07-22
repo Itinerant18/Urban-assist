@@ -14,6 +14,7 @@ import {
   Star,
   ChevronUp,
   ChevronDown,
+  ChevronsRight,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import type { ChatMessage } from '@urban-assist/types';
@@ -58,6 +59,14 @@ function SwipeToConfirm({
   const [isSwiped, setIsSwiped] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
+  const confirm = () => {
+    if (disabled || isSwiped) return;
+    const maxSlide = containerRef.current ? containerRef.current.clientWidth - 56 : currentX;
+    setCurrentX(maxSlide);
+    setIsSwiped(true);
+    onConfirm();
+  };
+
   const handleTouchStart = (e: React.TouchEvent) => {
     if (disabled || isSwiped) return;
     setStartX(e.touches[0].clientX);
@@ -76,9 +85,7 @@ function SwipeToConfirm({
     if (disabled || isSwiped || !containerRef.current) return;
     const maxSlide = containerRef.current.clientWidth - 56;
     if (currentX >= maxSlide * 0.8) {
-      setCurrentX(maxSlide);
-      setIsSwiped(true);
-      onConfirm();
+      confirm();
     } else {
       setCurrentX(0);
     }
@@ -102,9 +109,7 @@ function SwipeToConfirm({
       const maxSlide = containerRef.current.clientWidth - 56;
       const currentDiff = upEvent.clientX - e.clientX;
       if (currentDiff >= maxSlide * 0.8) {
-        setCurrentX(maxSlide);
-        setIsSwiped(true);
-        onConfirm();
+        confirm();
       } else {
         setCurrentX(0);
       }
@@ -127,17 +132,26 @@ function SwipeToConfirm({
         disabled ? 'opacity-50 pointer-events-none' : ''
       }`}
     >
-      <div
-        className="absolute left-1 top-1 bottom-1 w-12 bg-ink text-bg rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing z-10 transition-transform duration-75"
+      <button
+        type="button"
+        disabled={disabled || isSwiped}
+        aria-label={`${label}. Press Enter or Space to confirm.`}
+        className="absolute bottom-1 left-1 top-1 z-10 flex w-12 cursor-grab items-center justify-center rounded-full bg-ink text-bg transition-transform duration-75 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset disabled:cursor-default"
         style={{ transform: `translateX(${currentX}px)` }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            confirm();
+          }
+        }}
       >
-        <span className="font-bold text-xs select-none">{'>>>'}</span>
-      </div>
-      <span className="text-xs font-bold text-ink pl-8 pointer-events-none animate-pulse">
+        <ChevronsRight className="h-5 w-5" aria-hidden />
+      </button>
+      <span className="pointer-events-none pl-8 text-xs font-bold text-ink">
         {label}
       </span>
     </div>

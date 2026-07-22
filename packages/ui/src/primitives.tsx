@@ -4,7 +4,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from './cn';
 
 const buttonStyles = cva(
-  'tap inline-flex items-center justify-center gap-2 rounded-xl text-sm font-medium transition focus-visible:ring-0 disabled:opacity-50 disabled:pointer-events-none',
+  'tap inline-flex items-center justify-center gap-2 rounded-xl text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50 disabled:pointer-events-none',
   {
     variants: {
       variant: {
@@ -45,7 +45,7 @@ export const Input = React.forwardRef<
     ref={ref}
     className={cn(
       'tap w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm placeholder:text-muted',
-      'focus:border-ink focus:outline-none',
+      'focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
       className,
     )}
     {...p}
@@ -61,13 +61,30 @@ export const Textarea = React.forwardRef<
   <textarea
     ref={ref}
     className={cn(
-      'w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm placeholder:text-muted focus:border-ink focus:outline-none',
+      'w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm placeholder:text-muted focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
       className,
     )}
     {...p}
   />
 ));
 Textarea.displayName = 'Textarea';
+
+// --- Select ------------------------------------------------------------
+export const Select = React.forwardRef<
+  HTMLSelectElement,
+  React.SelectHTMLAttributes<HTMLSelectElement>
+>(({ className, ...p }, ref) => (
+  <select
+    ref={ref}
+    className={cn(
+      'tap w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm text-ink',
+      'focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
+      className,
+    )}
+    {...p}
+  />
+));
+Select.displayName = 'Select';
 
 // --- Label / Field -----------------------------------------------------
 export function Label({
@@ -152,8 +169,7 @@ export function EmptyState({
       {/* Floating Box Illustration */}
       <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl bg-bg/50 border border-hairline/60">
         <svg
-          className="h-12 w-12 text-accent animate-bounce"
-          style={{ animationDuration: '3s' }}
+          className="h-12 w-12 text-accent"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

@@ -26,6 +26,7 @@ module.exports = {
         display: ['Inter', 'system-ui', 'sans-serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        'mono-utility': ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
         xl: '14px',

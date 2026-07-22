@@ -1,5 +1,6 @@
 import { revalidatePath } from 'next/cache';
 import { Percent } from 'lucide-react';
+import { Button, Input } from '@urban-assist/ui';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
 import { PageHeader, SectionHeader, BentoTile, TableTile } from '@/components/bento';
@@ -49,22 +50,19 @@ export default async function PricingPage() {
       <input type="hidden" name="category_id" value={id} />
       <span className="text-sm font-medium text-ink">{label}</span>
       <div className="flex items-center gap-2">
-        <input
+        <Input
           name="percent"
           type="number"
           min="0"
           max="100"
           step="0.5"
           defaultValue={pct(bps)}
-          className="w-20 rounded-xl border border-hairline bg-bg px-3 py-1.5 text-sm text-ink text-right focus:border-accent focus:outline-none"
+          className="w-20 text-right"
         />
         <span className="text-xs text-muted">%</span>
-        <button
-          type="submit"
-          className="rounded-xl bg-accent px-4 py-1.5 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
-        >
+        <Button type="submit" size="sm" className="font-semibold">
           Save
-        </button>
+        </Button>
       </div>
     </form>
   );

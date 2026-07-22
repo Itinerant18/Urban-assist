@@ -543,7 +543,10 @@ export default function AccountPage() {
   return (
     <div className="space-y-5 py-2">
       {/* Title */}
-      <h1 className="font-display text-xl font-bold text-ink">Account Settings</h1>
+      <header>
+        <h1 className="font-display text-2xl font-bold text-ink">Account Settings</h1>
+        <p className="mt-1 text-sm text-muted">Manage your profile, payments, addresses, and preferences.</p>
+      </header>
 
       {/* DESKTOP SPLIT-PANE VIEW */}
       <div className="hidden lg:grid grid-cols-[280px,1fr] gap-6 items-start">

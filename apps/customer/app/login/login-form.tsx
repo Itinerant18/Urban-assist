@@ -130,7 +130,7 @@ export function LoginForm() {
                     const found = COUNTRIES.find((c) => c.code === e.target.value);
                     if (found) setSelectedCountry(found);
                   }}
-                  className="rounded-xl border border-hairline bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent font-semibold"
+                  className="rounded-xl border border-hairline bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent font-semibold"
                 >
                   {COUNTRIES.map((c) => (
                     <option key={c.code} value={c.code}>

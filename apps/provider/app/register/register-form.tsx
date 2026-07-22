@@ -7,6 +7,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
 import { UK_POSTCODE_RE } from '@urban-assist/utils';
+import { Button, Field, Input, Textarea } from '@urban-assist/ui';
 
 const NINO_RE = /^[A-CEGHJ-PR-TW-Z]{2}\d{6}[A-D]$/i;
 const RADIUS_OPTIONS = [5, 10, 15, 20, 30, 50];
@@ -19,7 +20,6 @@ function maxDob(): string {
   d.setFullYear(d.getFullYear() - 18);
   return d.toISOString().slice(0, 10);
 }
-
 export function RegisterForm({
   initialName,
   initialEmail,
@@ -150,8 +150,7 @@ export function RegisterForm({
         <section className="space-y-4 rounded-xl border border-hairline bg-white p-5 shadow-card">
           <h2 className="font-display text-sm font-semibold text-ink">Personal details</h2>
           <Field label="Full name">
-            <input
-              className={inputCls}
+            <Input
               autoFocus
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -159,8 +158,7 @@ export function RegisterForm({
             />
           </Field>
           <Field label="Email address" hint="For booking confirmations and invoices — not for sign-in.">
-            <input
-              className={inputCls}
+            <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -168,8 +166,7 @@ export function RegisterForm({
             />
           </Field>
           <Field label="Date of birth" hint="You must be 18 or over.">
-            <input
-              className={inputCls}
+            <Input
               type="date"
               max={maxDob()}
               value={dob}
@@ -183,8 +180,7 @@ export function RegisterForm({
         <section className="space-y-4 rounded-xl border border-hairline bg-white p-5 shadow-card">
           <h2 className="font-display text-sm font-semibold text-ink">Business &amp; coverage</h2>
           <Field label="Trading / business name">
-            <input
-              className={inputCls}
+            <Input
               autoFocus
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
@@ -192,8 +188,7 @@ export function RegisterForm({
             />
           </Field>
           <Field label="National Insurance number">
-            <input
-              className={inputCls}
+            <Input
               value={nino}
               onChange={(e) => setNino(e.target.value.toUpperCase().replace(/\s/g, ''))}
               placeholder="QQ123456C"
@@ -201,8 +196,7 @@ export function RegisterForm({
             />
           </Field>
           <Field label="UTR number (optional)" hint="You can add this later — required before your first payout.">
-            <input
-              className={inputCls}
+            <Input
               inputMode="numeric"
               value={utr}
               onChange={(e) => setUtr(e.target.value.replace(/\D/g, '').slice(0, 10))}
@@ -210,8 +204,7 @@ export function RegisterForm({
             />
           </Field>
           <Field label="Years of experience">
-            <input
-              className={inputCls}
+            <Input
               type="number"
               min={0}
               max={60}
@@ -220,8 +213,8 @@ export function RegisterForm({
             />
           </Field>
           <Field label="About you" hint={`${bio.length}/500 characters`}>
-            <textarea
-              className={`${inputCls} min-h-[96px] resize-y`}
+            <Textarea
+              className="min-h-[96px] resize-y"
               maxLength={500}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
@@ -229,8 +222,7 @@ export function RegisterForm({
             />
           </Field>
           <Field label="Operating postcode" hint="The centre of the area you cover.">
-            <input
-              className={inputCls}
+            <Input
               value={postcode}
               onChange={(e) => setPostcode(e.target.value.toUpperCase())}
               placeholder="SW1A 1AA"
@@ -240,18 +232,16 @@ export function RegisterForm({
           <Field label="Travel radius">
             <div className="flex flex-wrap gap-2">
               {RADIUS_OPTIONS.map((m) => (
-                <button
+                <Button
                   key={m}
                   type="button"
+                  size="sm"
+                  variant={radius === m ? 'primary' : 'outline'}
                   onClick={() => setRadius(m)}
-                  className={`tap rounded-full border px-4 py-2 text-sm font-medium transition ${
-                    radius === m
-                      ? 'border-accent bg-accent text-white'
-                      : 'border-input-border bg-white text-charcoal hover:border-ink'
-                  }`}
+                  className="rounded-full px-4"
                 >
                   {m} mi
-                </button>
+                </Button>
               ))}
             </div>
           </Field>
@@ -262,8 +252,7 @@ export function RegisterForm({
         <section className="space-y-4 rounded-xl border border-hairline bg-white p-5 shadow-card">
           <h2 className="font-display text-sm font-semibold text-ink">Bank payout details</h2>
           <Field label="Account holder name" hint="Must match your legal name.">
-            <input
-              className={inputCls}
+            <Input
               autoFocus
               value={holderName}
               onChange={(e) => setHolderName(e.target.value)}
@@ -271,8 +260,7 @@ export function RegisterForm({
             />
           </Field>
           <Field label="Sort code">
-            <input
-              className={inputCls}
+            <Input
               inputMode="numeric"
               value={sortCodeDisplay}
               onChange={(e) => setSortCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -281,8 +269,7 @@ export function RegisterForm({
             />
           </Field>
           <Field label="Account number">
-            <input
-              className={inputCls}
+            <Input
               inputMode="numeric"
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 8))}
@@ -297,53 +284,35 @@ export function RegisterForm({
 
       <div className="flex gap-3">
         {step > 0 && (
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="lg"
             onClick={() => { setErr(null); setStep((s) => (s - 1) as Step); }}
-            className="tap rounded-xl border border-input-border bg-white px-5 py-3 text-sm font-medium text-charcoal transition hover:border-ink"
           >
             Back
-          </button>
+          </Button>
         )}
         {step < 2 ? (
-          <button
+          <Button
             type="button"
+            size="lg"
             onClick={next}
-            className="tap flex-1 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent-hover"
+            className="flex-1 font-bold"
           >
             Continue
-          </button>
+          </Button>
         ) : (
-          <button
+          <Button
             type="submit"
+            size="lg"
             disabled={busy}
-            className="tap flex-1 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
+            className="flex-1 font-bold"
           >
             {busy ? 'Saving…' : 'Complete registration'}
-          </button>
+          </Button>
         )}
       </div>
     </form>
-  );
-}
-
-const inputCls =
-  'tap w-full rounded-xl border border-input-border bg-white px-3.5 py-2.5 text-sm text-charcoal placeholder:text-muted focus:border-ink focus:outline-none';
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-medium text-muted">{label}</label>
-      {children}
-      {hint && <p className="text-xs text-muted">{hint}</p>}
-    </div>
   );
 }

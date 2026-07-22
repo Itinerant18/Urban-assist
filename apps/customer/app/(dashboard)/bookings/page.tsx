@@ -59,7 +59,10 @@ export default async function BookingsList({ searchParams }: { searchParams: { t
 
   return (
     <div className="space-y-4 py-2">
-      <h1 className="font-display text-xl">Your bookings</h1>
+      <header>
+        <h1 className="font-display text-2xl font-bold text-ink">Your bookings</h1>
+        <p className="mt-1 text-sm text-muted">Track upcoming work and revisit past services.</p>
+      </header>
 
       <div className="flex gap-2">
         {(Object.keys(TABS) as Tab[]).map((t) => (

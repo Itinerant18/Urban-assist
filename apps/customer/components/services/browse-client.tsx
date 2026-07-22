@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
-import { Star, SlidersHorizontal } from 'lucide-react';
+import { Star, SlidersHorizontal, X } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 import { Card, Badge, Button, EmptyState } from '@urban-assist/ui';
 
@@ -90,10 +90,10 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
       {/* Title / Info Header */}
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-xl font-bold text-ink">
+          <h1 className="font-display text-2xl font-bold text-ink">
             {categoryName ? categoryName : 'All services'}
           </h1>
-          <p className="text-xs text-muted mt-0.5">
+          <p className="mt-1 text-sm text-muted">
             {filteredServices.length} Providers Found near you
           </p>
         </div>
@@ -351,10 +351,11 @@ export function BrowseClient({ initialServices, categoryName }: BrowseClientProp
           {/* Header */}
           <div className="flex items-center justify-between border-b border-hairline pb-4">
             <button
+              aria-label="Close filters"
               onClick={() => setShowFiltersMobile(false)}
-              className="text-sm font-semibold text-muted hover:text-ink"
+              className="tap inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-ink"
             >
-              ✕ Close
+              <X className="h-4 w-4" aria-hidden /> Close
             </button>
             <h2 className="font-display text-lg font-bold text-ink">Filters</h2>
             <button

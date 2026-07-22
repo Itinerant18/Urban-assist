@@ -15,7 +15,7 @@ import {
 } from '@urban-assist/ui';
 import { pence, ukDateTime } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { Banknote, Phone, MessageSquare, AlertOctagon } from 'lucide-react';
+import { Banknote, Phone, MessageSquare, AlertOctagon, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import type { ChatMessage } from '@urban-assist/types';
@@ -769,13 +769,14 @@ export function BookingDetail({
 
       {/* Desktop review card (Centered focused modal overlay) */}
       {booking.status === 'completed' && !reviewed && !dismissedReview && (
-        <div className="fixed inset-0 z-50 hidden lg:flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 hidden items-center justify-center bg-ink/40 p-4 backdrop-blur-sm lg:flex">
           <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl space-y-5 relative">
             <button
+              aria-label="Skip review for now"
               onClick={() => setDismissedReview(true)}
-              className="absolute right-4 top-4 text-xs font-semibold text-muted hover:text-ink cursor-pointer"
+              className="tap absolute right-4 top-4 inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-ink"
             >
-              ✕ Skip for now
+              <X className="h-4 w-4" aria-hidden /> Skip for now
             </button>
 
             <div className="space-y-1">

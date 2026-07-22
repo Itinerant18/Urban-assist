@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
+import { Button, Input } from '@urban-assist/ui';
 
 import { requireAdminPermission } from '../../../../lib/admin-auth';
 import {
@@ -159,30 +160,27 @@ export default async function CustomerDetailPage({
             <input type="hidden" name="customer_id" value={customer.id} />
             <label className="text-xs text-muted">
               Grant £
-              <input
+              <Input
                 name="amount"
                 type="number"
                 min="0.01"
                 step="0.01"
                 required
                 placeholder="10.00"
-                className="mt-1 w-24 rounded-xl border border-hairline bg-bg px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none"
+                className="mt-1 w-24"
               />
             </label>
             <label className="text-xs text-muted">
               Reason
-              <input
+              <Input
                 name="reason"
                 placeholder="Reason (optional)"
-                className="mt-1 rounded-xl border border-hairline bg-bg px-3 py-1.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                className="mt-1"
               />
             </label>
-            <button
-              type="submit"
-              className="rounded-xl bg-accent px-4 py-1.5 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
-            >
+            <Button type="submit" size="sm" className="font-semibold">
               Grant credit
-            </button>
+            </Button>
           </form>
         </div>
 

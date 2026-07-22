@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { getSupabaseBrowser } from '@urban-assist/db/browser';
 import { Settings2, ShieldCheck, UserPlus, X } from 'lucide-react';
+import { Button, Field as FormField, Input, Skeleton } from '@urban-assist/ui';
 
 const ROLE_OPTIONS = [
   { code: 'super_admin', label: 'Super admin', description: 'Full platform and access management.' },
@@ -126,7 +127,7 @@ export default function StaffRolesPage() {
     }
   }
 
-  if (loading) return <div className="py-12 text-center text-muted">Loading admin roles…</div>;
+  if (loading) return <Skeleton className="h-52 w-full rounded-2xl" />;
 
   if (!isSuperAdmin) {
     return (
@@ -145,9 +146,9 @@ export default function StaffRolesPage() {
           <h1 className="font-display text-2xl font-bold text-ink">Admin roles</h1>
           <p className="mt-1 text-sm text-muted">Assign explicit operational, finance, support, and read-only access.</p>
         </div>
-        <button className="btn-primary flex items-center gap-2" onClick={() => setShowInviteModal(true)}>
+        <Button onClick={() => setShowInviteModal(true)}>
           <UserPlus className="h-4 w-4" /> Invite admin
-        </button>
+        </Button>
       </header>
 
       <div className="overflow-x-auto rounded-xl border border-hairline bg-white shadow-sm">
@@ -176,9 +177,9 @@ export default function StaffRolesPage() {
                   </div>
                 </td>
                 <td className="px-5 py-4 text-right">
-                  <button className="btn-secondary inline-flex items-center gap-1.5" onClick={() => setEditingStaff(member)}>
+                  <Button variant="outline" size="sm" onClick={() => setEditingStaff(member)}>
                     <Settings2 className="h-3.5 w-3.5" /> Manage
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
@@ -194,9 +195,9 @@ export default function StaffRolesPage() {
             <Field label="Initial password" type="password" value={password} onChange={setPassword} />
             <RolePicker roles={inviteRoles} onToggle={toggleInviteRole} />
             {inviteError && <p className="text-xs text-danger">{inviteError}</p>}
-            <button type="submit" disabled={inviteBusy || inviteRoles.length === 0} className="btn-primary w-full disabled:opacity-50">
+            <Button type="submit" disabled={inviteBusy || inviteRoles.length === 0} size="block">
               {inviteBusy ? 'Inviting…' : 'Invite admin'}
-            </button>
+            </Button>
           </form>
         </Modal>
       )}
@@ -226,11 +227,11 @@ function Modal({ title, subtitle, onClose, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-2xl border border-hairline bg-bg p-6 shadow-2xl">
         <header className="mb-5 flex items-start justify-between gap-4">
           <div><h2 className="font-display text-lg font-bold text-ink">{title}</h2><p className="text-xs text-muted">{subtitle}</p></div>
-          <button aria-label="Close" onClick={onClose} className="tap rounded-full p-1.5 hover:bg-hairline/40"><X className="h-4 w-4" /></button>
+          <Button aria-label="Close" onClick={onClose} variant="ghost" size="sm" className="rounded-full px-3"><X className="h-4 w-4" /></Button>
         </header>
         {children}
       </div>
@@ -245,10 +246,9 @@ function Field({ label, type, value, onChange }: {
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="block text-xs font-semibold text-muted">
-      {label}
-      <input className="input mt-1 w-full" type={type} required value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
+    <FormField label={label}>
+      <Input type={type} required value={value} onChange={(event) => onChange(event.target.value)} />
+    </FormField>
   );
 }
 

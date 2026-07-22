@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Field, Input } from '@urban-assist/ui';
 
 type MfaState = {
   factorId: string;
@@ -86,23 +87,21 @@ export default function AdminLoginPage() {
         {!mfa ? (
           <form onSubmit={handlePassword} className="flex flex-col gap-4">
             <Field label="Email">
-              <input
+              <Input
                 type="email"
                 required
                 autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="input w-full"
               />
             </Field>
             <Field label="Password">
-              <input
+              <Input
                 type="password"
                 required
                 autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="input w-full"
               />
             </Field>
             <Submit loading={loading} label="Sign in" busyLabel="Signing in…" />
@@ -122,7 +121,7 @@ export default function AdminLoginPage() {
               </div>
             )}
             <Field label="Six-digit code">
-              <input
+              <Input
                 required
                 inputMode="numeric"
                 autoComplete="one-time-code"
@@ -130,7 +129,7 @@ export default function AdminLoginPage() {
                 maxLength={6}
                 value={code}
                 onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="input w-full text-center font-mono-utility text-lg tracking-[0.4em]"
+                className="text-center font-mono-utility text-lg tracking-[0.4em]"
               />
             </Field>
             <Submit loading={loading} label="Verify and continue" busyLabel="Verifying…" />
@@ -142,15 +141,6 @@ export default function AdminLoginPage() {
     </div>
   );
 }
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-      {label}
-      {children}
-    </label>
-  );
-}
-
 function Submit({
   loading,
   label,
@@ -161,12 +151,12 @@ function Submit({
   busyLabel: string;
 }) {
   return (
-    <button
+    <Button
       type="submit"
       disabled={loading}
-      className="tap rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+      className="font-semibold"
     >
       {loading ? busyLabel : label}
-    </button>
+    </Button>
   );
 }
