@@ -17,7 +17,9 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       if (!data.user || disposed) return;
 
       channel = sb
-        .channel('provider-notifications-bell')
+        // Unique per mount: reusing a fixed name can return a channel still
+        // tearing down from the previous mount, and .on() after subscribe() throws.
+        .channel(`provider-notifications-bell-${crypto.randomUUID()}`)
         .on(
           'postgres_changes',
           {

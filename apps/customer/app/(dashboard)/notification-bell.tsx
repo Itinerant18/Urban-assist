@@ -10,14 +10,17 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
 
   React.useEffect(() => {
     const sb = supabase();
-    let profileId: string;
+    let channel: ReturnType<typeof sb.channel> | null = null;
+    let disposed = false;
 
     sb.auth.getUser().then(({ data }: any) => {
-      if (!data.user) return;
-      profileId = data.user.id;
-      
-      sb
-        .channel('notifications-bell')
+      if (!data.user || disposed) return;
+      const profileId = data.user.id;
+
+      channel = sb
+        // Unique per mount: reusing a fixed name can return a channel still
+        // tearing down from the previous mount, and .on() after subscribe() throws.
+        .channel(`notifications-bell-${crypto.randomUUID()}`)
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'notifications', filter: `profile_id=eq.${profileId}` },
@@ -36,7 +39,8 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
     });
 
     return () => {
-      sb.removeAllChannels();
+      disposed = true;
+      if (channel) sb.removeChannel(channel);
     };
   }, []);
 
