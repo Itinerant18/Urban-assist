@@ -399,9 +399,13 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
                         <Textarea
                           placeholder="e.g. key box code, gate entry instructions, parking availability"
                           value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value)}
+                          onChange={(e) => field.onChange(e.target.value.slice(0, 500))}
                           rows={3}
+                          maxLength={500}
                         />
+                        <p className="mt-1 text-right text-xs text-muted">
+                          {(field.value || '').length}/500
+                        </p>
                       </Field>
                     )}
                   />

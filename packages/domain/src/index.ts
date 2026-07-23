@@ -8,6 +8,8 @@ export type { AnalyticsEvent } from './analytics';
 
 export { verifyProviderDocuments } from './providers';
 
+export { exportUserData, deleteUserAccount } from './account';
+
 export {
   createBooking,
   confirmCashPayment,

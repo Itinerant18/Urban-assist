@@ -99,6 +99,7 @@ export function AccountClient({
 
   // GDPR action states
   const [gdprProgress, setGdprProgress] = React.useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = React.useState(false);
 
   const [notifPrefs, setNotifPrefs] = React.useState<Record<string, boolean>>({
     ...NOTIF_DEFAULTS,
@@ -199,15 +200,64 @@ export function AccountClient({
     }
   }
 
+  async function handleAvatarUpload(file: File) {
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileError('Image too large (max 5 MB).');
+      return;
+    }
+    setAvatarBusy(true);
+    setProfileError(null);
+    try {
+      const sb = supabase();
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+      const { error: upErr } = await sb.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data } = sb.storage.from('avatars').getPublicUrl(path);
+      const { error } = await sb.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', user.id);
+      if (error) throw error;
+      setProfile({ ...profile, avatar_url: data.publicUrl });
+    } catch (err: any) {
+      setProfileError(err.message ?? 'Could not update photo.');
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
   async function triggerGdprExport() {
-    setGdprProgress('Preparing data export. You will receive an email shortly.');
-    setTimeout(() => setGdprProgress(null), 4000);
+    setGdprProgress('Preparing your data export…');
+    try {
+      const res = await fetch('/api/account/export', { method: 'POST' });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? 'Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'urban-assist-data.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      setGdprProgress('Your data has been downloaded.');
+    } catch (err: any) {
+      setGdprProgress(err.message ?? 'Export failed. Please try again.');
+    } finally {
+      setTimeout(() => setGdprProgress(null), 4000);
+    }
   }
 
   async function triggerGdprDeletion() {
-    if (confirm('Are you sure you want to request account deletion? This action is irreversible.')) {
-      setGdprProgress('Account deletion request submitted. Our compliance officer will contact you.');
-      setTimeout(() => setGdprProgress(null), 4000);
+    if (!confirm('Delete your account permanently? This cannot be undone.')) return;
+    setGdprProgress('Deleting your account…');
+    try {
+      const res = await fetch('/api/account/delete', { method: 'POST' });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? 'Deletion failed');
+      await supabase().auth.signOut();
+      window.location.href = '/login';
+    } catch (err: any) {
+      setGdprProgress(err.message ?? 'Deletion failed. Please try again.');
+      setTimeout(() => setGdprProgress(null), 6000);
     }
   }
 
@@ -231,6 +281,29 @@ export function AccountClient({
         <h3 className="font-display text-base font-bold text-ink flex items-center gap-2">
           <User className="h-5 w-5 text-muted" /> Profile Settings
         </h3>
+        <div className="flex items-center gap-4">
+          <div className="h-16 w-16 overflow-hidden rounded-full bg-accent/10 flex items-center justify-center text-xl font-bold text-accent">
+            {profile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              (fullName || 'U')[0].toUpperCase()
+            )}
+          </div>
+          <label className="cursor-pointer text-xs font-semibold text-accent hover:underline">
+            {avatarBusy ? 'Uploading…' : 'Change photo'}
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              disabled={avatarBusy}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleAvatarUpload(f);
+              }}
+            />
+          </label>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Full name">
             <Input required value={fullName} onChange={(e) => setFullName(e.target.value)} />

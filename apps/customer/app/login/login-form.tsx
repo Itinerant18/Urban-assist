@@ -41,7 +41,7 @@ export function LoginForm() {
   const [phase, setPhase] = React.useState<'enter' | 'otp'>('enter');
 
   // Phone components
-  const [selectedCountry, setSelectedCountry] = React.useState<Country>(COUNTRIES[1]); // Default to India as per wireframe +91
+  const [selectedCountry, setSelectedCountry] = React.useState<Country>(COUNTRIES[0]); // UK-first product
   const [phoneVal, setPhoneVal] = React.useState('');
   const [showReferralCode, setShowReferralCode] = React.useState(false);
   const [referralCode, setReferralCode] = React.useState('');

@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { readPublicEnv } from './env';
+import { authCookieName, readPublicEnv } from './env';
 
 export interface SessionMiddlewareOptions {
   isProtectedRoute: boolean;
@@ -25,10 +25,12 @@ export async function updateSupabaseSession(
 
   let response = NextResponse.next({ request: { headers: requestHeaders } });
   const { url, anon } = readPublicEnv();
+  const name = authCookieName();
   const db = createServerClient(
     url,
     anon,
     {
+      ...(name ? { cookieOptions: { name } } : {}),
       cookies: {
         getAll() {
           return request.cookies.getAll();

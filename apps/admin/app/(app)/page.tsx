@@ -97,7 +97,7 @@ export default async function AdminDashboardPage() {
     db.from('bookings').select('created_at').gte('created_at', todayStart.toISOString()),
     db
       .from('bookings')
-      .select('id, short_code, status, scheduled_start, customer:profiles!bookings_customer_id_fkey(full_name)')
+      .select('id, short_code, status, scheduled_at, customer:profiles!bookings_customer_id_fkey(full_name)')
       .in('status', ['pending_match', 'cancelled', 'disputed'])
       .order('created_at', { ascending: false })
       .limit(8),
