@@ -8,6 +8,7 @@ import type {
 } from '@urban-assist/types';
 import { pence as formatPence } from '@urban-assist/lib';
 import { Button } from '@urban-assist/ui';
+import { StatusChip, type StatusTone } from '@/components/bento';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -35,24 +36,14 @@ function releaseSummary(result: ProviderPayoutReleaseResult) {
 
 function StatusBadge({ provider }: { provider: ProviderPayoutSummary }) {
   const status = provider.release_status;
-  const labels = {
-    ready: 'Ready',
-    processing: 'Processing',
-    failed: 'Retry needed',
-    paid: 'Paid',
-  } as const;
-  const classes = {
-    ready: 'bg-accent/10 text-accent',
-    processing: 'bg-amber-50 text-amber-800',
-    failed: 'bg-red-50 text-red-700',
-    paid: 'bg-green-50 text-green-700',
-  } as const;
-
-  return (
-    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${classes[status]}`}>
-      {labels[status]}
-    </span>
-  );
+  const map: Record<typeof status, { label: string; tone: StatusTone }> = {
+    ready: { label: 'Ready', tone: 'accent' },
+    processing: { label: 'Processing', tone: 'pending' },
+    failed: { label: 'Retry needed', tone: 'danger' },
+    paid: { label: 'Paid', tone: 'success' },
+  };
+  const { label, tone } = map[status];
+  return <StatusChip tone={tone}>{label}</StatusChip>;
 }
 
 export function FinancialsClient({ dashboard }: FinancialsProps) {
@@ -138,29 +129,29 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
       value: metrics.provider_payable_pence,
       detail: 'Completed and settled service value',
       icon: WalletCards,
-      iconClass: 'bg-green-50 text-green-700',
+      iconClass: 'bg-success/12 text-success',
     },
     {
       label: 'Platform fee revenue',
       value: metrics.platform_revenue_pence,
       detail: 'Captured less provider net and VAT',
       icon: Landmark,
-      iconClass: 'bg-sky-50 text-sky-700',
+      iconClass: 'bg-ink/8 text-ink',
     },
     {
       label: 'VAT collected',
       value: metrics.vat_collected_pence,
       detail: 'Tax recorded on successful payments',
       icon: ReceiptText,
-      iconClass: 'bg-amber-50 text-amber-800',
+      iconClass: 'bg-amber/15 text-amber',
     },
   ];
 
   const payoutStates = [
     { label: 'Pending / ready', value: metrics.pending_pence, icon: WalletCards, className: 'text-accent' },
-    { label: 'Processing', value: metrics.processing_pence, icon: Clock3, className: 'text-amber-700' },
-    { label: 'Paid', value: metrics.paid_pence, icon: CheckCircle2, className: 'text-green-700' },
-    { label: 'Failed', value: metrics.failed_pence, icon: ShieldAlert, className: 'text-red-700' },
+    { label: 'Processing', value: metrics.processing_pence, icon: Clock3, className: 'text-amber' },
+    { label: 'Paid', value: metrics.paid_pence, icon: CheckCircle2, className: 'text-success' },
+    { label: 'Failed', value: metrics.failed_pence, icon: ShieldAlert, className: 'text-danger' },
   ];
 
   return (
@@ -186,14 +177,14 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
           aria-live="polite"
           className={`flex items-start gap-2.5 rounded-xl border p-4 text-sm font-medium ${
             message.type === 'success'
-              ? 'border-green-200 bg-green-50 text-green-800'
-              : 'border-red-200 bg-red-50 text-red-800'
+              ? 'border-success/30 bg-success/10 text-success'
+              : 'border-danger/30 bg-danger/10 text-danger'
           }`}
         >
           {message.type === 'success' ? (
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-600" aria-hidden="true" />
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden="true" />
           ) : (
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-danger" aria-hidden="true" />
           )}
           <span>{message.text}</span>
         </div>
@@ -201,13 +192,13 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metricCards.map(({ label, value, detail, icon: Icon, iconClass }) => (
-          <div key={label} className="card flex min-w-0 items-start gap-4 border border-hairline bg-white p-5 shadow-sm">
+          <div key={label} className="card flex min-w-0 items-start gap-4 p-5 shadow-card">
             <div className={`shrink-0 rounded-lg p-2.5 ${iconClass}`}>
               <Icon className="h-5 w-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <p className="font-mono-utility text-xs font-semibold text-muted">{label}</p>
-              <p className="mt-1 text-2xl font-bold text-ink">{formatPence(value)}</p>
+              <p className="text-xs font-semibold text-muted">{label}</p>
+              <p className="mt-1 font-mono text-2xl font-bold text-ink">{formatPence(value)}</p>
               <p className="mt-1 text-xs leading-5 text-muted">{detail}</p>
             </div>
           </div>
@@ -220,7 +211,7 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
             <Icon className={`h-4 w-4 shrink-0 ${className}`} aria-hidden="true" />
             <div className="min-w-0">
               <p className="text-xs text-muted">{label}</p>
-              <p className="truncate text-sm font-bold text-ink">{formatPence(value)}</p>
+              <p className="truncate font-mono text-base font-bold text-ink">{formatPence(value)}</p>
             </div>
           </div>
         ))}
@@ -252,53 +243,53 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
           </div>
         ) : (
           <>
-            <div className="hidden overflow-hidden rounded-xl border border-hairline bg-white shadow-sm md:block">
-              <table className="w-full border-collapse text-left">
+            <div className="hidden overflow-x-auto rounded-2xl border border-hairline bg-white shadow-card md:block">
+              <table className="w-full min-w-[820px] border-collapse text-left">
                 <thead>
                   <tr className="border-b border-hairline bg-bg/40 font-mono-utility text-xs font-bold text-muted">
-                    <th className="px-5 py-4">Provider</th>
-                    <th className="px-5 py-4">Connect account</th>
-                    <th className="px-5 py-4">Releasable</th>
-                    <th className="px-5 py-4">Processing</th>
-                    <th className="px-5 py-4">Paid</th>
-                    <th className="px-5 py-4">State</th>
-                    <th className="px-5 py-4 text-right">Action</th>
+                    <th className="px-5 py-3">Provider</th>
+                    <th className="px-5 py-3">Connect account</th>
+                    <th className="px-5 py-3 text-right">Releasable</th>
+                    <th className="px-5 py-3 text-right">Processing</th>
+                    <th className="px-5 py-3 text-right">Paid</th>
+                    <th className="px-5 py-3">State</th>
+                    <th className="px-5 py-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-hairline text-sm">
                   {providers.map((provider) => (
                     <tr key={provider.provider_id} className="hover:bg-bg/10">
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         <p className="font-semibold text-ink">{provider.full_name}</p>
                         <p className="mt-0.5 text-xs text-muted">
                           {provider.eligible_booking_count} settled job
                           {provider.eligible_booking_count === 1 ? '' : 's'}
                         </p>
                       </td>
-                      <td className="px-5 py-4 font-mono text-xs text-muted">
+                      <td className="max-w-[180px] truncate px-5 py-3 font-mono text-xs text-muted">
                         {provider.stripe_account_id ?? (
-                          <span className="font-sans font-medium text-red-600">Not connected</span>
+                          <span className="font-sans font-medium text-danger">Not connected</span>
                         )}
                       </td>
-                      <td className="px-5 py-4 font-bold text-ink">
+                      <td className="px-5 py-3 text-right font-mono font-bold text-ink">
                         {formatPence(provider.releasable_pence)}
                         {provider.failed_pence > 0 && (
-                          <p className="mt-0.5 text-xs font-medium text-red-600">
+                          <p className="mt-0.5 text-xs font-medium text-danger">
                             {formatPence(provider.failed_pence)} retryable
                           </p>
                         )}
                       </td>
-                      <td className="px-5 py-4 text-ink">{formatPence(provider.processing_pence)}</td>
-                      <td className="px-5 py-4 text-ink">{formatPence(provider.paid_pence)}</td>
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3 text-right font-mono text-ink">{formatPence(provider.processing_pence)}</td>
+                      <td className="px-5 py-3 text-right font-mono text-ink">{formatPence(provider.paid_pence)}</td>
+                      <td className="px-5 py-3">
                         <StatusBadge provider={provider} />
                         {provider.last_failure_reason && (
-                          <p className="mt-1 max-w-48 truncate text-xs text-red-600" title={provider.last_failure_reason}>
+                          <p className="mt-1 max-w-48 truncate text-xs text-danger" title={provider.last_failure_reason}>
                             {provider.last_failure_reason}
                           </p>
                         )}
                       </td>
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-5 py-3 text-right">
                         <Button
                           onClick={() => handlePay(provider.provider_id)}
                           disabled={
@@ -335,23 +326,23 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
                   <dl className="grid grid-cols-3 gap-3 border-y border-hairline py-3">
                     <div>
                       <dt className="text-xs text-muted">Releasable</dt>
-                      <dd className="mt-1 text-sm font-bold text-ink">{formatPence(provider.releasable_pence)}</dd>
+                      <dd className="mt-1 font-mono text-sm font-bold text-ink">{formatPence(provider.releasable_pence)}</dd>
                     </div>
                     <div>
                       <dt className="text-xs text-muted">Processing</dt>
-                      <dd className="mt-1 text-sm font-bold text-ink">{formatPence(provider.processing_pence)}</dd>
+                      <dd className="mt-1 font-mono text-sm font-bold text-ink">{formatPence(provider.processing_pence)}</dd>
                     </div>
                     <div>
                       <dt className="text-xs text-muted">Paid</dt>
-                      <dd className="mt-1 text-sm font-bold text-ink">{formatPence(provider.paid_pence)}</dd>
+                      <dd className="mt-1 font-mono text-sm font-bold text-ink">{formatPence(provider.paid_pence)}</dd>
                     </div>
                   </dl>
 
                   {!provider.stripe_account_id && (
-                    <p className="text-xs font-medium text-red-600">Stripe Connect account required before release.</p>
+                    <p className="text-xs font-medium text-danger">Stripe Connect account required before release.</p>
                   )}
                   {provider.last_failure_reason && (
-                    <p className="text-xs text-red-600">Last failure: {provider.last_failure_reason}</p>
+                    <p className="text-xs text-danger">Last failure: {provider.last_failure_reason}</p>
                   )}
                   <Button
                     onClick={() => handlePay(provider.provider_id)}

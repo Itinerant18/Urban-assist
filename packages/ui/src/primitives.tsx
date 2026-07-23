@@ -126,12 +126,14 @@ export function Field({
 
 // --- Card --------------------------------------------------------------
 export function Card({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('card', className)} {...p} />;
+  // Default padding + elevation so bare <Card> never renders content flush to
+  // its border. cn() = tailwind-merge, so any p-*/shadow-* a caller passes wins.
+  return <div className={cn('card p-5 shadow-card', className)} {...p} />;
 }
 
 // --- Badge -------------------------------------------------------------
 const badgeStyles = cva(
-  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
+  'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium',
   {
     variants: {
       tone: {

@@ -73,7 +73,7 @@ export function Dashboard({
       <header className="flex items-center justify-between">
         <div>
           <p className="font-mono-utility text-muted">Today</p>
-          <h1 className="font-display text-xl">{greet()}</h1>
+          <h1 className="font-display text-2xl font-bold text-ink">{greet()}</h1>
         </div>
         <button
           onClick={toggleOnline}

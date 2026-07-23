@@ -403,7 +403,7 @@ export function BookingDetail({
     <div className="space-y-4 py-2">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-xl">{booking.category?.name ?? 'Booking'}</h1>
+          <h1 className="font-display text-2xl font-bold text-ink">{booking.category?.name ?? 'Booking'}</h1>
           <p className="font-mono-utility text-muted">#{booking.short_code}</p>
         </div>
         <Badge tone={tone(booking.status)}>{booking.status.replace(/_/g, ' ')}</Badge>

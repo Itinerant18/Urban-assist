@@ -234,7 +234,7 @@ export default function AccountPage() {
     <div className="space-y-5 py-2">
       <header>
         <p className="font-mono-utility text-muted">Settings</p>
-        <h1 className="font-display text-xl">Account</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">Account</h1>
       </header>
 
       {/* Edit Profile details card */}

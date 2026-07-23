@@ -127,7 +127,7 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
   if (!conversations.length) {
     return (
       <div className="space-y-4 py-2">
-        <h1 className="font-display text-xl">Messages</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">Messages</h1>
         <EmptyState
           title="No conversations yet"
           description="Once a provider is matched to your booking, you'll be able to chat with them here."
@@ -145,7 +145,7 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
         {!selected ? (
           /* Mobile List View */
           <div className="flex flex-col h-full space-y-3">
-            <h1 className="font-display text-xl font-bold text-ink">Messages</h1>
+            <h1 className="font-display text-2xl font-bold text-ink">Messages</h1>
             <input
               className="tap w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none"
               placeholder="Search chats..."
@@ -262,7 +262,7 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
       <div className="hidden lg:grid lg:h-full lg:grid-cols-[320px_1fr] lg:gap-4">
         {/* Left: conversation list */}
         <div className="flex min-h-0 flex-col space-y-3">
-          <h1 className="font-display text-xl font-bold text-ink">Messages</h1>
+          <h1 className="font-display text-2xl font-bold text-ink">Messages</h1>
           <input
             className="tap w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm focus:border-ink focus:outline-none"
             placeholder="Search chats..."

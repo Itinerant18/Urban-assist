@@ -151,7 +151,7 @@ export default function EarningsPage() {
       <div className="flex-1 space-y-6 py-2 overflow-y-auto px-4 md:px-0">
         <header className="flex items-center justify-between no-print">
           <div>
-            <h1 className="font-display text-xl uppercase font-bold text-ink tracking-tight">Earnings & Payouts</h1>
+            <h1 className="font-display text-2xl uppercase font-bold text-ink tracking-tight">Earnings & Payouts</h1>
           </div>
           <button onClick={() => window.print()} className="hidden md:flex items-center gap-1 text-xs text-muted hover:text-ink">
             <Printer className="h-4 w-4" /> Print
@@ -163,7 +163,7 @@ export default function EarningsPage() {
           <div className="space-y-4 md:space-y-0 md:flex md:gap-12">
             <div>
               <p className="text-xs font-bold text-muted uppercase tracking-wider">Available Balance</p>
-              <div className="font-display text-4xl mt-1 text-ink">{pence(balancePending)}</div>
+              <div className="font-display text-4xl font-bold mt-1 text-ink">{pence(balancePending)}</div>
             </div>
           </div>
           

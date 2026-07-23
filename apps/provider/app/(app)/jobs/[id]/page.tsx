@@ -574,7 +574,7 @@ export default function JobDetailPage() {
           {/* Header */}
           <div className="hidden lg:flex justify-between items-start">
             <div>
-              <h1 className="font-display text-lg font-bold text-ink">{booking.category?.name}</h1>
+              <h1 className="font-display text-2xl font-bold text-ink">{booking.category?.name}</h1>
               <p className="font-mono-utility text-xs text-muted">#{booking.short_code}</p>
             </div>
             <Badge tone={booking.status === 'completed' ? 'success' : 'accent'}>
@@ -791,7 +791,7 @@ export default function JobDetailPage() {
                     }`}
                   >
                     <span>{m.content}</span>
-                    <span className="text-[7px] text-muted self-end mt-0.5">
+                    <span className="text-[10px] text-muted self-end mt-0.5">
                       {new Date(m.created_at).toLocaleTimeString('en-GB', {
                         hour: '2-digit',
                         minute: '2-digit',

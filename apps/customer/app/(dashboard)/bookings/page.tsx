@@ -102,7 +102,7 @@ export default async function BookingsList({ searchParams }: { searchParams: { t
                   <div className="mt-1 font-mono-utility text-muted">#{b.short_code}</div>
                 </Link>
                 <div className="flex flex-col items-end gap-2">
-                  <div className="font-display text-lg">{pence(b.total_pence)}</div>
+                  <div className="font-display text-lg font-bold text-ink">{pence(b.total_pence)}</div>
                   {tab === 'completed' && (
                     <div className="flex gap-2">
                       {!reviewedIds.has(b.id) && (
