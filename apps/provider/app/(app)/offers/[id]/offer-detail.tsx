@@ -24,10 +24,12 @@ export function OfferDetail({
   offer,
   providerLoc,
   commissionBps,
+  trainingGate = null,
 }: {
   offer: any;
   providerLoc: { lat: number; lng: number } | null;
   commissionBps: number;
+  trainingGate?: { message: string; href: string } | null;
 }) {
   const router = useRouter();
   const b = offer.booking ?? {};
@@ -278,18 +280,35 @@ export function OfferDetail({
               </p>
             </div>
           ) : (
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1 py-4"
-                onClick={() => setDeclining(true)}
-                disabled={!!busy}
-              >
-                Decline
-              </Button>
-              <Button className="flex-1 py-4" onClick={() => respond(true)} disabled={!!busy}>
-                {busy === 'accept' ? 'Accepting…' : 'Accept job'}
-              </Button>
+            <div className="space-y-3">
+              {trainingGate && (
+                <div className="rounded-xl border border-danger/30 bg-danger/5 px-3 py-2.5 text-xs text-ink">
+                  <p className="font-semibold">{trainingGate.message}</p>
+                  <Link
+                    href={trainingGate.href}
+                    className="mt-1 inline-block font-semibold text-accent underline"
+                  >
+                    Open training
+                  </Link>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 py-4"
+                  onClick={() => setDeclining(true)}
+                  disabled={!!busy}
+                >
+                  Decline
+                </Button>
+                <Button
+                  className="flex-1 py-4"
+                  onClick={() => respond(true)}
+                  disabled={!!busy || Boolean(trainingGate)}
+                >
+                  {busy === 'accept' ? 'Accepting…' : 'Accept job'}
+                </Button>
+              </div>
             </div>
           )}
         </div>

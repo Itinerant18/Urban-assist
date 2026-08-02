@@ -51,7 +51,7 @@ export default async function CategoryPage({ params }: { params: { category: str
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-page px-4 pb-16 pt-6 lg:px-6">
+      <main className="mx-auto max-w-page px-4 pb-28 pt-6 lg:px-6">
         <div className="flex items-center gap-2 text-xs text-muted mb-4 font-medium">
           <Link href="/" className="hover:text-ink transition">Home</Link>
           <span>{'>'}</span>

@@ -1,5 +1,5 @@
 'use client';
-import { MapPin, ChevronDown, Grid3X3, Star, ArrowRight, Gift, Home, CalendarClock, User, ChevronUp, ShoppingCart } from 'lucide-react';
+import { MapPin, ChevronDown, Grid3X3, Star, ArrowRight, Gift, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import type { HomepageData, HomepageCategory, HomepageService, HomepageReview } from '../lib/homepage-data';
@@ -7,40 +7,12 @@ import { Logo } from '@urban-assist/ui';
 import { getCategoryIcon } from '../lib/homepage-data';
 import { pence } from '@urban-assist/lib';
 import { PostcodeGate } from './postcode-gate';
+import { GuestBottomNav, PwaInstallCue } from './customer-bottom-nav';
 
 /* ── Props ──────────────────────────────────────────────── */
 
 interface MobileHomeProps {
   data: HomepageData;
-}
-
-/* ── Sticky Bottom Nav ─────────────────────────────────── */
-
-function BottomNav() {
-  return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
-      <ul className="mx-auto flex max-w-lg items-center justify-around py-1.5">
-        {[
-          { icon: Home, label: 'Home', href: '/', active: true },
-          { icon: CalendarClock, label: 'Bookings', href: '/bookings' },
-          { icon: ShoppingCart, label: 'Cart', href: '/cart' },
-          { icon: User, label: 'Menu', href: '/account' },
-        ].map((item) => (
-          <li key={item.label}>
-            <Link
-              href={item.href}
-              className="flex flex-col items-center gap-0.5 px-4 py-1"
-            >
-              <item.icon className={`h-5 w-5 ${item.active ? 'text-accent' : 'text-muted'}`} />
-              <span className={`text-[10px] font-semibold ${item.active ? 'text-accent' : 'text-muted'}`}>
-                {item.label}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  );
 }
 
 /* ── Mobile Header ─────────────────────────────────────── */
@@ -573,7 +545,7 @@ function MobileFooter() {
   };
 
   return (
-    <footer className="lg:hidden pb-20" style={{ background: '#1F3A4D' }}>
+    <footer className="lg:hidden pb-40" style={{ background: '#1F3A4D' }}>
       <div className="px-4 py-8">
         <div className="mb-6 flex items-center gap-2.5">
           <Logo inverted />
@@ -648,7 +620,8 @@ export function MobileHome({ data }: MobileHomeProps) {
       <MobileTestimonials reviews={reviews} />
       <ReferralCard />
       <MobileFooter />
-      <BottomNav />
+      <PwaInstallCue />
+      <GuestBottomNav active="home" />
     </>
   );
 }

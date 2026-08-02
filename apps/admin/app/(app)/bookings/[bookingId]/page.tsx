@@ -31,11 +31,18 @@ export default async function BookingDetailPage({
     .single();
   if (error || !booking) notFound();
 
-  const [customerRes, providerRes, addressRes, categoryRes, paymentsRes, statusLogsRes] =
+  const [customerRes, providerRes, preferredRes, addressRes, categoryRes, paymentsRes, statusLogsRes] =
     await Promise.all([
       db.from('profiles').select('id, full_name, email, phone, created_at').eq('id', booking.customer_id).single(),
       booking.provider_id
         ? db.from('profiles').select('id, full_name, email, phone, rating_avg').eq('id', booking.provider_id).single()
+        : Promise.resolve({ data: null }),
+      booking.preferred_provider_id
+        ? db
+            .from('profiles')
+            .select('id, full_name, email, rating_avg')
+            .eq('id', booking.preferred_provider_id)
+            .single()
         : Promise.resolve({ data: null }),
       db.from('addresses').select('*').eq('id', booking.address_id).single(),
       db.from('service_categories').select('*').eq('id', booking.category_id).single(),
@@ -50,6 +57,13 @@ export default async function BookingDetailPage({
   const canAssign = !['completed', 'in_progress'].includes(booking.status);
   const payment = paymentsRes.data?.[0] as any;
   const address = addressRes.data;
+  const preferenceOutcome = !booking.preferred_provider_id
+    ? null
+    : !booking.provider_id
+      ? 'pending'
+      : booking.provider_id === booking.preferred_provider_id
+        ? 'honored'
+        : 'overridden';
 
   return (
     <div>
@@ -119,6 +133,27 @@ export default async function BookingDetailPage({
           </div>
         </BentoTile>
 
+        <BentoTile static className="col-span-2 md:col-span-6 lg:col-span-4 !justify-start">
+          <SectionHeader title="Customer preference" />
+          {preferredRes.data ? (
+            <div className="space-y-1">
+              <p className="font-semibold text-ink text-sm">
+                {preferredRes.data.full_name ?? preferredRes.data.email}
+              </p>
+              <p className="text-xs text-muted">
+                Soft signal only — assign them when available, or override with a reason.
+              </p>
+              {preferenceOutcome ? (
+                <p className="text-xs font-medium capitalize text-ink">
+                  Outcome: {preferenceOutcome}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-sm text-muted">No preferred professional on this booking.</p>
+          )}
+        </BentoTile>
+
         <BentoTile static className="col-span-2 md:col-span-3 lg:col-span-6 !justify-start">
           <SectionHeader title="Location" />
           <p className="text-sm text-ink font-medium">
@@ -179,6 +214,9 @@ export default async function BookingDetailPage({
                   <span className="capitalize">{event.from_status ?? 'created'}</span> →{' '}
                   <span className="font-medium text-ink capitalize">{event.to_status}</span>
                   {event.strategy ? ` · ${event.strategy}` : ''}
+                  {event.context?.preference_outcome
+                    ? ` · preference ${event.context.preference_outcome}`
+                    : ''}
                   {event.reason ? ` (${event.reason})` : ''}
                 </p>
               </div>

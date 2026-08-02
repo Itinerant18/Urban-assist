@@ -45,9 +45,16 @@ const pct = (n: number | null) => (n === null ? '—' : `${Math.round(n * 100)}%
 export function PerformanceView({
   stats,
   reviews,
+  training,
 }: {
   stats: PerformanceStats;
   reviews: any[];
+  training?: {
+    mandatoryCompleted: number;
+    mandatoryTotal: number;
+    completionLabel: string;
+    gatedIncomplete: number;
+  } | null;
 }) {
   const alerts = ALERTS.filter((a) => {
     const value = stats[a.key] as number | null;
@@ -80,6 +87,43 @@ export function PerformanceView({
             </Card>
           ))}
         </div>
+      )}
+
+      {training && training.mandatoryTotal > 0 && (
+        <Card className="!p-4 bg-white">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+                Training
+              </p>
+              <p className="text-sm font-semibold text-ink">{training.completionLabel}</p>
+              {training.gatedIncomplete > 0 ? (
+                <p className="text-xs text-muted">
+                  {training.gatedIncomplete} categor
+                  {training.gatedIncomplete === 1 ? 'y needs' : 'ies need'} gating modules before
+                  full eligibility.
+                </p>
+              ) : (
+                <p className="text-xs text-muted">Required modules for your services.</p>
+              )}
+            </div>
+            <Link href="/training" className="tap text-xs font-semibold text-accent underline">
+              Open
+            </Link>
+          </div>
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-hairline">
+            <div
+              className="h-full rounded-full bg-success"
+              style={{
+                width: `${
+                  training.mandatoryTotal === 0
+                    ? 0
+                    : (training.mandatoryCompleted / training.mandatoryTotal) * 100
+                }%`,
+              }}
+            />
+          </div>
+        </Card>
       )}
 
       {/* Headline rating */}

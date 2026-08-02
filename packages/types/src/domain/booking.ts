@@ -25,6 +25,8 @@ export interface Booking {
   payment_method: 'card' | 'cash';
   promo_code_id: string | null;
   notes: string | null;
+  /** Soft dispatch signal; never a hard assignment guarantee. */
+  preferred_provider_id?: string | null;
   completion_report: string | null;
   created_at: string;
   matched_at: string | null;

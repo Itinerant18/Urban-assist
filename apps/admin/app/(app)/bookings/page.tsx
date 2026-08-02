@@ -50,6 +50,12 @@ export default async function BookingsPage({
             </Link>
             <Link
               className="rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-ink hover:bg-bg transition-colors"
+              href={filters.withPreference ? '/bookings' : '/bookings?preferred=1'}
+            >
+              {filters.withPreference ? 'Clear preference filter' : 'With preference'}
+            </Link>
+            <Link
+              className="rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-ink hover:bg-bg transition-colors"
               href={'/api/bookings/export?' + exportParams.toString()}
             >
               Export CSV
@@ -132,6 +138,7 @@ export default async function BookingsPage({
             </Select>
           </label>
           {filters.unassigned && <input type="hidden" name="unassigned" value="1" />}
+          {filters.withPreference && <input type="hidden" name="preferred" value="1" />}
           <div className="flex items-end gap-2">
             <Button type="submit" className="font-semibold">
               Apply filters
@@ -160,11 +167,24 @@ export default async function BookingsPage({
                     <p className="font-mono-utility text-xs text-muted">{b.short_code ?? b.id.slice(0, 8)}</p>
                     <p className="mt-1 text-sm font-semibold text-ink">{b.category_name ?? 'Uncategorised'}</p>
                   </div>
-                  <StatusChip tone={statusToneFrom(b.status)}>{b.status.replaceAll('_', ' ')}</StatusChip>
+                  <div className="flex flex-col items-end gap-1">
+                    <StatusChip tone={statusToneFrom(b.status)}>{b.status.replaceAll('_', ' ')}</StatusChip>
+                    {b.preferred_provider_id ? (
+                      <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                        Pref · {b.preference_outcome}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
                 <dl className="grid grid-cols-2 gap-2 text-xs">
                   <div><dt className="text-muted">Customer</dt><dd className="mt-0.5 truncate text-ink">{b.customer_name ?? b.customer_email ?? 'Unknown'}</dd></div>
                   <div><dt className="text-muted">Provider</dt><dd className="mt-0.5 truncate text-ink">{b.provider_name ?? 'Unassigned'}</dd></div>
+                  {b.preferred_name ? (
+                    <div className="col-span-2">
+                      <dt className="text-muted">Preferred</dt>
+                      <dd className="mt-0.5 truncate text-ink">{b.preferred_name}</dd>
+                    </div>
+                  ) : null}
                   <div><dt className="text-muted">Schedule</dt><dd className="mt-0.5 text-ink">{new Date(b.scheduled_at).toLocaleString()}</dd></div>
                   <div><dt className="text-muted">Total</dt><dd className="mt-0.5 font-mono-utility text-ink">£{((b.total_pence ?? 0) / 100).toFixed(2)}</dd></div>
                 </dl>
@@ -194,6 +214,11 @@ export default async function BookingsPage({
                   <StatusChip tone={statusToneFrom(b.status)}>
                     {b.status.replaceAll('_', ' ')}
                   </StatusChip>
+                  {b.preferred_provider_id ? (
+                    <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                      Pref · {b.preference_outcome}
+                    </span>
+                  ) : null}
                   <span className="text-xs font-mono text-ink">
                     £{((b.total_pence ?? 0) / 100).toFixed(2)}
                   </span>
@@ -205,6 +230,7 @@ export default async function BookingsPage({
                 <p className="mt-0.5 truncate text-xs text-muted">
                   {b.customer_name ?? b.customer_email ?? 'Unknown customer'} ·{' '}
                   {b.provider_name ?? 'Unassigned'}
+                  {b.preferred_name ? ` · prefers ${b.preferred_name}` : ''}
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">

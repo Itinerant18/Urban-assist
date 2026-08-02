@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { FileCheck2 } from 'lucide-react';
+import { FileCheck2, GraduationCap } from 'lucide-react';
 
 import { getAdminProviderDetail } from '../../../../lib/admin-providers';
 import { ProviderOperations } from './provider-operations';
@@ -56,6 +56,13 @@ export default async function ProviderDetailPage({ params }: { params: { provide
             <StatusChip tone={statusToneFrom(profile.kyc_status)}>
               KYC: {profile.kyc_status}
             </StatusChip>
+            <Link
+              href={`/providers/${profile.id}/training`}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-hairline bg-white px-3 py-2 text-xs font-medium text-ink hover:bg-bg transition-colors"
+            >
+              <GraduationCap className="h-4 w-4 text-muted" aria-hidden />
+              Training
+            </Link>
             <Link
               href={`/kyc/${profile.id}`}
               className="inline-flex items-center gap-1.5 rounded-xl border border-hairline bg-white px-3 py-2 text-xs font-medium text-ink hover:bg-bg transition-colors"

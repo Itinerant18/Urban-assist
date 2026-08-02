@@ -1,41 +1,81 @@
 import { redirect } from 'next/navigation';
-import { getSupabaseServer } from '@urban-assist/db/server';
+import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
+import { summarizeTraining } from '@urban-assist/domain';
 import { TrainingList } from './training-list';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TrainingPage() {
   const db = getSupabaseServer();
-  const { data: { user } } = await db.auth.getUser();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
   if (!user) redirect('/login');
 
-  const [{ data: items }, { data: done }, { data: mine }] = await Promise.all([
-    db
-      .from('training_items')
-      .select('id, category_id, title, description, content_url, kind, is_mandatory, sort_order, category:service_categories(name)')
-      .eq('is_active', true)
-      .order('sort_order'),
-    db
-      .from('provider_training_completions')
-      .select('item_id, completed_at')
-      .eq('provider_id', user.id),
-    db.from('provider_services').select('category_id').eq('provider_id', user.id),
-  ]);
+  // Soft-refresh eligibility so new gating modules appear without waiting for a toggle.
+  try {
+    const admin = createServiceRole();
+    await admin.rpc('refresh_provider_training_eligibility', { p_provider_id: user.id });
+  } catch {
+    // Local DB may not have migration yet; list still works.
+  }
 
-  // Only show category-specific training for categories this provider actually works
-  // in; everything with a null category applies to everyone.
-  const myCategories = new Set((mine ?? []).map((s: any) => s.category_id));
+  const [{ data: items }, { data: done }, { data: mine }, { data: eligibility }] =
+    await Promise.all([
+      db
+        .from('training_items')
+        .select(
+          'id, category_id, title, description, content_url, kind, is_mandatory, gates_category, pass_score, estimated_mins, sort_order, category:service_categories(name)',
+        )
+        .eq('is_active', true)
+        .order('sort_order'),
+      db
+        .from('provider_training_completions')
+        .select('item_id, completed_at, score, source')
+        .eq('provider_id', user.id),
+      db.from('provider_services').select('category_id').eq('provider_id', user.id),
+      db
+        .from('provider_category_eligibility')
+        .select('category_id, required_modules, completed_modules, is_eligible')
+        .eq('provider_id', user.id),
+    ]);
+
+  const myCategories = new Set((mine ?? []).map((s: { category_id: string }) => s.category_id));
   const relevant = (items ?? []).filter(
-    (i: any) => !i.category_id || myCategories.has(i.category_id),
+    (i: { category_id: string | null }) => !i.category_id || myCategories.has(i.category_id),
   );
 
   const completedAt = new Map(
-    (done ?? []).map((d: any) => [d.item_id, d.completed_at as string]),
+    (done ?? []).map((d: { item_id: string; completed_at: string }) => [
+      d.item_id,
+      d.completed_at,
+    ]),
+  );
+
+  const summary = summarizeTraining(
+    relevant.map((i: any) => ({
+      id: i.id,
+      category_id: i.category_id,
+      is_mandatory: i.is_mandatory,
+      gates_category: i.gates_category,
+    })),
+    (done ?? []).map((d: any) => ({ item_id: d.item_id })),
+    eligibility ?? [],
+    myCategories,
   );
 
   return (
     <TrainingList
-      items={relevant.map((i: any) => ({ ...i, completed_at: completedAt.get(i.id) ?? null }))}
+      summary={{
+        mandatoryCompleted: summary.mandatoryCompleted,
+        mandatoryTotal: summary.mandatoryTotal,
+        gatedCategoriesIncomplete: summary.gatedCategoriesIncomplete,
+      }}
+      items={relevant.map((i: any) => ({
+        ...i,
+        category: Array.isArray(i.category) ? i.category[0] : i.category,
+        completed_at: completedAt.get(i.id) ?? null,
+      }))}
     />
   );
 }

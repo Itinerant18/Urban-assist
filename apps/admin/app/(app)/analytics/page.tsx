@@ -1,6 +1,7 @@
-import { BarChart3, PoundSterling, TrendingUp, Users, Star } from 'lucide-react';
+import { BarChart3, PoundSterling, TrendingUp, Users, Star, HeartHandshake } from 'lucide-react';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
+import { getPreferenceMetrics } from '../../../lib/admin-bookings';
 import { BentoGrid, StatTile, PageHeader, SectionHeader } from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +31,10 @@ type Analytics = {
 
 export default async function AnalyticsPage() {
   const { db } = await requireAdminPermission('can_view_audit_log');
-  const { data } = await (db as any).rpc('get_admin_analytics');
+  const [{ data }, preference] = await Promise.all([
+    (db as any).rpc('get_admin_analytics'),
+    getPreferenceMetrics(db as any).catch(() => null),
+  ]);
   const a = (data ?? {}) as Partial<Analytics>;
 
   const completionRate = a.total_bookings
@@ -95,6 +99,38 @@ export default async function AnalyticsPage() {
           className="col-span-1 md:col-span-2 lg:col-span-3"
         />
       </BentoGrid>
+
+      {preference ? (
+        <>
+          <SectionHeader title="Preferred professional" className="mb-3" />
+          <BentoGrid className="mb-6">
+            <StatTile
+              label="Bookings with preference"
+              value={String(preference.withPreference)}
+              sub={`${preference.pending} still unmatched`}
+              icon={HeartHandshake}
+              className="col-span-1 md:col-span-2 lg:col-span-3"
+            />
+            <StatTile
+              label="Honor rate"
+              value={preference.honorRatePct != null ? `${preference.honorRatePct}%` : '—'}
+              sub={`${preference.honored} honored · ${preference.overridden} overridden`}
+              className="col-span-1 md:col-span-2 lg:col-span-3"
+            />
+            <StatTile
+              label="Completed (honored)"
+              value={String(preference.completedHonored)}
+              sub={`${preference.completedOverridden} completed after override`}
+              className="col-span-1 md:col-span-2 lg:col-span-3"
+            />
+            <StatTile
+              label="Cancelled (had preference)"
+              value={String(preference.cancelledWithPreference)}
+              className="col-span-1 md:col-span-2 lg:col-span-3"
+            />
+          </BentoGrid>
+        </>
+      ) : null}
 
       <SectionHeader title="Quality & people" className="mb-3" />
       <BentoGrid>

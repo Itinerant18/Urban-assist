@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { haversineKm } from '@urban-assist/utils';
-import { score, bookingLocalSlot } from './services/matching-engine';
+import { score, bookingLocalSlot, rankCandidates } from './services/matching-engine';
 
 describe('haversineKm', () => {
   it('measures a known distance', () => {
@@ -115,5 +115,36 @@ describe('bookingLocalSlot', () => {
       (d) => bookingLocalSlot(`2026-01-${d}T12:00:00Z`).weekday,
     );
     expect(days).toEqual([0, 1, 2, 3, 4, 5, 6]);
+  });
+});
+
+describe('rankCandidates', () => {
+  const farHigh = {
+    provider_id: 'far',
+    distance_km: 12,
+    rating: 5,
+    acceptance_rate: 1,
+  };
+  const nearLow = {
+    provider_id: 'near',
+    distance_km: 1,
+    rating: 3,
+    acceptance_rate: 1,
+  };
+
+  it('sorts by score when no preference', () => {
+    const ranked = rankCandidates([farHigh, nearLow], null);
+    expect(ranked.map((c) => c.provider_id)).toEqual(['near', 'far']);
+  });
+
+  it('pulls preferred provider to the front when eligible', () => {
+    const ranked = rankCandidates([farHigh, nearLow], 'far');
+    expect(ranked[0]?.provider_id).toBe('far');
+    expect(ranked[1]?.provider_id).toBe('near');
+  });
+
+  it('ignores preference when that provider is not in the candidate list', () => {
+    const ranked = rankCandidates([farHigh, nearLow], 'missing');
+    expect(ranked.map((c) => c.provider_id)).toEqual(['near', 'far']);
   });
 });

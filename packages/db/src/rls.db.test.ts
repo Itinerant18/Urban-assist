@@ -1,9 +1,23 @@
+import { readFileSync } from 'node:fs';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-const LOCAL_URL = 'http://127.0.0.1:54321';
-const ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+// Keys come from the gitignored .env.local that local setup creates, not from
+// literals in this file. The values are only the public supabase-demo tokens, but
+// JWT-shaped strings in source trip secret scanners on every future PR, and
+// teaching people to dismiss those alerts is worse than reading a file.
+function envLocal(name: string): string | null {
+  if (process.env[name]) return process.env[name]!;
+  try {
+    const raw = readFileSync('apps/customer/.env.local', 'utf8');
+    return raw.match(new RegExp(`^${name}=(.*)$`, 'm'))?.[1]?.trim() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+const LOCAL_URL = envLocal('NEXT_PUBLIC_SUPABASE_URL') ?? 'http://127.0.0.1:54321';
+const ANON_KEY = envLocal('NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
 const PROVIDER_APPROVED = 'a0000000-0000-4000-8000-000000000001';
 const PROVIDER_PENDING = 'a0000000-0000-4000-8000-000000000002';
@@ -11,8 +25,13 @@ const PROVIDER_PHONE = '447700900001';
 const TEST_OTP = '123456';
 
 async function localSupabaseReachable(): Promise<boolean> {
+  if (!ANON_KEY) return false; // no local env captured -> same skip path as stack-down
   try {
+    // Kong fronts every service locally and 502s key-less requests, so the probe
+    // must send the anon key — without it this suite silently skipped while the
+    // stack was fully up, and 78-passed-10-skipped read as "88 passed".
     const res = await fetch(`${LOCAL_URL}/auth/v1/health`, {
+      headers: { apikey: ANON_KEY! },
       signal: AbortSignal.timeout(1500),
     });
     return res.ok;
@@ -28,10 +47,10 @@ describe.skipIf(!reachable)('RLS / grants (local Supabase)', () => {
   let authed: SupabaseClient;
 
   beforeAll(async () => {
-    anon = createClient(LOCAL_URL, ANON_KEY, {
+    anon = createClient(LOCAL_URL, ANON_KEY!, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    authed = createClient(LOCAL_URL, ANON_KEY, {
+    authed = createClient(LOCAL_URL, ANON_KEY!, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 

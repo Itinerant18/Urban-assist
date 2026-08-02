@@ -17,7 +17,7 @@ export default async function AllServicesPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-page px-4 pb-20 pt-8 lg:px-6">
+      <main className="mx-auto max-w-page px-4 pb-28 pt-8 lg:px-6">
         {/* Page Header */}
         <div className="mb-10">
           <h1 className="text-[32px] font-bold text-ink lg:text-[40px] tracking-tight">All Services</h1>

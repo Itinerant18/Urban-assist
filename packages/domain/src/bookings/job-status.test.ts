@@ -41,6 +41,13 @@ describe('JOB_STATUS_TRANSITIONS', () => {
     expect(can('in_progress', 'cancelled')).toBe(false);
   });
 
+  it('exposes canProviderCancel for UI gating', async () => {
+    const { canProviderCancel } = await import('./services/booking-service');
+    expect(canProviderCancel('assigned')).toBe(true);
+    expect(canProviderCancel('in_progress')).toBe(false);
+    expect(canProviderCancel('completed')).toBe(false);
+  });
+
   it('treats completed and cancelled as terminal', () => {
     expect(JOB_STATUS_TRANSITIONS.completed).toBeUndefined();
     expect(JOB_STATUS_TRANSITIONS.cancelled).toBeUndefined();

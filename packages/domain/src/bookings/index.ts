@@ -5,6 +5,8 @@ export {
   cancelBooking,
   rescheduleBooking,
   updateJobStatus,
+  JOB_STATUS_TRANSITIONS,
+  canProviderCancel,
 } from './services/booking-service';
 export type {
   CreateBookingInput,

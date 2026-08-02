@@ -5,20 +5,19 @@
 import * as React from 'react';
 import {
   Card,
-  Badge,
   Button,
   LiveStatusTrack,
   statusToStage,
-  RatingInput,
-  EmptyState,
   Field,
 } from '@urban-assist/ui';
 import { pence, ukDateTime } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { Banknote, Phone, MessageSquare, AlertOctagon, X } from 'lucide-react';
+import { Banknote, Phone, MessageSquare, AlertOctagon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { loadStripe } from '@stripe/stripe-js';
+import Link from 'next/link';
 import type { ChatMessage } from '@urban-assist/types';
+import { StatusPill } from '../../../../components/status-pill';
+import { StickyActionBar, StickyActionMeta } from '../../../../components/sticky-action-bar';
 
 type DisplayMessage = Pick<ChatMessage, 'id' | 'booking_id' | 'sender_id' | 'content' | 'created_at'>;
 
@@ -44,58 +43,9 @@ export function BookingDetail({
   const [payment, setPayment] = React.useState(initialPayment);
   const [messages, setMessages] = React.useState<DisplayMessage[]>([]);
   const [draft, setDraft] = React.useState('');
-  const [rating, setRating] = React.useState(0);
-  const [reviewComment, setReviewComment] = React.useState('');
-  const [reviewed, setReviewed] = React.useState(hasReview);
+  const [reviewed] = React.useState(hasReview);
   const [busy, setBusy] = React.useState(false);
-  const [dismissedReview, setDismissedReview] = React.useState(false);
-  const [selectedTip, setSelectedTip] = React.useState<string | null>(null);
-  const [customTip, setCustomTip] = React.useState<string>('');
   const [providerLoc, setProviderLoc] = React.useState<{ lat: number; lng: number } | null>(null);
-
-  const [selectedTags, setSelectedTags] = React.useState<string[]>([]);
-  const [stripePromise] = React.useState(() =>
-    loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'),
-  );
-  const [cardElement, setCardElement] = React.useState<any>(null);
-
-  React.useEffect(() => {
-    if (selectedTip && typeof window !== 'undefined') {
-      let active = true;
-      const initStripe = async () => {
-        const stripe = await stripePromise;
-        if (!stripe || !active) return;
-
-        // Check if container element is mounted
-        const el = document.getElementById('tip-card-element');
-        if (el) {
-          el.innerHTML = '';
-          const elements = stripe.elements();
-          const card = elements.create('card', {
-            style: {
-              base: {
-                fontSize: '14px',
-                color: '#1f2937',
-                '::placeholder': { color: '#9ca3af' },
-              },
-            },
-          });
-          card.mount('#tip-card-element');
-          setCardElement(card);
-        }
-      };
-      // Delay mounting slightly to allow DOM to render container
-      const timer = setTimeout(initStripe, 100);
-      return () => {
-        active = false;
-        clearTimeout(timer);
-      };
-    } else {
-      setCardElement(null);
-    }
-  }, [selectedTip, stripePromise]);
-
-  // Realtime subscriptions.
   React.useEffect(() => {
     const sb = supabase();
     const ch = sb
@@ -260,75 +210,6 @@ export function BookingDetail({
     });
   }
 
-  async function submitReview() {
-    setBusy(true);
-    try {
-      // 1. Submit review
-      const tagsString = selectedTags.length > 0 ? ` [Stood out: ${selectedTags.join(', ')}]` : '';
-      const fullComment = `${reviewComment}${tagsString}`;
-
-      const reviewRes = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          booking_id: booking.id,
-          rating,
-          comment: fullComment.trim() || null,
-        }),
-      });
-      if (!reviewRes.ok) {
-        const payload = await reviewRes.json().catch(() => ({}));
-        throw new Error(
-          payload.error === 'review_already_submitted'
-            ? 'You have already reviewed this booking.'
-            : 'Could not submit review',
-        );
-      }
-      setReviewed(true);
-
-      // 2. Process Tip Payment via Connect if added
-      let tipAmount = 0;
-      if (selectedTip === 'other') {
-        tipAmount = Math.round(parseFloat(customTip) * 100);
-      } else if (selectedTip) {
-        tipAmount = Math.round(parseFloat(selectedTip.replace('£', '')) * 100);
-      }
-
-      if (tipAmount > 0 && cardElement) {
-        const stripe = await stripePromise;
-        if (!stripe) throw new Error('Stripe failed to load');
-
-        const tipRes = await fetch('/api/tips', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            booking_id: booking.id,
-            amount_pence: tipAmount,
-          }),
-        });
-        if (!tipRes.ok) {
-          const j = await tipRes.json().catch(() => ({}));
-          throw new Error(j.error || 'Failed to create tip intent');
-        }
-        const { clientSecret } = await tipRes.json();
-
-        const { error: payErr } = await stripe.confirmCardPayment(clientSecret, {
-          payment_method: {
-            card: cardElement,
-            billing_details: { name: booking.customer?.full_name || 'Customer' },
-          },
-        });
-        if (payErr) {
-          throw new Error(payErr.message || 'Payment confirmation failed');
-        }
-      }
-    } catch (e: any) {
-      alert(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function retryMatching() {
     setBusy(true);
     try {
@@ -399,15 +280,33 @@ export function BookingDetail({
     }
   }
 
+  const needsRate = booking.status === 'completed' && !reviewed;
+  const cashDue =
+    booking.payment_method === 'cash' &&
+    booking.status === 'completed' &&
+    payment?.status !== 'succeeded';
+
   return (
-    <div className="space-y-4 py-2">
-      <header className="flex items-center justify-between">
+    <div className="space-y-4 py-2 pb-28 lg:pb-2">
+      <header className="flex items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">{booking.category?.name ?? 'Booking'}</h1>
           <p className="font-mono-utility text-muted">#{booking.short_code}</p>
         </div>
-        <Badge tone={tone(booking.status)}>{booking.status.replace(/_/g, ' ')}</Badge>
+        <StatusPill status={booking.status} />
       </header>
+
+      {booking.status === 'completed' && !reviewed && (
+        <Card className="space-y-3 border-accent/25 bg-accent/5">
+          <h2 className="font-display text-lg font-bold text-ink">How was your service?</h2>
+          <p className="text-sm text-muted">
+            A quick rating helps us improve matching — and helps great professionals get more work.
+          </p>
+          <Link href={`/bookings/${booking.id}/rate`}>
+            <Button className="min-h-12 w-full sm:w-auto">Rate your service</Button>
+          </Link>
+        </Card>
+      )}
 
       {booking.status === 'unmatched' ? (
         <Card className="space-y-2">
@@ -630,283 +529,22 @@ export function BookingDetail({
         </form>
       </Card>
 
-      {/* Mobile full-screen review flow */}
-      {booking.status === 'completed' && !reviewed && !dismissedReview && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-bg px-4 py-6 overflow-y-auto pb-24 lg:hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-hairline pb-4">
-            <button
-              onClick={() => setDismissedReview(true)}
-              className="text-sm font-semibold text-muted hover:text-ink"
-            >
-              Skip
-            </button>
-            <h2 className="font-display text-lg font-bold text-ink">Rate Provider</h2>
-            <div className="w-12" />
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 space-y-6 py-6">
-            <div className="text-center space-y-2">
-              <h3 className="font-display text-base font-bold text-ink">
-                How was your service with {booking.provider?.full_name ?? 'your provider'}?
-              </h3>
-              <div className="flex justify-center py-2">
-                <RatingInput value={rating} onChange={setRating} />
-              </div>
-            </div>
-
-            {/* Tags Selection */}
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted">What stood out? (Optional)</label>
-              <div className="flex flex-wrap gap-2">
-                {['Punctual', 'Friendly', 'Attention to Detail', 'Went Above & Beyond'].map(
-                  (tag) => {
-                    const isSelected = selectedTags.includes(tag);
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => {
-                          setSelectedTags((cur) =>
-                            isSelected ? cur.filter((t) => t !== tag) : [...cur, tag],
-                          );
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                          isSelected
-                            ? 'border-ink bg-ink text-bg'
-                            : 'border-hairline bg-white text-ink hover:bg-bg'
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    );
-                  },
-                )}
-              </div>
-            </div>
-
-            <Field label="Leave a comment (Optional)">
-              <textarea
-                rows={3}
-                placeholder="Great service, highly recommend..."
-                value={reviewComment}
-                onChange={(e) => setReviewComment(e.target.value)}
-                className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none"
-              />
-            </Field>
-
-            {/* Tip Section */}
-            <div className="space-y-3">
-              <label className="text-xs font-medium text-muted">
-                Add a tip? (100% goes to the provider)
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {['£2', '£5', '£10'].map((tip) => (
-                  <button
-                    key={tip}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTip(tip);
-                      setCustomTip('');
-                    }}
-                    className={`tap rounded-xl border py-2 text-center text-sm font-medium transition ${
-                      selectedTip === tip
-                        ? 'border-ink bg-ink text-bg'
-                        : 'border-hairline bg-white text-ink hover:bg-bg'
-                    }`}
-                  >
-                    {tip}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setSelectedTip('other')}
-                  className={`tap rounded-xl border py-2 text-center text-sm font-medium transition ${
-                    selectedTip === 'other'
-                      ? 'border-ink bg-ink text-bg'
-                      : 'border-hairline bg-white text-ink hover:bg-bg'
-                  }`}
-                >
-                  Custom
-                </button>
-              </div>
-
-              {selectedTip === 'other' && (
-                <Field label="Custom Tip Amount (£)">
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="Enter amount"
-                    value={customTip}
-                    onChange={(e) => setCustomTip(e.target.value)}
-                    className="tap w-full rounded-xl border border-hairline bg-white px-3.5 py-2 text-sm focus:border-ink focus:outline-none"
-                  />
-                </Field>
-              )}
-
-              {/* Stripe Card Input */}
-              {selectedTip && (
-                <div className="space-y-2 border-t border-hairline pt-3 mt-2">
-                  <label className="text-xs font-medium text-muted">Card Payment Details</label>
-                  <div
-                    id="tip-card-element"
-                    className="p-3 border border-hairline rounded-xl bg-white focus-within:border-ink"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Sticky Bottom Submit Review CTA */}
-          <div className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-white/95 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur">
-            <Button onClick={submitReview} disabled={rating === 0 || busy} size="block">
-              {busy ? 'Submitting…' : 'SUBMIT REVIEW & TIP'}
-            </Button>
-          </div>
-        </div>
+      {needsRate && !cashDue && (
+        <StickyActionBar zClassName="z-40">
+          <StickyActionMeta label="Feedback" value="Rate your service" />
+          <Link href={`/bookings/${booking.id}/rate`}>
+            <Button className="min-h-12 px-5">Rate</Button>
+          </Link>
+        </StickyActionBar>
       )}
 
-      {/* Desktop review card (Centered focused modal overlay) */}
-      {booking.status === 'completed' && !reviewed && !dismissedReview && (
-        <div className="fixed inset-0 z-50 hidden items-center justify-center bg-ink/40 p-4 backdrop-blur-sm lg:flex">
-          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl space-y-5 relative">
-            <button
-              aria-label="Skip review for now"
-              onClick={() => setDismissedReview(true)}
-              className="tap absolute right-4 top-4 inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-ink"
-            >
-              <X className="h-4 w-4" aria-hidden /> Skip for now
-            </button>
-
-            <div className="space-y-1">
-              <h2 className="font-display text-xl font-bold text-ink">HOW WAS YOUR SERVICE?</h2>
-              <p className="text-xs text-muted">
-                Standard Clean · #{booking.short_code} · Pro: {booking.provider?.full_name}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-ink block">Tap to Rate:</label>
-              <RatingInput value={rating} onChange={setRating} />
-            </div>
-
-            {/* Tags Selection */}
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted block">
-                What stood out? (Optional)
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {['Punctual', 'Friendly', 'Attention to Detail', 'Went Above & Beyond'].map(
-                  (tag) => {
-                    const isSelected = selectedTags.includes(tag);
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => {
-                          setSelectedTags((cur) =>
-                            isSelected ? cur.filter((t) => t !== tag) : [...cur, tag],
-                          );
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                          isSelected
-                            ? 'border-ink bg-ink text-bg'
-                            : 'border-hairline bg-white text-ink hover:bg-bg'
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    );
-                  },
-                )}
-              </div>
-            </div>
-
-            <Field label="Leave a comment (Optional)">
-              <textarea
-                rows={3}
-                placeholder="Share your experience..."
-                value={reviewComment}
-                onChange={(e) => setReviewComment(e.target.value)}
-                className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none"
-              />
-            </Field>
-
-            {/* Tip Section */}
-            <div className="space-y-3 pt-2 border-t border-hairline">
-              <label className="text-xs font-bold text-ink block">
-                Leave a tip (100% goes to the professional)
-              </label>
-              <div className="flex gap-2">
-                {['£2', '£5', '£10'].map((tip) => (
-                  <button
-                    key={tip}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTip(tip);
-                      setCustomTip('');
-                    }}
-                    className={`tap rounded-xl border px-4 py-2 text-sm font-medium transition ${
-                      selectedTip === tip
-                        ? 'border-ink bg-ink text-white'
-                        : 'border-hairline bg-white text-ink'
-                    }`}
-                  >
-                    {tip}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setSelectedTip('other')}
-                  className={`tap rounded-xl border px-4 py-2 text-sm font-medium transition ${
-                    selectedTip === 'other'
-                      ? 'border-ink bg-ink text-white'
-                      : 'border-hairline bg-white text-ink'
-                  }`}
-                >
-                  Custom
-                </button>
-              </div>
-
-              {selectedTip === 'other' && (
-                <input
-                  type="number"
-                  placeholder="Amount (£)"
-                  value={customTip}
-                  onChange={(e) => setCustomTip(e.target.value)}
-                  className="tap rounded-xl border border-hairline px-3.5 py-2 text-sm mt-2 focus:border-ink focus:outline-none w-full"
-                />
-              )}
-
-              {/* Stripe Card Input */}
-              {selectedTip && (
-                <div className="space-y-2 border-t border-hairline pt-3 mt-2">
-                  <label className="text-xs font-medium text-muted">Card Payment Details</label>
-                  <div
-                    id="tip-card-element"
-                    className="p-3 border border-hairline rounded-xl bg-white focus-within:border-ink"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2 pt-2 justify-end">
-              <Button variant="ghost" onClick={() => setDismissedReview(true)} disabled={busy}>
-                SKIP FOR NOW
-              </Button>
-              <Button onClick={submitReview} disabled={rating === 0 || busy} className="px-6">
-                {busy ? 'Submitting…' : 'SUBMIT REVIEW & TIP'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-      {reviewed && !hasReview && (
-        <EmptyState
-          title="Thanks for the review"
-          description="Your feedback helps us match better in the future."
-        />
+      {cashDue && (
+        <StickyActionBar zClassName="z-40">
+          <StickyActionMeta label="Payment" value="Cash due" />
+          <Button className="min-h-12 px-5" onClick={confirmCash}>
+            <Banknote className="mr-2 h-4 w-4" /> Confirm cash
+          </Button>
+        </StickyActionBar>
       )}
 
       {cancellable && (
@@ -1008,10 +646,4 @@ function dayLabel(iso: string) {
   if (d.toDateString() === today.toDateString()) return 'Today';
   if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function tone(s: string) {
-  if (s === 'completed') return 'success' as const;
-  if (s === 'cancelled' || s === 'unmatched' || s === 'disputed') return 'danger' as const;
-  return 'accent' as const;
 }

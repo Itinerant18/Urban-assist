@@ -29,6 +29,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   try {
     const admin = createServiceRole();
+    if (parsed.data.status === 'cancelled') {
+      const reason = parsed.data.cancellation_reason?.trim() ?? '';
+      if (reason.length < 3) {
+        return NextResponse.json({ error: 'cancellation_reason_required' }, { status: 400 });
+      }
+    }
     if (parsed.data.status === 'in_progress') {
       if (!parsed.data.start_code) throw new Error('start_code_required');
       const { data: booking } = await admin

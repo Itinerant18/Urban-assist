@@ -142,6 +142,8 @@ const badgeStyles = cva(
         danger: 'bg-danger/15 text-[color:rgb(var(--danger))]',
         muted: 'bg-hairline/60 text-muted',
         ink: 'bg-ink text-bg',
+        /** Amber — in-progress / on-the-way (DESIGN §8) */
+        warning: 'bg-[rgb(var(--amber)/0.18)] text-[rgb(var(--amber))]',
       },
     },
     defaultVariants: { tone: 'muted' },

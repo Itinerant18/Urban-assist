@@ -1,22 +1,11 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { Card, Badge, EmptyState, Button } from '@urban-assist/ui';
+import { Card, EmptyState, Button } from '@urban-assist/ui';
 import { pence, ukDateTime } from '@urban-assist/lib';
+import { StatusPill } from '../../../components/status-pill';
 
 export const dynamic = 'force-dynamic';
-
-const statusTone: Record<string, 'accent' | 'success' | 'danger' | 'muted'> = {
-  pending_match: 'accent',
-  assigned: 'accent',
-  on_the_way: 'accent',
-  arrived: 'accent',
-  in_progress: 'accent',
-  completed: 'success',
-  cancelled: 'danger',
-  unmatched: 'danger',
-  disputed: 'danger',
-};
 
 // Tab → bookings.status values. "active" includes attention states (unmatched, disputed).
 const TABS = {
@@ -58,18 +47,18 @@ export default async function BookingsList({ searchParams }: { searchParams: { t
   }
 
   return (
-    <div className="space-y-4 py-2">
+    <div className="space-y-4 py-2 pb-4">
       <header>
         <h1 className="font-display text-2xl font-bold text-ink">Your bookings</h1>
         <p className="mt-1 text-sm text-muted">Track upcoming work and revisit past services.</p>
       </header>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto scrollbar-none">
         {(Object.keys(TABS) as Tab[]).map((t) => (
           <Link
             key={t}
             href={t === 'active' ? '/bookings' : `/bookings?tab=${t}`}
-            className={`rounded-full border px-4 py-1.5 text-sm capitalize transition ${
+            className={`tap min-h-10 shrink-0 rounded-full border px-4 py-2 text-sm capitalize transition ${
               t === tab
                 ? 'border-ink bg-ink text-white'
                 : 'border-hairline bg-white text-muted hover:border-ink hover:text-ink'
@@ -90,29 +79,29 @@ export default async function BookingsList({ searchParams }: { searchParams: { t
         <ul className="space-y-3">
           {bookings.map((b: any) => (
             <li key={b.id}>
-              <Card className="flex items-center gap-4 transition hover:border-ink">
-                <Link href={`/bookings/${b.id}`} className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{b.category?.name ?? 'Service'}</span>
-                    <Badge tone={statusTone[b.status] ?? 'muted'}>{prettyStatus(b.status)}</Badge>
+              <Card className="flex items-center gap-4 p-4 transition hover:border-ink">
+                <Link href={`/bookings/${b.id}`} className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-ink">{b.category?.name ?? 'Service'}</span>
+                    <StatusPill status={b.status} />
                   </div>
                   <div className="mt-1 text-xs text-muted">
                     {ukDateTime(b.scheduled_at)} · {b.provider?.full_name ?? '—'}
                   </div>
-                  <div className="mt-1 font-mono-utility text-muted">#{b.short_code}</div>
+                  <div className="mt-1 font-mono-utility text-xs text-muted">#{b.short_code}</div>
                 </Link>
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex shrink-0 flex-col items-end gap-2">
                   <div className="font-display text-lg font-bold text-ink">{pence(b.total_pence)}</div>
                   {tab === 'completed' && (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap justify-end gap-2">
                       {!reviewedIds.has(b.id) && (
-                        <Link href={`/bookings/${b.id}`}>
-                          <Button size="sm">Rate service</Button>
+                        <Link href={`/bookings/${b.id}/rate`}>
+                          <Button size="sm" className="min-h-10">Rate</Button>
                         </Link>
                       )}
                       {b.provider_service_id && (
                         <Link href={`/book/${b.provider_service_id}`}>
-                          <Button size="sm" variant="outline">Book again</Button>
+                          <Button size="sm" variant="outline" className="min-h-10">Book again</Button>
                         </Link>
                       )}
                     </div>
@@ -125,8 +114,4 @@ export default async function BookingsList({ searchParams }: { searchParams: { t
       )}
     </div>
   );
-}
-
-function prettyStatus(s: string) {
-  return s.replace(/_/g, ' ');
 }

@@ -122,8 +122,12 @@ export function InvoiceView({
             />
           </dl>
           <p className="text-[10px] text-muted">
-            Paid by {booking.payment_method === 'cash' ? 'cash' : 'card'}
+            {booking.payment_method === 'cash'
+              ? 'Pay after service (cash)'
+              : 'Pay now (card)'}
             {payment?.cash_collected_at && ` · collected ${ukDate(payment.cash_collected_at)}`}
+            {payment?.status === 'succeeded' && !payment?.cash_collected_at ? ' · succeeded' : ''}
+            {payment?.status && payment.status !== 'succeeded' ? ` · ${payment.status}` : ''}
           </p>
         </section>
 

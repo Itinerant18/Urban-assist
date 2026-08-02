@@ -14,6 +14,7 @@ const Schema = z.object({
   promo_code: z.string().optional().nullable(),
   apply_wallet: z.boolean().optional(),
   notes: z.string().max(500).optional().nullable(),
+  preferred_provider_id: z.string().uuid().optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
       promoCode: body.promo_code,
       applyWallet: body.apply_wallet,
       notes: body.notes,
+      preferredProviderId: body.preferred_provider_id,
     });
     return NextResponse.json(result);
   } catch (e: any) {

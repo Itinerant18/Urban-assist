@@ -7,6 +7,12 @@ export const metadata: Metadata = {
   description:
     'Book trusted home services across the UK — cleaning, repair, installation, and more. Verified professionals, transparent pricing.',
   manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Urban Assist',
+  },
+  applicationName: 'Urban Assist',
 };
 
 export const viewport: Viewport = {
