@@ -3,10 +3,12 @@ const path = require('path');
 /** @type {import('next').NextConfig} */
 module.exports = {
   reactStrictMode: true,
-  // ponytail: monorepo edge/serverless tracing needs repo root, not apps/customer
-  outputFileTracingRoot: path.join(__dirname, '../..'),
   transpilePackages: ['@urban-assist/ui', '@urban-assist/db', '@urban-assist/lib'],
-  experimental: { serverActions: { bodySizeLimit: '5mb' } },
+  // ponytail: Next 14 still nests this under experimental; top-level key is ignored
+  experimental: {
+    serverActions: { bodySizeLimit: '5mb' },
+    outputFileTracingRoot: path.join(__dirname, '../..'),
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
