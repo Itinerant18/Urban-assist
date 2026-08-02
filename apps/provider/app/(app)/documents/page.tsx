@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createServiceRole, getSupabaseServer } from '@urban-assist/db/server';
-import { OnboardingClient } from '../../onboarding/onboarding-client';
+import { OnboardingClient } from '../../../components/onboarding-client';
 
 export const dynamic = 'force-dynamic';
 

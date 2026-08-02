@@ -4,6 +4,7 @@
 import { redirect } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { RegisterForm } from './register-form';
+import { stepLabel, ONBOARDING_STEPS } from '../../lib/provider-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,8 +26,8 @@ export default async function RegisterPage() {
     <div className="min-h-dvh bg-bg">
       <div className="mx-auto max-w-lg px-5 py-10">
         <header className="mb-6">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">
-            Almost there
+          <p className="font-mono-utility text-xs font-semibold uppercase tracking-wider text-muted">
+            {stepLabel(ONBOARDING_STEPS.register, 'Your details')}
           </p>
           <h1 className="mt-1 font-display text-2xl font-bold text-ink">
             Complete your registration

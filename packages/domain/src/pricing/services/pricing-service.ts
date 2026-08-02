@@ -13,6 +13,25 @@ export interface PriceQuote {
   total_pence: number;
 }
 
+/**
+ * Where a booking's price comes from.
+ *
+ * Pricing is platform-managed: the rate lives on the SKU, and a provider chooses
+ * which SKUs they offer rather than what they charge. provider_services.price_pence
+ * is retained (it is still written server-side, and legacy rows predate SKUs) but is
+ * only used when the row has no sku_id — otherwise migrating every historical row
+ * would be a prerequisite for this change.
+ */
+export function resolveServicePrice(
+  service: { sku_id?: string | null; price_pence?: number | null },
+  sku?: { min_price_pence?: number | null } | null,
+): number {
+  if (service.sku_id && sku && typeof sku.min_price_pence === 'number') {
+    return sku.min_price_pence;
+  }
+  return service.price_pence ?? 0;
+}
+
 export function quote(net_pence: number, promo?: Promo | null): PriceQuote {
   const discount = promo
     ? promo.discount_type === 'percent'

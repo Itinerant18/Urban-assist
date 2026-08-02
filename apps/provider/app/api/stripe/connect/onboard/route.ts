@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { getSupabaseServer } from '@urban-assist/db/server';
+import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
 import { createPayoutOnboardingLink } from '@urban-assist/integrations/stripe';
 
 export async function POST(req: NextRequest) {
@@ -10,7 +10,9 @@ export async function POST(req: NextRequest) {
   const returnUrl = new URL('/earnings', req.nextUrl.origin).toString();
 
   try {
-    const result = await createPayoutOnboardingLink(db, user.id, returnUrl);
+    // createPayoutOnboardingLink writes profiles.stripe_account_id, which migration
+    // 202608020001 removed from the authenticated grant. Scoped to the caller's own id.
+    const result = await createPayoutOnboardingLink(createServiceRole(), user.id, returnUrl);
     return NextResponse.json(result);
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? 'failed_to_create_link' }, { status: 400 });

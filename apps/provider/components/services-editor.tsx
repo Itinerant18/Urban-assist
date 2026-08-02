@@ -62,14 +62,12 @@ export function ServicesEditor({
   const [selectedSubcatId, setSelectedSubcatId] = React.useState('');
   const [selectedSkuId, setSelectedSkuId] = React.useState('');
   const [title, setTitle] = React.useState('');
-  const [priceGbp, setPriceGbp] = React.useState('');
   const [duration, setDuration] = React.useState('60');
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
 
   // Edit state for inline editing
   const [editingId, setEditingId] = React.useState<string | null>(null);
-  const [editPriceGbp, setEditPriceGbp] = React.useState('');
   const [editDuration, setEditDuration] = React.useState('');
   const [editTitle, setEditTitle] = React.useState('');
   const [editError, setEditError] = React.useState<string | null>(null);
@@ -121,16 +119,14 @@ export function ServicesEditor({
   const selectedCategory = categories.find((c) => c.id === selectedCatId);
   const selectedSku = skus.find((k) => k.id === selectedSkuId);
 
-  // Calculate active price bounds (prefer SKU bounds if set, fallback to Category bounds)
-  const minPence =
+  // Pricing is platform-managed. The provider picks which SKUs they offer; the rate
+  // comes from the SKU. Shown read-only here, and enforced in two places regardless
+  // of what this form sends: trg_provider_service_price on insert/update, and
+  // resolveServicePrice at booking time.
+  const skuPricePence =
     selectedSku?.min_price_pence && selectedSku.min_price_pence > 0
       ? selectedSku.min_price_pence
       : selectedCategory?.min_price_pence ?? 0;
-
-  const maxPence =
-    selectedSku?.max_price_pence && selectedSku.max_price_pence > 0
-      ? selectedSku.max_price_pence
-      : selectedCategory?.max_price_pence ?? 50000;
 
   function handleSkuChange(skuId: string) {
     setSelectedSkuId(skuId);
@@ -148,14 +144,6 @@ export function ServicesEditor({
 
     try {
       if (!selectedCategory) throw new Error('Select a category');
-      const pricePence = Math.round(parseFloat(priceGbp) * 100);
-      if (isNaN(pricePence)) throw new Error('Enter a valid price');
-
-      if (pricePence < minPence || pricePence > maxPence) {
-        throw new Error(
-          `Price must be between ${pence(minPence)} and ${pence(maxPence)}`
-        );
-      }
 
       const sb = supabase();
       const {
@@ -170,7 +158,9 @@ export function ServicesEditor({
           category_id: selectedCatId,
           sku_id: selectedSkuId || null,
           title: title.trim() || selectedSku?.name || selectedCategory.name,
-          price_pence: pricePence,
+          // Sent so the NOT NULL column is satisfied for legacy rows with no SKU.
+          // When sku_id is set, trg_provider_service_price overwrites this server-side.
+          price_pence: skuPricePence,
           duration_mins: parseInt(duration) || selectedSku?.duration_mins || 60,
           is_active: true,
         })
@@ -181,7 +171,6 @@ export function ServicesEditor({
 
       setMine([...mine, data]);
       setAdding(false);
-      setPriceGbp('');
       setDuration('60');
     } catch (err: any) {
       setError(err.message);
@@ -221,7 +210,6 @@ export function ServicesEditor({
   function startEdit(service: ProviderService) {
     setEditingId(service.id);
     setEditTitle(service.title);
-    setEditPriceGbp((service.price_pence / 100).toFixed(2));
     setEditDuration(service.duration_mins.toString());
     setEditError(null);
   }
@@ -232,27 +220,14 @@ export function ServicesEditor({
     const sku = service.sku_id ? skus.find((k) => k.id === service.sku_id) : undefined;
     if (!cat) return;
 
-    const editMinPence =
-      sku?.min_price_pence && sku.min_price_pence > 0 ? sku.min_price_pence : cat.min_price_pence;
-    const editMaxPence =
-      sku?.max_price_pence && sku.max_price_pence > 0 ? sku.max_price_pence : cat.max_price_pence;
-
     try {
-      const pricePence = Math.round(parseFloat(editPriceGbp) * 100);
-      if (isNaN(pricePence)) throw new Error('Enter a valid price');
-
-      if (pricePence < editMinPence || pricePence > editMaxPence) {
-        throw new Error(
-          `Price must be between ${pence(editMinPence)} and ${pence(editMaxPence)}`
-        );
-      }
-
+      // price_pence is intentionally not in this patch: the rate is the platform's,
+      // and the column is now derived from the SKU by trg_provider_service_price.
       const sb = supabase();
       const { error } = await sb
         .from('provider_services')
         .update({
           title: editTitle.trim() || sku?.name || cat.name,
-          price_pence: pricePence,
           duration_mins: parseInt(editDuration) || 60,
         })
         .eq('id', service.id);
@@ -265,7 +240,6 @@ export function ServicesEditor({
             ? {
                 ...m,
                 title: editTitle.trim() || sku?.name || cat.name,
-                price_pence: pricePence,
                 duration_mins: parseInt(editDuration) || 60,
               }
             : m
@@ -298,13 +272,13 @@ export function ServicesEditor({
                           <Field label="Service title">
                             <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
                           </Field>
-                          <Field label="Price (£)">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={editPriceGbp}
-                              onChange={(e) => setEditPriceGbp(e.target.value)}
-                            />
+                          <Field label="Price">
+                            <div className="flex h-[42px] items-center rounded-xl border border-hairline bg-bg/60 px-3 text-sm text-muted">
+                              {pence(m.price_pence)}
+                              <span className="ml-1.5 text-[10px] uppercase tracking-wider">
+                                set by Urban Assist
+                              </span>
+                            </div>
                           </Field>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -449,18 +423,10 @@ export function ServicesEditor({
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} />
               </Field>
 
-              <Field
-                label="Price (£)"
-                hint={`Bounds: ${pence(minPence)} - ${pence(maxPence)}`}
-              >
-                <Input
-                  type="number"
-                  step="0.01"
-                  required
-                  placeholder="e.g. 35.00"
-                  value={priceGbp}
-                  onChange={(e) => setPriceGbp(e.target.value)}
-                />
+              <Field label="Price" hint="Set by Urban Assist for this service">
+                <div className="flex h-[42px] items-center rounded-xl border border-hairline bg-bg/60 px-3 text-sm font-medium text-ink">
+                  {skuPricePence > 0 ? pence(skuPricePence) : '—'}
+                </div>
               </Field>
 
               <Field label="Avg duration (mins)">

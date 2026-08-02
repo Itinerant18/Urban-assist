@@ -6,6 +6,7 @@ import { pence, ukDateTime } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { OfferCard } from './offer-card';
 import type { WeeklyEarning } from '../../lib/weekly-earnings';
+import { postCurrentLocation } from '../../lib/post-location';
 
 export function Dashboard({
   profile,
@@ -60,6 +61,9 @@ export function Dashboard({
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ online: next }),
     });
+    // Refresh position on going online so distance scoring in findCandidates() works
+    // off where the provider actually is, not the postcode geocoded at registration.
+    if (next) void postCurrentLocation();
     setOnline(next);
     setToggling(false);
   }
@@ -97,12 +101,17 @@ export function Dashboard({
             {completionRate === null ? '-' : `${completionRate}%`}
           </span>
         </Card>
-        <Card className="col-span-2 sm:col-span-1 flex flex-col gap-1 border border-hairline p-4 bg-white shadow-card rounded-xl">
-          <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">New Requests</span>
-          <span className="font-display text-2xl font-extrabold text-ink">
-            {offer ? '1 Pending' : '0 Pending'}
-          </span>
-        </Card>
+        {/* Links to the offers list — otherwise the only way to see an offer is to
+            catch the realtime modal while the app happens to be open. */}
+        <Link href="/offers" className="tap col-span-2 sm:col-span-1">
+          <Card className="h-full flex flex-col gap-1 border border-hairline p-4 bg-white shadow-card rounded-xl transition hover:border-ink">
+            <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">New Requests</span>
+            <span className="font-display text-2xl font-extrabold text-ink">
+              {offer ? '1 Pending' : '0 Pending'}
+            </span>
+            <span className="text-[10px] text-accent">View all offers →</span>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -189,7 +198,12 @@ export function Dashboard({
       {offer && <OfferCard offer={offer} onResolved={() => setOffer(null)} />}
 
       <section>
-        <h2 className="mb-2 font-display text-lg">Today's schedule</h2>
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="font-display text-lg">Today&apos;s schedule</h2>
+          <Link href="/jobs" className="tap text-xs text-accent hover:underline">
+            All jobs →
+          </Link>
+        </div>
         {!jobsToday.length ? (
           <EmptyState
             title="No jobs scheduled today"

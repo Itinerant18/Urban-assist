@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { quote } from '@urban-assist/domain/pricing';
+import { quote, resolveServicePrice } from '@urban-assist/domain/pricing';
 import { sendNextOffer } from '@urban-assist/domain/matching';
 import { track } from '@urban-assist/domain/analytics';
 import { createBookingIntent, refundPaymentIntent } from '@urban-assist/integrations/stripe';
@@ -34,6 +34,21 @@ export async function createBooking(
     .single();
   if (svcErr || !svc) throw new Error('service_not_found');
 
+  // Pricing is platform-managed: the rate comes from the SKU, not from whatever the
+  // provider stored on their own row. Legacy provider_services rows have no sku_id
+  // and keep their stored price — see resolveServicePrice.
+  let sku: { min_price_pence: number | null } | null = null;
+  if (svc.sku_id) {
+    const { data } = await admin
+      .from('service_skus')
+      .select('min_price_pence')
+      .eq('id', svc.sku_id)
+      .eq('is_active', true)
+      .maybeSingle();
+    sku = data;
+  }
+  const netPence = resolveServicePrice(svc, sku);
+
   let promo: { id: string; discount_type: 'percent' | 'fixed'; discount_value: number } | null =
     null;
   if (input.promoCode) {
@@ -49,7 +64,7 @@ export async function createBooking(
     }
   }
 
-  const q = quote(svc.price_pence, promo);
+  const q = quote(netPence, promo);
 
   const { data: booking, error: bErr } = await db
     .from('bookings')
@@ -173,10 +188,15 @@ export async function confirmCashPayment(
   }
   if (payment.method !== 'cash') throw new Error('not_cash');
 
-  await db
+  // The read above is the authorization boundary (RLS-scoped `db` + the explicit
+  // participant check). The write must use the service-role client: `payments` has
+  // RLS enabled with SELECT-only policies (0002_rls.sql), so an update via `db`
+  // silently matches zero rows and the caller wrongly reports success.
+  const { error: updateError } = await admin
     .from('payments')
     .update({ status: 'succeeded', cash_collected_at: new Date().toISOString() })
     .eq('id', payment.id);
+  if (updateError) throw new Error(updateError.message);
 
   track(admin, input.userId, {
     type: 'cash.collected',
@@ -386,6 +406,23 @@ export interface UpdateJobStatusInput {
   cancellationReason?: string | null;
 }
 
+/**
+ * Which job statuses a provider may move a booking to, from each current status.
+ *
+ * The lifecycle is strictly forward: no going back to an earlier step, no skipping
+ * the arrival/start-code checkpoint, and once in_progress the only exit is completed —
+ * a provider cannot cancel work they have already started.
+ *
+ * Exported so it can be tested and reused by UI that decides which buttons to show,
+ * rather than re-listing the same rules in a second place that can drift.
+ */
+export const JOB_STATUS_TRANSITIONS: Record<string, string[]> = {
+  assigned: ['on_the_way', 'cancelled'],
+  on_the_way: ['arrived', 'cancelled'],
+  arrived: ['in_progress', 'cancelled'],
+  in_progress: ['completed'],
+};
+
 export async function updateJobStatus(
   db: SupabaseClient,
   input: UpdateJobStatusInput,
@@ -398,17 +435,13 @@ export async function updateJobStatus(
   if (currentError || !current) throw new Error('booking_not_found');
   if (current.provider_id !== input.providerId) throw new Error('forbidden');
 
-  const transitions: Record<string, string[]> = {
-    assigned: ['on_the_way', 'cancelled'],
-    on_the_way: ['arrived', 'cancelled'],
-    arrived: ['in_progress', 'cancelled'],
-    in_progress: ['completed'],
-  };
-  if (!transitions[current.status]?.includes(input.status))
+  if (!JOB_STATUS_TRANSITIONS[current.status]?.includes(input.status))
     throw new Error('invalid_status_transition');
 
   const patch: Record<string, any> = { status: input.status };
   const now = new Date().toISOString();
+  // Feeds the provider's on-time-arrival metric (migration 202608020002).
+  if (input.status === 'arrived') patch.arrived_at = now;
   if (input.status === 'in_progress') patch.started_at = now;
   if (input.status === 'completed') patch.completed_at = now;
   if (input.status === 'cancelled') {

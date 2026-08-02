@@ -4,7 +4,17 @@ import { Card, Button, Badge, Field, Input } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { ukDate } from '@urban-assist/lib';
 import { normaliseMobile } from '@urban-assist/utils';
-import { Star, AlertTriangle, User } from 'lucide-react';
+import Link from 'next/link';
+import {
+  Star,
+  AlertTriangle,
+  User,
+  Briefcase,
+  Inbox,
+  GraduationCap,
+  Settings as SettingsIcon,
+  LifeBuoy,
+} from 'lucide-react';
 
 interface Review {
   id: string;
@@ -236,6 +246,27 @@ export default function AccountPage() {
         <p className="font-mono-utility text-muted">Settings</p>
         <h1 className="font-display text-2xl font-bold text-ink">Account</h1>
       </header>
+
+      {/* The bottom nav is full at six tabs, so this is the entry point for the
+          screens that do not have one. */}
+      <nav className="grid grid-cols-2 gap-2">
+        {[
+          { href: '/profile', label: 'Public profile', icon: <User className="h-4 w-4" /> },
+          { href: '/performance', label: 'Performance', icon: <Star className="h-4 w-4" /> },
+          { href: '/jobs', label: 'All jobs', icon: <Briefcase className="h-4 w-4" /> },
+          { href: '/offers', label: 'Job offers', icon: <Inbox className="h-4 w-4" /> },
+          { href: '/training', label: 'Training', icon: <GraduationCap className="h-4 w-4" /> },
+          { href: '/settings', label: 'Settings', icon: <SettingsIcon className="h-4 w-4" /> },
+          { href: '/help', label: 'Help & support', icon: <LifeBuoy className="h-4 w-4" /> },
+        ].map((l) => (
+          <Link key={l.href} href={l.href} className="tap">
+            <Card className="!p-3 flex items-center gap-2 h-full transition hover:border-ink">
+              <span className="text-muted">{l.icon}</span>
+              <span className="text-sm font-medium text-ink">{l.label}</span>
+            </Card>
+          </Link>
+        ))}
+      </nav>
 
       {/* Edit Profile details card */}
       <Card>

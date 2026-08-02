@@ -15,9 +15,12 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronsRight,
+  ReceiptText,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import type { ChatMessage } from '@urban-assist/types';
+import { postCurrentLocation } from '../../../../lib/post-location';
 
 type DisplayMessage = Pick<ChatMessage, 'id' | 'booking_id' | 'sender_id' | 'content' | 'created_at'>;
 
@@ -403,6 +406,11 @@ export default function JobDetailPage() {
       }
       const data = await res.json();
       setBooking((cur: any) => ({ ...cur, ...data }));
+      // Drives the customer's live tracking map, which subscribes to
+      // provider_location changes. Never fired before, so the pin never moved.
+      if (nextStatus === 'on_the_way' || nextStatus === 'arrived') {
+        void postCurrentLocation();
+      }
     } catch (e: any) {
       if (nextStatus === 'in_progress') {
         setOtpError(
@@ -751,6 +759,18 @@ export default function JobDetailPage() {
           </Card>
 
           {/* Completion details if finished */}
+          {booking.status === 'completed' && (
+            <Link href={`/jobs/${booking.id}/invoice`} className="tap block">
+              <Card className="p-4 border border-hairline flex items-center justify-between hover:border-ink transition">
+                <div>
+                  <div className="text-sm font-semibold text-ink">Job statement</div>
+                  <p className="text-xs text-muted">Price breakdown, commission and take-home.</p>
+                </div>
+                <ReceiptText className="h-5 w-5 text-muted" />
+              </Card>
+            </Link>
+          )}
+
           {booking.status === 'completed' && completionReport && (
             <Card className="p-4 border border-hairline space-y-3">
               <div className="text-xs font-mono-utility text-muted">Completion Report</div>

@@ -116,6 +116,22 @@ export default function EarningsPage() {
     }
   }
   
+  // The onboard/dashboard routes existed with no caller, so providers could never
+  // create the Stripe account that `hasStripe` gates payouts on.
+  async function openStripeLink(path: 'onboard' | 'dashboard') {
+    setStripeBusy(true);
+    setStripeError(null);
+    try {
+      const res = await fetch(`/api/stripe/connect/${path}`, { method: 'POST' });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.url) throw new Error(j.error ?? 'Could not reach Stripe');
+      window.location.href = j.url;
+    } catch (e: any) {
+      setStripeError(e.message);
+      setStripeBusy(false);
+    }
+  }
+
   const hasStripe = !!profile?.stripe_account_id;
 
   if (loading) {
@@ -167,13 +183,30 @@ export default function EarningsPage() {
             </div>
           </div>
           
-          <div className="mt-6 md:mt-0 hidden md:block">
+          <div className="mt-6 md:mt-0 hidden md:flex md:flex-col md:items-end md:gap-2">
             {hasStripe ? (
-              <Button onClick={requestInstantPayout} disabled={stripeBusy || balancePending <= 0}>
-                {stripeBusy ? 'Processing...' : 'Withdraw to Bank'}
-              </Button>
+              <>
+                <Button onClick={requestInstantPayout} disabled={stripeBusy || balancePending <= 0}>
+                  {stripeBusy ? 'Processing...' : 'Withdraw to Bank'}
+                </Button>
+                <button
+                  onClick={() => openStripeLink('dashboard')}
+                  disabled={stripeBusy}
+                  className="tap text-xs text-muted underline hover:text-ink disabled:opacity-50"
+                >
+                  View Stripe dashboard
+                </button>
+              </>
             ) : (
-              <div className="text-xs text-danger max-w-[200px] text-right">Connect Stripe in Settings to receive payouts</div>
+              <>
+                {/* Was dead copy pointing at a Settings screen that had no such control. */}
+                <Button onClick={() => openStripeLink('onboard')} disabled={stripeBusy}>
+                  {stripeBusy ? 'Opening Stripe...' : 'Set up payouts'}
+                </Button>
+                <p className="text-xs text-muted max-w-[200px] text-right">
+                  Connect a bank account to withdraw your earnings.
+                </p>
+              </>
             )}
           </div>
         </Card>
@@ -261,13 +294,23 @@ export default function EarningsPage() {
 
       {/* Sticky Bottom CTA for Mobile */}
       <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-hairline z-20">
-         <Button 
-            className="w-full shadow-lg" 
-            onClick={requestInstantPayout} 
-            disabled={stripeBusy || balancePending <= 0 || !hasStripe}
-          >
-            {stripeBusy ? 'Processing...' : 'Withdraw to Bank'}
-         </Button>
+         {hasStripe ? (
+           <Button
+              className="w-full shadow-lg"
+              onClick={requestInstantPayout}
+              disabled={stripeBusy || balancePending <= 0}
+            >
+              {stripeBusy ? 'Processing...' : 'Withdraw to Bank'}
+           </Button>
+         ) : (
+           <Button
+              className="w-full shadow-lg"
+              onClick={() => openStripeLink('onboard')}
+              disabled={stripeBusy}
+            >
+              {stripeBusy ? 'Opening Stripe...' : 'Set up payouts'}
+           </Button>
+         )}
       </div>
     </div>
   );

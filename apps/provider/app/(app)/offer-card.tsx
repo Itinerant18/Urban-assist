@@ -4,7 +4,7 @@
 
 import * as React from 'react';
 import { Button } from '@urban-assist/ui';
-import { pence, ukDateTime } from '@urban-assist/lib';
+import { pence, ukDateTime, miles, haversineKm } from '@urban-assist/lib';
 import { Clock, MapPin, ShieldAlert } from 'lucide-react';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 
@@ -76,6 +76,12 @@ export function OfferCard({ offer, onResolved }: { offer: any; onResolved: () =>
   const jobLng = b.address?.lng;
   const hasRouteCoords = providerLoc && jobLat && jobLng;
 
+  // Both coordinate pairs were already fetched for the map; the card just showed a
+  // literal "~ 2.5 Miles" regardless. Straight-line, so it reads as an approximation.
+  const distanceLabel = hasRouteCoords
+    ? `~ ${miles(haversineKm(providerLoc.lat, providerLoc.lng, jobLat, jobLng))}`
+    : '—';
+
   const mapUrl = hasRouteCoords
     ? `https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&origin=${providerLoc.lat},${providerLoc.lng}&destination=${jobLat},${jobLng}&zoom=12`
     : jobLat && jobLng
@@ -126,7 +132,7 @@ export function OfferCard({ offer, onResolved }: { offer: any; onResolved: () =>
             </div>
             <div>
               <span className="font-mono-utility text-[10px] uppercase text-muted">Distance</span>
-              <p className="font-medium text-xs text-ink">~ 2.5 Miles</p>
+              <p className="font-medium text-xs text-ink">{distanceLabel}</p>
             </div>
             <div className="col-span-2">
               <span className="font-mono-utility text-[10px] uppercase text-muted">Location</span>
