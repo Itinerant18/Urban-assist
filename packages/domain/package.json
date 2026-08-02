@@ -16,7 +16,8 @@
     "./admin": "./src/admin/index.ts",
     "./support": "./src/support/index.ts",
     "./pricing": "./src/pricing/index.ts",
-    "./analytics": "./src/analytics/index.ts"
+    "./analytics": "./src/analytics/index.ts",
+    "./job-status": "./src/bookings/job-status.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

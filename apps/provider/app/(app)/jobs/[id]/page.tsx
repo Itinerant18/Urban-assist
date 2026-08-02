@@ -20,7 +20,7 @@ import {
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import type { ChatMessage } from '@urban-assist/types';
-import { canProviderCancel } from '@urban-assist/domain';
+import { canProviderCancel } from '@urban-assist/domain/job-status';
 import { postCurrentLocation } from '../../../../lib/post-location';
 
 type DisplayMessage = Pick<ChatMessage, 'id' | 'booking_id' | 'sender_id' | 'content' | 'created_at'>;

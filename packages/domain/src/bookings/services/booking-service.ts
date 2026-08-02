@@ -409,26 +409,11 @@ export interface UpdateJobStatusInput {
   cancellationReason?: string | null;
 }
 
-/**
- * Which job statuses a provider may move a booking to, from each current status.
- *
- * The lifecycle is strictly forward: no going back to an earlier step, no skipping
- * the arrival/start-code checkpoint, and once in_progress the only exit is completed —
- * a provider cannot cancel work they have already started.
- *
- * Exported so it can be tested and reused by UI that decides which buttons to show,
- * rather than re-listing the same rules in a second place that can drift.
- */
-export const JOB_STATUS_TRANSITIONS: Record<string, string[]> = {
-  assigned: ['on_the_way', 'cancelled'],
-  on_the_way: ['arrived', 'cancelled'],
-  arrived: ['in_progress', 'cancelled'],
-  in_progress: ['completed'],
-};
-
-export function canProviderCancel(status: string): boolean {
-  return JOB_STATUS_TRANSITIONS[status]?.includes('cancelled') ?? false;
-}
+// Moved to ../job-status.ts (dependency-free) so client components can import it
+// without dragging this module's matching/firebase-admin chain into their bundle.
+// Re-exported here so existing server-side import sites keep working.
+export { JOB_STATUS_TRANSITIONS, canProviderCancel } from '../job-status';
+import { JOB_STATUS_TRANSITIONS } from '../job-status';
 
 export async function updateJobStatus(
   db: SupabaseClient,

@@ -12,7 +12,11 @@ const TEST_OTP = '123456';
 
 async function localSupabaseReachable(): Promise<boolean> {
   try {
+    // Kong fronts every service locally and 502s key-less requests, so the probe
+    // must send the anon key — without it this suite silently skipped while the
+    // stack was fully up, and 78-passed-10-skipped read as "88 passed".
     const res = await fetch(`${LOCAL_URL}/auth/v1/health`, {
+      headers: { apikey: ANON_KEY },
       signal: AbortSignal.timeout(1500),
     });
     return res.ok;
