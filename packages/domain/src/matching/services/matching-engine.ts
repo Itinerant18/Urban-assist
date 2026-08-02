@@ -10,6 +10,8 @@ import {
 } from '@urban-assist/integrations/redis';
 import { appendBookingStatus } from '@urban-assist/integrations/firebase';
 import { loadCategoryTrainingEligibility } from '../../training/eligibility-loader';
+import { isCategoryTrainingEligible } from '../../training/quiz';
+import { track } from '../../analytics/services/analytics-service';
 
 interface Candidate {
   provider_id: string;
@@ -177,9 +179,88 @@ export async function findCandidates(
     (booking as any).scheduled_at,
   );
 
-  // Availability is applied before the cap so a fully-booked top 20 cannot hide
-  // providers further down who are actually free.
-  return rankCandidates(available, (booking as any).preferred_provider_id);
+  const trained = await filterByTrainingEligibility(
+    db,
+    available,
+    bookingId,
+    (booking as any).category_id,
+  );
+
+  // Both filters run before the cap so a fully-booked or untrained top 20 cannot
+  // hide providers further down who are actually able to take the job.
+  return rankCandidates(trained, (booking as any).preferred_provider_id);
+}
+
+/**
+ * Drop candidates who have not completed the category's gating training.
+ *
+ * Without this the cascade offered gated-category jobs to untrained providers, who
+ * could not accept (`training_required` at the accept boundary) — and both declining
+ * and letting the offer expire count against acceptance_rate (0003_triggers), 20% of
+ * their matching score. A gated category with no trained providers burned
+ * OFFER_TTL × cascade depth of dead offers before reaching unmatched.
+ *
+ * The observation metric moves with the decision: one `offer.blocked_training` event
+ * per skipped provider, stage 'candidate_filter', so the observation window still
+ * measures how much demand training gates are holding back — without creating offers
+ * nobody can act on. The accept-path check stays as defence in depth (an offer
+ * created before eligibility changed) and reports stage 'accept'.
+ */
+async function filterByTrainingEligibility(
+  db: SupabaseClient,
+  candidates: Candidate[],
+  bookingId: string,
+  categoryId: string | null | undefined,
+): Promise<Candidate[]> {
+  if (!categoryId || !candidates.length) return candidates;
+
+  const { data: items } = await db
+    .from('training_items')
+    .select('id, category_id, is_mandatory, gates_category, pass_score')
+    .eq('is_active', true)
+    .eq('category_id', categoryId)
+    .eq('gates_category', true);
+  if (!items?.length) return candidates;
+
+  const ids = candidates.map((c) => c.provider_id);
+  const { data: completions } = await db
+    .from('provider_training_completions')
+    .select('provider_id, item_id, score')
+    .in('provider_id', ids);
+
+  const byProvider = new Map<string, { item_id: string; score: number | null }[]>();
+  for (const c of completions ?? []) {
+    const list = byProvider.get(c.provider_id) ?? [];
+    list.push({ item_id: c.item_id, score: c.score });
+    byProvider.set(c.provider_id, list);
+  }
+
+  const eligible: Candidate[] = [];
+  const blocked: Candidate[] = [];
+  for (const c of candidates) {
+    if (isCategoryTrainingEligible(categoryId, items, byProvider.get(c.provider_id) ?? [])) {
+      eligible.push(c);
+    } else {
+      blocked.push(c);
+    }
+  }
+
+  // track() swallows its own failures, so a broken analytics path cannot stall matching.
+  await Promise.all(
+    blocked.map((b) =>
+      track(db, b.provider_id, {
+        type: 'offer.blocked_training',
+        payload: {
+          booking_id: bookingId,
+          provider_id: b.provider_id,
+          category_id: categoryId,
+          stage: 'candidate_filter',
+        },
+      }),
+    ),
+  );
+
+  return eligible;
 }
 
 /**

@@ -54,6 +54,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           booking_id: offerRow?.booking_id ?? params.id,
           provider_id: user.id,
           category_id: booking?.category_id ?? null,
+          // Filter-time skips report 'candidate_filter'; reaching here means the
+          // offer predated an eligibility change and was blocked at accept.
+          stage: 'accept',
         },
       });
     }

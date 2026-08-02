@@ -7,7 +7,15 @@ export type AnalyticsEvent =
   | { type: 'offer.declined'; payload: { booking_id: string; provider_id: string } }
   | {
       type: 'offer.blocked_training';
-      payload: { booking_id: string; provider_id: string; category_id: string | null };
+      payload: {
+        booking_id: string;
+        provider_id: string;
+        category_id: string | null;
+        // candidate_filter: skipped by findCandidates, no offer was created.
+        // accept: raced past the filter and was blocked at accept (defence in depth).
+        // Absent on rows from before the filter existed — those were accept-time.
+        stage?: 'candidate_filter' | 'accept';
+      };
     }
   | { type: 'payment.succeeded'; payload: { booking_id: string; amount_pence: number } }
   | { type: 'cash.collected'; payload: { booking_id: string } }
