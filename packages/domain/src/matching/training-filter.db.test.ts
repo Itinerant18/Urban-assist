@@ -2,22 +2,35 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { findCandidates } from './services/matching-engine';
 
+import { readFileSync } from 'node:fs';
+
 /**
  * DB-backed proof that findCandidates excludes training-ineligible providers and
  * emits the observation metric at filter time — the collateral this replaces was
  * real: un-acceptable offers burning OFFER_TTL each and dinging acceptance_rate.
  *
- * Local demo keys (iss: supabase-demo) — identical on every install, not secrets.
+ * Keys are read from the gitignored .env.local that local setup creates. They are
+ * only the public supabase-demo tokens, but JWT-shaped literals in source trip
+ * secret scanners on every future PR, and normalising dismissed alerts is worse.
  */
-const LOCAL_URL = 'http://127.0.0.1:54321';
-const ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
-const SERVICE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+function envLocal(name: string): string | null {
+  if (process.env[name]) return process.env[name]!;
+  try {
+    const raw = readFileSync('apps/customer/.env.local', 'utf8');
+    return raw.match(new RegExp(`^${name}=(.*)$`, 'm'))?.[1]?.trim() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+const LOCAL_URL = envLocal('NEXT_PUBLIC_SUPABASE_URL') ?? 'http://127.0.0.1:54321';
+const ANON_KEY = envLocal('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+const SERVICE_KEY = envLocal('SUPABASE_SERVICE_ROLE_KEY');
 
 const PROVIDER = 'a0000000-0000-4000-8000-000000000001'; // seeded, approved, online
 
 async function reachable(): Promise<boolean> {
+  if (!ANON_KEY || !SERVICE_KEY) return false; // no local env captured -> skip
   try {
     const res = await fetch(`${LOCAL_URL}/auth/v1/health`, {
       headers: { apikey: ANON_KEY },
@@ -40,7 +53,7 @@ describe.skipIf(!up)('training gating in findCandidates (local Supabase)', () =>
   let serviceId: string | null = null;
 
   beforeAll(async () => {
-    admin = createClient(LOCAL_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    admin = createClient(LOCAL_URL, SERVICE_KEY!, { auth: { persistSession: false } });
 
     // A category the seed gates but gives no provider completions for.
     const { data: cat } = await admin
