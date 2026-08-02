@@ -52,3 +52,11 @@ auth_token = "env(TWILIO_AUTH_TOKEN)"
 
 [storage.vector]
 enabled = false
+
+# Vector (the analytics log shipper) reads container logs via the Docker daemon,
+# which on Windows requires exposing the daemon on unauthenticated TCP — a Docker
+# Desktop setting not worth its risk for a log viewer. Without it the container
+# crash-loops ("Network unreachable") and ships nothing. Apps, DB, auth and
+# realtime do not depend on it; only Studio's log view goes dark.
+[analytics]
+enabled = false
