@@ -11,6 +11,14 @@ begin;
 grant select on all tables in schema public to anon, authenticated;
 grant insert, update, delete on all tables in schema public to authenticated;
 
+-- service_role is affected by the same local default. Hosted grants it full DML on
+-- every public table; locally it was left with only Truncate/References/Trigger, so
+-- anything server-side failed with 42501 — `pnpm bootstrap:admin` got as far as
+-- creating the auth user and the profile, then died on admin_roles. Verified against
+-- production: service_role holds DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE.
+grant all on all tables in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+
 -- Re-apply intentional locks from security migrations so RLS tests stay honest.
 revoke update on public.profiles from anon, authenticated;
 grant update (full_name, phone, avatar_url, bio, notification_prefs)
