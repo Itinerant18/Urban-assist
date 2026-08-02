@@ -8,9 +8,17 @@ import { Clock, MapPin, ChevronRight } from 'lucide-react';
 
 type Filter = 'live' | 'all';
 
-/** Seconds until `iso`, floored at 0. */
-function secondsLeft(iso: string) {
-  return Math.max(0, Math.floor((new Date(iso).getTime() - Date.now()) / 1000));
+/**
+ * Seconds until `iso`, floored at 0, measured against an explicit `now`.
+ *
+ * `now` is threaded through rather than read from Date.now() inside render: this is a
+ * client component, but Next still server-renders it, so reading the clock during
+ * render produces different HTML on the server and the client and React reports a
+ * hydration mismatch. `now` is null until mounted, and time-dependent output is
+ * suppressed until then.
+ */
+function secondsLeft(iso: string, now: number) {
+  return Math.max(0, Math.floor((new Date(iso).getTime() - now) / 1000));
 }
 
 export function OffersList({
@@ -21,18 +29,21 @@ export function OffersList({
   providerLoc: { lat: number; lng: number } | null;
 }) {
   const [filter, setFilter] = React.useState<Filter>('live');
-  // Drives the countdown on pending cards; one interval for the whole list.
-  const [, tick] = React.useReducer((n: number) => n + 1, 0);
+  // null until mounted, so the server render and the first client render agree.
+  // Doubles as the countdown tick for the whole list — one interval, not one per card.
+  const [now, setNow] = React.useState<number | null>(null);
 
   React.useEffect(() => {
-    const t = setInterval(tick, 1000);
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
 
   // An offer is only actionable while pending AND inside its window. The cascade
   // may not have marked it expired yet, so trust the deadline over the status.
-  const live = offers.filter(
-    (o) => o.status === 'pending' && secondsLeft(o.responds_by) > 0,
+  // Before mount there is no trustworthy clock, so fall back to the stored status.
+  const live = offers.filter((o) =>
+    o.status !== 'pending' ? false : now === null || secondsLeft(o.responds_by, now) > 0,
   );
   const shown = filter === 'live' ? live : offers;
 
@@ -81,7 +92,7 @@ export function OffersList({
         <ul className="space-y-2">
           {shown.map((o) => (
             <li key={o.id}>
-              <OfferRow offer={o} providerLoc={providerLoc} />
+              <OfferRow offer={o} providerLoc={providerLoc} now={now} />
             </li>
           ))}
         </ul>
@@ -93,13 +104,15 @@ export function OffersList({
 function OfferRow({
   offer,
   providerLoc,
+  now,
 }: {
   offer: any;
   providerLoc: { lat: number; lng: number } | null;
+  now: number | null;
 }) {
   const b = offer.booking ?? {};
-  const left = secondsLeft(offer.responds_by);
-  const isLive = offer.status === 'pending' && left > 0;
+  const left = now === null ? null : secondsLeft(offer.responds_by, now);
+  const isLive = offer.status === 'pending' && (left === null || left > 0);
 
   const lat = b.address?.lat;
   const lng = b.address?.lng;
@@ -156,7 +169,9 @@ function OfferRow({
             <div className="font-display text-lg font-bold text-success">
               {pence(b.total_pence ?? 0)}
             </div>
-            {isLive && (
+            {/* left === null pre-mount: the badge still says "Awaiting you", but the
+                countdown itself is withheld until there is a real clock. */}
+            {isLive && left !== null && (
               <div className="flex items-center justify-end gap-1 text-[10px] font-mono-utility text-accent">
                 <Clock className="h-3 w-3" />
                 {Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')}
@@ -170,8 +185,9 @@ function OfferRow({
   );
 }
 
-function OfferStatusBadge({ offer, left }: { offer: any; left: number }) {
-  if (offer.status === 'pending' && left > 0) return <Badge tone="accent">Awaiting you</Badge>;
+function OfferStatusBadge({ offer, left }: { offer: any; left: number | null }) {
+  if (offer.status === 'pending' && (left === null || left > 0))
+    return <Badge tone="accent">Awaiting you</Badge>;
   if (offer.status === 'accepted') return <Badge tone="success">Accepted</Badge>;
   if (offer.status === 'declined') return <Badge tone="danger">Declined</Badge>;
   // Pending-but-past-deadline reads as expired even before the cascade updates it.

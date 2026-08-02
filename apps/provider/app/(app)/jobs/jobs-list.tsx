@@ -34,6 +34,20 @@ const STATUS_LABEL: Record<string, string> = {
   disputed: 'Disputed',
 };
 
+/**
+ * Boundary of a local calendar day from a `YYYY-MM-DD` date input.
+ *
+ * Built from parts rather than `new Date(str)`: the string form is specified to parse
+ * as UTC midnight, so applying local hours to it lands on the previous day anywhere
+ * west of Greenwich. Harmless in the UK, wrong everywhere else.
+ */
+function localDay(value: string, edge: 'start' | 'end') {
+  const [y, m, d] = value.split('-').map(Number);
+  return edge === 'start'
+    ? new Date(y, m - 1, d, 0, 0, 0, 0)
+    : new Date(y, m - 1, d, 23, 59, 59, 999);
+}
+
 export function JobsList({ jobs }: { jobs: any[] }) {
   const [tab, setTab] = React.useState<JobFilter>('active');
   const [from, setFrom] = React.useState('');
@@ -56,14 +70,10 @@ export function JobsList({ jobs }: { jobs: any[] }) {
     // Date inputs are local calendar days; widen `to` to the end of that day so a
     // single-day filter (from === to) matches jobs scheduled during it.
     if (from) {
-      const f = new Date(from);
-      f.setHours(0, 0, 0, 0);
-      list = list.filter((j) => new Date(j.scheduled_at) >= f);
+      list = list.filter((j) => new Date(j.scheduled_at) >= localDay(from, 'start'));
     }
     if (to) {
-      const t = new Date(to);
-      t.setHours(23, 59, 59, 999);
-      list = list.filter((j) => new Date(j.scheduled_at) <= t);
+      list = list.filter((j) => new Date(j.scheduled_at) <= localDay(to, 'end'));
     }
     return list;
   }, [jobs, tab, from, to]);

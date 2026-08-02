@@ -32,9 +32,10 @@ export function OfferDetail({
   const router = useRouter();
   const b = offer.booking ?? {};
 
-  const [secsLeft, setSecsLeft] = React.useState(() =>
-    Math.max(0, Math.floor((new Date(offer.responds_by).getTime() - Date.now()) / 1000)),
-  );
+  // null until mounted. A useState initializer still runs during the server render,
+  // so seeding this from Date.now() gives the server and the client different HTML
+  // and React reports a hydration mismatch.
+  const [secsLeft, setSecsLeft] = React.useState<number | null>(null);
   const [busy, setBusy] = React.useState<'accept' | 'decline' | null>(null);
   const [err, setErr] = React.useState<string | null>(null);
   const [declining, setDeclining] = React.useState(false);
@@ -42,15 +43,16 @@ export function OfferDetail({
 
   React.useEffect(() => {
     if (offer.status !== 'pending') return;
-    const t = setInterval(() => {
-      setSecsLeft(
-        Math.max(0, Math.floor((new Date(offer.responds_by).getTime() - Date.now()) / 1000)),
-      );
-    }, 1000);
+    const remaining = () =>
+      Math.max(0, Math.floor((new Date(offer.responds_by).getTime() - Date.now()) / 1000));
+    setSecsLeft(remaining());
+    const t = setInterval(() => setSecsLeft(remaining()), 1000);
     return () => clearInterval(t);
   }, [offer.responds_by, offer.status]);
 
-  const isLive = offer.status === 'pending' && secsLeft > 0;
+  // Pre-mount, trust the stored status: an offer the server says is pending renders
+  // as actionable, and the countdown appears once there is a real clock.
+  const isLive = offer.status === 'pending' && (secsLeft === null || secsLeft > 0);
 
   async function respond(accept: boolean) {
     setBusy(accept ? 'accept' : 'decline');
@@ -121,7 +123,9 @@ export function OfferDetail({
           {isLive ? (
             <Badge tone="accent">
               <Clock className="h-3 w-3" />
-              {Math.floor(secsLeft / 60)}:{String(secsLeft % 60).padStart(2, '0')} left
+              {secsLeft === null
+                ? 'Awaiting you'
+                : `${Math.floor(secsLeft / 60)}:${String(secsLeft % 60).padStart(2, '0')} left`}
             </Badge>
           ) : offer.status === 'accepted' ? (
             <Badge tone="success">Accepted</Badge>
