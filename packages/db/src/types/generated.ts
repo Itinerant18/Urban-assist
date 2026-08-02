@@ -654,6 +654,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bookings_preferred_provider_id_fkey"
+            columns: ["preferred_provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bookings_promo_code_id_fkey"
             columns: ["promo_code_id"]
             isOneToOne: false
@@ -1233,6 +1240,48 @@ export type Database = {
           },
         ]
       }
+      provider_category_eligibility: {
+        Row: {
+          category_id: string
+          completed_modules: number
+          is_eligible: boolean
+          provider_id: string
+          required_modules: number
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          completed_modules?: number
+          is_eligible?: boolean
+          provider_id: string
+          required_modules?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          completed_modules?: number
+          is_eligible?: boolean
+          provider_id?: string
+          required_modules?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_category_eligibility_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_category_eligibility_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_documents: {
         Row: {
           doc_type: string
@@ -1404,24 +1453,85 @@ export type Database = {
           },
         ]
       }
+      provider_training_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          due_at: string | null
+          id: string
+          item_id: string
+          provider_id: string
+          required: boolean
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          due_at?: string | null
+          id?: string
+          item_id: string
+          provider_id: string
+          required?: boolean
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          due_at?: string | null
+          id?: string
+          item_id?: string
+          provider_id?: string
+          required?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_training_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_training_assignments_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "training_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_training_assignments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_training_completions: {
         Row: {
           completed_at: string
           id: string
           item_id: string
           provider_id: string
+          score: number | null
+          source: string
+          updated_at: string
         }
         Insert: {
           completed_at?: string
           id?: string
           item_id: string
           provider_id: string
+          score?: number | null
+          source?: string
+          updated_at?: string
         }
         Update: {
           completed_at?: string
           id?: string
           item_id?: string
           provider_id?: string
+          score?: number | null
+          source?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1433,6 +1543,51 @@ export type Database = {
           },
           {
             foreignKeyName: "provider_training_completions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_training_quiz_attempts: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          item_id: string
+          passed: boolean
+          provider_id: string
+          score: number
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          item_id: string
+          passed: boolean
+          provider_id: string
+          score: number
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          item_id?: string
+          passed?: boolean
+          provider_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_training_quiz_attempts_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "training_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_training_quiz_attempts_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1815,10 +1970,13 @@ export type Database = {
           content_url: string | null
           created_at: string
           description: string | null
+          estimated_mins: number | null
+          gates_category: boolean
           id: string
           is_active: boolean
           is_mandatory: boolean
           kind: string
+          pass_score: number | null
           sort_order: number
           title: string
         }
@@ -1827,10 +1985,13 @@ export type Database = {
           content_url?: string | null
           created_at?: string
           description?: string | null
+          estimated_mins?: number | null
+          gates_category?: boolean
           id?: string
           is_active?: boolean
           is_mandatory?: boolean
           kind?: string
+          pass_score?: number | null
           sort_order?: number
           title: string
         }
@@ -1839,10 +2000,13 @@ export type Database = {
           content_url?: string | null
           created_at?: string
           description?: string | null
+          estimated_mins?: number | null
+          gates_category?: boolean
           id?: string
           is_active?: boolean
           is_mandatory?: boolean
           kind?: string
+          pass_score?: number | null
           sort_order?: number
           title?: string
         }
@@ -1852,6 +2016,47 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_quiz_questions: {
+        Row: {
+          correct_index: number
+          created_at: string
+          id: string
+          is_active: boolean
+          item_id: string
+          options: Json
+          prompt: string
+          sort_order: number
+        }
+        Insert: {
+          correct_index: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          item_id: string
+          options: Json
+          prompt: string
+          sort_order?: number
+        }
+        Update: {
+          correct_index?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          item_id?: string
+          options?: Json
+          prompt?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_quiz_questions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "training_items"
             referencedColumns: ["id"]
           },
         ]
@@ -2327,9 +2532,11 @@ export type Database = {
           email: string
           full_name: string
           is_available: boolean
+          is_preferred: boolean
           last_seen_at: string
           provider_id: string
           rating: number
+          training_eligible: boolean
         }[]
       }
       gettransactionid: { Args: never; Returns: unknown }
@@ -2399,6 +2606,10 @@ export type Database = {
           discount_value: number
           id: string
         }[]
+      }
+      refresh_provider_training_eligibility: {
+        Args: { p_provider_id: string }
+        Returns: undefined
       }
       set_admin_user_roles: {
         Args: {
