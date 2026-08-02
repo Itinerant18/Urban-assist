@@ -6,5 +6,49 @@ verify_jwt = false
 [functions.notification-dispatch]
 verify_jwt = false
 
-[functions.support-ticket-webhook]
+[functions.booking-start-otp]
 verify_jwt = false
+
+[functions.payment-release]
+verify_jwt = false
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = [
+  "http://localhost:3000/**",
+  "http://localhost:3001/**",
+  "http://localhost:3002/**",
+]
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+enable_confirmations = true
+max_frequency = "1m0s"
+otp_length = 8
+
+[auth.sms]
+enable_signup = true
+
+# Live secrets live in env / supabase/.env — never in this file.
+# GoTrue still requires an SMS provider configured for phone login; test_otp
+# below short-circuits Twilio for seeded numbers so no SMS is sent.
+[auth.sms.twilio_verify]
+enabled = true
+account_sid = "env(TWILIO_ACCOUNT_SID)"
+message_service_sid = "env(TWILIO_MESSAGE_SERVICE_SID)"
+auth_token = "env(TWILIO_AUTH_TOKEN)"
+
+# Fixed OTPs for seeded + legacy test phones — no Twilio call for these.
+[auth.sms.test_otp]
+"447123456789" = "123456"
+"919876543210" = "123456"
+"447700900001" = "123456"
+"447700900002" = "123456"
+"447700900003" = "123456"
+"447700900004" = "123456"
+
+[storage.vector]
+enabled = false
