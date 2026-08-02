@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { AppShell, type NavItem } from '@urban-assist/ui';
 import { PushRegistrar } from './push-registrar';
+import { NotificationBell } from '../../components/notification-bell';
 import { Briefcase, CalendarDays, Wallet, FileText, UserRound, Settings } from 'lucide-react';
 
 const nav: NavItem[] = [
@@ -29,8 +30,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Registration wall — /register lives outside this route group, so no loop.
   if (!profile.registration_completed) redirect('/register');
 
+  // Seeds the bell so it renders the right count on first paint instead of
+  // flashing zero, then realtime keeps it current.
+  const { count: unread } = await db
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('profile_id', user.id)
+    .is('read_at', null);
+
   return (
-    <AppShell nav={nav} brand="Urban Assist Pro">
+    <AppShell
+      nav={nav}
+      brand="Urban Assist Pro"
+      headerRight={<NotificationBell initialUnread={unread ?? 0} />}
+    >
       <PushRegistrar />
       {children}
     </AppShell>

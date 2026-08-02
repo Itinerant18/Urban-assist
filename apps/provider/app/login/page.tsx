@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { LoginForm } from './login-form';
 
 export const metadata = { title: 'Provider sign in — Urban Assist Pro' };
@@ -27,7 +28,15 @@ export default function Page() {
           <h1 className="font-display text-2xl font-extrabold text-ink">Welcome back</h1>
           <p className="mt-2 text-sm text-muted">Sign in to manage your jobs and earnings.</p>
         </div>
-        <LoginForm />
+        {/* LoginForm reads ?redirect / ?error via useSearchParams, which opts the
+            subtree out of static prerendering unless it sits behind Suspense. */}
+        <Suspense
+          fallback={
+            <div className="h-64 rounded-xl border border-hairline bg-white shadow-card" />
+          }
+        >
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );

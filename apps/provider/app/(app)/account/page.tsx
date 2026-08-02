@@ -3,7 +3,17 @@ import * as React from 'react';
 import { Card, Button, Badge, Field, Input } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { formatUkPhone, ukDate } from '@urban-assist/lib';
-import { Star, AlertTriangle, User } from 'lucide-react';
+import Link from 'next/link';
+import {
+  Star,
+  AlertTriangle,
+  User,
+  Briefcase,
+  Inbox,
+  Settings,
+  LifeBuoy,
+  GraduationCap,
+} from 'lucide-react';
 
 interface Review {
   id: string;
@@ -41,6 +51,52 @@ export default function AccountPage() {
   const [ticketError, setTicketError] = React.useState<string | null>(null);
   const [ticketOk, setTicketOk] = React.useState<string | null>(null);
   const [ticketBusy, setTicketBusy] = React.useState(false);
+
+  const [gdprBusy, setGdprBusy] = React.useState<'export' | 'delete' | null>(null);
+  const [gdprMsg, setGdprMsg] = React.useState<string | null>(null);
+  const [gdprErr, setGdprErr] = React.useState<string | null>(null);
+
+  async function requestGdpr(kind: 'export' | 'delete') {
+    if (
+      kind === 'delete' &&
+      !window.confirm(
+        'Request account deletion? We will contact you to confirm before anything is removed. Jobs already completed are kept where the law requires.',
+      )
+    ) {
+      return;
+    }
+    setGdprBusy(kind);
+    setGdprMsg(null);
+    setGdprErr(null);
+    try {
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          category: 'other',
+          description:
+            kind === 'export'
+              ? 'GDPR: request for a copy of all personal data held on this provider account.'
+              : 'GDPR: request to delete this provider account and associated personal data.',
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? 'Could not raise the request');
+      }
+      const created = await res.json();
+      setTickets((cur) => [created, ...cur]);
+      setGdprMsg(
+        kind === 'export'
+          ? 'Data export requested. We will send it within 30 days.'
+          : 'Deletion requested. We will contact you to confirm within 30 days.',
+      );
+    } catch (e: any) {
+      setGdprErr(e.message);
+    } finally {
+      setGdprBusy(null);
+    }
+  }
 
   React.useEffect(() => {
     async function loadData() {
@@ -173,6 +229,27 @@ export default function AccountPage() {
         <h1 className="font-display text-xl">Account</h1>
       </header>
 
+      {/* The bottom nav is full at six tabs, so this is the entry point for the
+          screens that do not have one. */}
+      <nav className="grid grid-cols-2 gap-2">
+        {[
+          { href: '/profile', label: 'Public profile', icon: <User className="h-4 w-4" /> },
+          { href: '/performance', label: 'Performance', icon: <Star className="h-4 w-4" /> },
+          { href: '/jobs', label: 'All jobs', icon: <Briefcase className="h-4 w-4" /> },
+          { href: '/offers', label: 'Job offers', icon: <Inbox className="h-4 w-4" /> },
+          { href: '/training', label: 'Training', icon: <GraduationCap className="h-4 w-4" /> },
+          { href: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> },
+          { href: '/help', label: 'Help & support', icon: <LifeBuoy className="h-4 w-4" /> },
+        ].map((l) => (
+          <Link key={l.href} href={l.href} className="tap">
+            <Card className="!p-3 flex items-center gap-2 h-full transition hover:border-ink">
+              <span className="text-muted">{l.icon}</span>
+              <span className="text-sm font-medium text-ink">{l.label}</span>
+            </Card>
+          </Link>
+        ))}
+      </nav>
+
       {/* Edit Profile details card */}
       <Card>
         <form onSubmit={updateProfile} className="space-y-3">
@@ -298,14 +375,31 @@ export default function AccountPage() {
         <p className="text-xs text-muted">
           Under UK GDPR, you have the right to request a data export or account deletion. We process all requests within 30 days.
         </p>
+        {/* ponytail: both buttons had no onClick at all. The copy already promises a
+            30-day manual process, so they raise a tracked ticket rather than pretending
+            to be self-service. Upgrade to an automated export when there is one. */}
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="text-xs">
-            Export My Data
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            disabled={gdprBusy !== null}
+            onClick={() => requestGdpr('export')}
+          >
+            {gdprBusy === 'export' ? 'Requesting…' : 'Export My Data'}
           </Button>
-          <Button variant="ghost" size="sm" className="text-xs text-danger">
-            Delete Account
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-danger"
+            disabled={gdprBusy !== null}
+            onClick={() => requestGdpr('delete')}
+          >
+            {gdprBusy === 'delete' ? 'Requesting…' : 'Delete Account'}
           </Button>
         </div>
+        {gdprMsg && <p className="text-xs text-success font-medium">{gdprMsg}</p>}
+        {gdprErr && <p className="text-xs text-danger font-medium">{gdprErr}</p>}
       </Card>
 
       {/* Logout button */}

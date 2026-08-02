@@ -115,6 +115,22 @@ export default function EarningsPage() {
     }
   }
   
+  // The onboard/dashboard routes existed with no caller, so providers could never
+  // create the Stripe account that `hasStripe` gates payouts on. Both are wired here.
+  async function openStripeLink(path: 'onboard' | 'dashboard') {
+    setStripeBusy(true);
+    setStripeError(null);
+    try {
+      const res = await fetch(`/api/stripe/connect/${path}`, { method: 'POST' });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.url) throw new Error(j.error ?? 'Could not reach Stripe');
+      window.location.href = j.url;
+    } catch (e: any) {
+      setStripeError(e.message);
+      setStripeBusy(false);
+    }
+  }
+
   const hasStripe = !!profile?.stripe_account_id;
 
   if (loading) {
@@ -127,8 +143,26 @@ export default function EarningsPage() {
     );
   }
 
-  // Calculate chart data (stub for 3 weeks)
-  const chartData = [40, 75, 100]; // Dummy percentage heights
+  // Four trailing 7-day buckets of completed-job earnings, oldest first.
+  // Replaces `chartData = [40, 75, 100]` and its fixed £0/£250/£500 axis.
+  const now = new Date();
+  const weeks = Array.from({ length: 4 }, (_, i) => {
+    const end = new Date(now);
+    end.setDate(now.getDate() - 7 * (3 - i));
+    end.setHours(23, 59, 59, 999);
+    const start = new Date(end);
+    start.setDate(end.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+    const total = transactions
+      .filter((t) => t.type === 'booking')
+      .filter((t) => {
+        const d = new Date(t.date);
+        return d >= start && d <= end;
+      })
+      .reduce((s, t) => s + t.amount_pence, 0);
+    return { label: ukDate(start), total };
+  });
+  const weekPeak = Math.max(0, ...weeks.map((w) => w.total));
 
   const recentJobs = transactions.filter(t => t.type === 'booking').slice(0, 5);
   const recentPayouts = transactions.filter(t => t.type === 'payout').slice(0, 5);
@@ -152,27 +186,47 @@ export default function EarningsPage() {
               <p className="text-xs font-bold text-muted uppercase tracking-wider">Available Balance</p>
               <div className="font-display text-4xl mt-1 text-ink">{pence(balancePending)}</div>
             </div>
+            {/* ponytail: was "Next Automatic Payout — Friday, 24 Oct", a literal. No
+                auto-payout scheduler exists (withdrawals are manual, via the button
+                opposite), so any date here is invented. Showing a true figure instead;
+                swap back to a real next-run date when scheduled payouts ship. */}
             <div className="hidden md:block">
-              <p className="text-xs font-bold text-muted uppercase tracking-wider">Next Automatic Payout</p>
-              <div className="text-base font-medium mt-1">Friday, 24 Oct</div>
-              <div className="text-xs text-muted">(Stripe Connect)</div>
+              <p className="text-xs font-bold text-muted uppercase tracking-wider">Paid Out To Date</p>
+              <div className="text-base font-medium mt-1">{pence(totalPaidOut)}</div>
+              <div className="text-xs text-muted">Withdrawals are manual</div>
             </div>
           </div>
           
-          <div className="mt-6 md:mt-0 hidden md:block">
+          <div className="mt-6 md:mt-0 hidden md:flex md:flex-col md:items-end md:gap-2">
             {hasStripe ? (
-              <Button onClick={requestInstantPayout} disabled={stripeBusy || balancePending <= 0}>
-                {stripeBusy ? 'Processing...' : 'Withdraw to Bank'}
-              </Button>
+              <>
+                <Button onClick={requestInstantPayout} disabled={stripeBusy || balancePending <= 0}>
+                  {stripeBusy ? 'Processing...' : 'Withdraw to Bank'}
+                </Button>
+                <button
+                  onClick={() => openStripeLink('dashboard')}
+                  disabled={stripeBusy}
+                  className="tap text-xs text-muted underline hover:text-ink disabled:opacity-50"
+                >
+                  View Stripe dashboard
+                </button>
+              </>
             ) : (
-              <div className="text-xs text-danger max-w-[200px] text-right">Connect Stripe in Settings to receive payouts</div>
+              <>
+                <Button onClick={() => openStripeLink('onboard')} disabled={stripeBusy}>
+                  {stripeBusy ? 'Opening Stripe...' : 'Set up payouts'}
+                </Button>
+                <p className="text-xs text-muted max-w-[200px] text-right">
+                  Connect a bank account to withdraw your earnings.
+                </p>
+              </>
             )}
           </div>
           {/* Mobile next payout info */}
           <div className="md:hidden mt-4 pt-4 border-t border-hairline">
              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted">Next Payout:</span>
-                <span className="font-medium">Friday, 24 Oct</span>
+                <span className="text-muted">Paid out to date:</span>
+                <span className="font-medium">{pence(totalPaidOut)}</span>
              </div>
           </div>
         </Card>
@@ -184,34 +238,42 @@ export default function EarningsPage() {
             
             {/* Earnings History Chart */}
             <section className="space-y-3">
-               <h2 className="text-xs font-bold text-muted uppercase tracking-wider">Earnings History (October)</h2>
+               <h2 className="text-xs font-bold text-muted uppercase tracking-wider">Earnings History (Last 4 Weeks)</h2>
                <Card className="!p-6 flex flex-col justify-end h-48 bg-bg/30">
                   <div className="flex items-end gap-4 h-full border-b border-hairline pb-2">
+                     {/* Axis derived from the period's own peak, not fixed at £0/£250/£500. */}
                      <div className="flex flex-col justify-between h-full text-[10px] text-muted font-mono-utility pr-2">
-                       <span>£500</span>
-                       <span>£250</span>
-                       <span>£0</span>
+                       <span>{pence(weekPeak)}</span>
+                       <span>{pence(Math.round(weekPeak / 2))}</span>
+                       <span>{pence(0)}</span>
                      </div>
                      <div className="flex-1 flex items-end justify-around h-full">
-                       {chartData.map((h, i) => (
-                         <div key={i} className="w-12 bg-accent rounded-t-sm transition-all duration-500 hover:bg-ink" style={{ height: `${h}%` }}></div>
+                       {weeks.map((w) => (
+                         <div
+                           key={w.label}
+                           title={`Week of ${w.label}: ${pence(w.total)}`}
+                           className="w-12 bg-accent rounded-t-sm transition-all duration-500 hover:bg-ink min-h-[2px]"
+                           style={{ height: weekPeak > 0 ? `${(w.total / weekPeak) * 100}%` : '2px' }}
+                         />
                        ))}
                      </div>
                   </div>
                   <div className="flex pl-10 mt-2 justify-around text-[10px] text-muted font-mono-utility">
-                     <span>Week 1</span>
-                     <span>Week 2</span>
-                     <span>Week 3</span>
+                     {weeks.map((w) => (
+                       <span key={w.label}>{w.label}</span>
+                     ))}
                   </div>
                </Card>
             </section>
 
             {/* Completed Jobs */}
             <section className="space-y-3">
-               <h2 className="text-xs font-bold text-muted uppercase tracking-wider">Completed Jobs (This Week)</h2>
+               {/* Heading said "This Week" over `.slice(0, 5)` of all completed jobs,
+                   with no date filter. Renamed to match what it actually shows. */}
+               <h2 className="text-xs font-bold text-muted uppercase tracking-wider">Recent Completed Jobs</h2>
                <div className="bg-white rounded-xl border border-hairline shadow-card overflow-hidden">
                  {recentJobs.length === 0 ? (
-                    <div className="p-4 text-sm text-muted text-center">No completed jobs this week.</div>
+                    <div className="p-4 text-sm text-muted text-center">No completed jobs yet.</div>
                  ) : (
                    <ul className="divide-y divide-hairline">
                      {recentJobs.map(job => (
@@ -260,13 +322,23 @@ export default function EarningsPage() {
 
       {/* Sticky Bottom CTA for Mobile */}
       <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-hairline z-20">
-         <Button 
-            className="w-full shadow-lg" 
-            onClick={requestInstantPayout} 
-            disabled={stripeBusy || balancePending <= 0 || !hasStripe}
-          >
-            {stripeBusy ? 'Processing...' : 'Withdraw to Bank'}
-         </Button>
+         {hasStripe ? (
+           <Button
+              className="w-full shadow-lg"
+              onClick={requestInstantPayout}
+              disabled={stripeBusy || balancePending <= 0}
+            >
+              {stripeBusy ? 'Processing...' : 'Withdraw to Bank'}
+           </Button>
+         ) : (
+           <Button
+              className="w-full shadow-lg"
+              onClick={() => openStripeLink('onboard')}
+              disabled={stripeBusy}
+            >
+              {stripeBusy ? 'Opening Stripe...' : 'Set up payouts'}
+           </Button>
+         )}
       </div>
     </div>
   );

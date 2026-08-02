@@ -184,12 +184,13 @@ export function OnboardingClient({ profile: _profile, initialDocs }: OnboardingC
         if (rowErr) throw rowErr;
       }
 
-      // Update provider kyc_status to pending
-      const { error } = await sb.from('profiles').update({ kyc_status: 'pending' }).eq('id', user.id);
-      if (error) throw error;
-
-      // Trigger KYC verification check on the server
-      await fetch('/api/kyc/verify', { method: 'POST' });
+      // kyc_status is set server-side by /api/kyc/verify (pending until an admin
+      // approves). The client cannot write it — see migration 202608020001.
+      const res = await fetch('/api/kyc/verify', { method: 'POST' });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? 'Could not submit documents for verification');
+      }
 
       router.refresh();
       router.push('/');

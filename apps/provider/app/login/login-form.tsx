@@ -1,31 +1,102 @@
 'use client';
 import * as React from 'react';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+
+/**
+ * /api/auth/start already normalises and accepts both UK and India numbers, but this
+ * form hardcoded 🇬🇧 +44 with maxLength=10, so the +91 branch was unreachable.
+ * Kept in sync with the server regexes in that route.
+ */
+type Country = {
+  code: 'GB' | 'IN';
+  dial: string;
+  name: string;
+  flag: string;
+  placeholder: string;
+  validate: (val: string) => boolean;
+};
+
+const COUNTRIES: Country[] = [
+  {
+    code: 'GB',
+    dial: '+44',
+    name: 'UK',
+    flag: '🇬🇧',
+    placeholder: '7123 456789',
+    validate: (v) => /^7\d{9}$/.test(v),
+  },
+  {
+    code: 'IN',
+    dial: '+91',
+    name: 'India',
+    flag: '🇮🇳',
+    placeholder: '98765 43210',
+    validate: (v) => /^[6-9]\d{9}$/.test(v),
+  },
+];
+
+const RESEND_SECONDS = 30;
+
+const SIGN_IN_ERRORS: Record<string, string> = {
+  wrong_app: 'That account is not a provider account. Use the customer app to book services.',
+};
 
 export function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
+
   const [phase, setPhase] = React.useState<'phone' | 'otp'>('phone');
-  const [local, setLocal] = React.useState(''); // digits after +44, e.g. 7700900000
+  const [country, setCountry] = React.useState<Country>(COUNTRIES[0]);
+  const [local, setLocal] = React.useState('');
   const [e164, setE164] = React.useState('');
   const [otp, setOtp] = React.useState('');
   const [err, setErr] = React.useState<string | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [cooldown, setCooldown] = React.useState(0);
 
-  async function sendCode(e?: React.FormEvent) {
+  // The layout guard redirects here with ?error=wrong_app and ?redirect=…; both were
+  // previously sent and silently ignored.
+  const redirectTo = params.get('redirect') || '/';
+  const entryError = params.get('error');
+
+  React.useEffect(() => {
+    if (entryError && SIGN_IN_ERRORS[entryError]) setErr(SIGN_IN_ERRORS[entryError]);
+  }, [entryError]);
+
+  React.useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const valid = country.validate(local);
+
+  async function sendCode(e?: React.FormEvent, isResend = false) {
     if (e) e.preventDefault();
+    if (!valid) return;
     setErr(null);
+    setNotice(null);
     setBusy(true);
     try {
       const res = await fetch('/api/auth/start', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ phone: `+44${local}` }),
+        body: JSON.stringify({ phone: `${country.dial}${local}` }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(j.error ?? 'Could not send code');
-      setE164(j.phone ?? `+44${local}`);
+      if (!res.ok) {
+        throw new Error(
+          res.status === 429
+            ? 'Too many attempts. Wait a minute and try again.'
+            : j.error ?? 'Could not send code',
+        );
+      }
+      setE164(j.phone ?? `${country.dial}${local}`);
       setPhase('otp');
+      setCooldown(RESEND_SECONDS);
+      if (isResend) setNotice('New code sent.');
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -36,6 +107,7 @@ export function LoginForm() {
   async function verify(e?: React.FormEvent) {
     if (e) e.preventDefault();
     setErr(null);
+    setNotice(null);
     setBusy(true);
     try {
       const sb = supabase();
@@ -51,7 +123,7 @@ export function LoginForm() {
         .eq('id', user.id)
         .single();
 
-      router.replace(profile?.registration_completed ? '/' : '/register');
+      router.replace(profile?.registration_completed ? redirectTo : '/register');
     } catch (e: any) {
       setErr(e.message ?? 'Invalid code');
     } finally {
@@ -66,12 +138,27 @@ export function LoginForm() {
           <form onSubmit={sendCode} className="space-y-4">
             <div className="space-y-1.5">
               <label htmlFor="phone" className="text-xs font-medium text-muted">
-                UK mobile number
+                Mobile number
               </label>
               <div className="tap flex items-stretch overflow-hidden rounded-xl border border-input-border bg-white focus-within:border-ink">
-                <span className="flex select-none items-center gap-1 border-r border-input-border bg-bg px-3 text-sm font-medium text-ink">
-                  🇬🇧 +44
-                </span>
+                <label className="sr-only" htmlFor="country">
+                  Country
+                </label>
+                <select
+                  id="country"
+                  value={country.code}
+                  onChange={(e) => {
+                    setCountry(COUNTRIES.find((c) => c.code === e.target.value)!);
+                    setLocal('');
+                  }}
+                  className="select-none border-r border-input-border bg-bg px-3 text-sm font-medium text-ink focus:outline-none"
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.flag} {c.dial}
+                    </option>
+                  ))}
+                </select>
                 <input
                   id="phone"
                   autoFocus
@@ -79,7 +166,7 @@ export function LoginForm() {
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel-national"
-                  placeholder="7123 456789"
+                  placeholder={country.placeholder}
                   maxLength={10}
                   className="w-full bg-white px-3.5 py-2.5 text-sm text-charcoal placeholder:text-muted focus:outline-none"
                   value={local}
@@ -91,7 +178,7 @@ export function LoginForm() {
             {err && <p className="text-xs text-danger font-semibold">{err}</p>}
             <button
               type="submit"
-              disabled={busy || local.length !== 10}
+              disabled={busy || !valid}
               className="tap w-full rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
             >
               {busy ? 'Sending…' : 'SEND CODE'}
@@ -117,6 +204,7 @@ export function LoginForm() {
               <p className="text-xs text-muted">Sent to {e164}</p>
             </div>
             {err && <p className="text-xs text-danger font-semibold">{err}</p>}
+            {notice && <p className="text-xs text-success font-semibold">{notice}</p>}
             <button
               type="submit"
               disabled={busy || otp.length < 6}
@@ -126,10 +214,19 @@ export function LoginForm() {
             </button>
             <button
               type="button"
+              disabled={busy || cooldown > 0}
+              onClick={() => sendCode(undefined, true)}
+              className="tap w-full rounded-xl px-5 py-2 text-sm font-medium text-ink transition hover:text-accent disabled:pointer-events-none disabled:text-muted"
+            >
+              {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 setPhase('phone');
                 setOtp('');
                 setErr(null);
+                setNotice(null);
               }}
               className="tap w-full rounded-xl px-5 py-2 text-sm font-medium text-muted transition hover:text-ink"
             >

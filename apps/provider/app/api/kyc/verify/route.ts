@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseServer } from '@urban-assist/db/server';
+import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
 import { verifyProviderDocuments } from '@urban-assist/domain/providers';
 
 export async function POST() {
@@ -8,7 +8,9 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   try {
-    const result = await verifyProviderDocuments(db, user.id);
+    // kyc_status is not client-writable (202608020001). Scoped to the caller's own
+    // user.id, never a value from the request body.
+    const result = await verifyProviderDocuments(createServiceRole(), user.id);
     return NextResponse.json(result);
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? 'verification_failed' }, { status: 400 });

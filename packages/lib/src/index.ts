@@ -5,6 +5,7 @@ export {
   ukDate,
   ukDateTime,
   miles,
+  haversineKm,
   formatUkPhone,
   UK_POSTCODE_RE,
   OFFER_TTL_SECONDS,

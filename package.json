@@ -5,22 +5,26 @@
   "description": "Urban Assist — UK home services marketplace (customer + provider + admin)",
   "packageManager": "pnpm@9.0.0",
   "scripts": {
+    "dev": "pnpm -r --parallel dev",
     "dev:customer": "pnpm --filter @urban-assist/customer dev",
     "dev:provider": "pnpm --filter @urban-assist/provider dev",
-    "dev:admin":    "pnpm --filter @urban-assist/admin dev",
-    "build":        "pnpm -r build",
-    "lint":         "pnpm -r lint",
-    "typecheck":    "pnpm -r typecheck",
-    "format":       "prettier --write \"**/*.{ts,tsx,js,json,md}\" --ignore-path .gitignore",
-    "db:types":     "node tooling/generate-db-types.mjs",
-    "db:migrate":   "supabase db push"
+    "dev:admin": "pnpm --filter @urban-assist/admin dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\" --ignore-path .gitignore",
+    "db:types": "node tooling/generate-db-types.mjs",
+    "db:migrate": "supabase db push",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
+    "@types/node": "^20.12.7",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.5",
-    "@types/node": "^20.12.7"
+    "vitest": "^4.1.10"
   }
 }

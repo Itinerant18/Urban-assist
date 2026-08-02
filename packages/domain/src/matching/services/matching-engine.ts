@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { OFFER_TTL_SECONDS } from '@urban-assist/utils/constants';
+import { haversineKm } from '@urban-assist/utils';
 import {
   setActiveOffer, clearActiveOffer,
   acquireLock, releaseLock,
@@ -16,10 +17,41 @@ interface Candidate {
   acceptance_rate: number;
 }
 
-function score(c: Candidate): number {
+/**
+ * Ranking used to decide who is offered a job: 50% proximity, 30% rating,
+ * 20% acceptance rate. Distance stops contributing beyond 15km.
+ *
+ * Exported for tests — this decides who gets work, so the weights are worth pinning.
+ */
+export function score(c: Candidate): number {
   const distScore = Math.max(0, 1 - c.distance_km / 15);
   const ratingScore = c.rating / 5;
   return distScore * 0.5 + ratingScore * 0.3 + c.acceptance_rate * 0.2;
+}
+
+/**
+ * The booking's local calendar day, weekday and wall-clock time in Europe/London.
+ *
+ * Separated from the DB query so the date arithmetic can be tested: it has to cope
+ * with BST/GMT and with a UTC instant that lands on the previous or next London day,
+ * where a naive getDay() would match the wrong availability_slots row.
+ */
+export function bookingLocalSlot(scheduledAt: string): {
+  dateStr: string;
+  timeStr: string;
+  weekday: number;
+} {
+  const when = new Date(scheduledAt);
+  // en-CA yields ISO YYYY-MM-DD; h23 yields HH:MM:SS, which compares correctly
+  // against a Postgres `time` rendered as text.
+  const dateStr = when.toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
+  const timeStr = when.toLocaleTimeString('en-GB', {
+    timeZone: 'Europe/London',
+    hourCycle: 'h23',
+  });
+  // availability_slots.weekday is 0=Sunday, matching getUTCDay() on the local date.
+  const weekday = new Date(`${dateStr}T00:00:00Z`).getUTCDay();
+  return { dateStr, timeStr, weekday };
 }
 
 async function onlineSet(db: SupabaseClient, ids: string[]): Promise<Set<string>> {
@@ -116,9 +148,70 @@ export async function findCandidates(
       acceptance_rate: Number(p.acceptance_rate ?? 1),
     });
   }
-  return candidates
+
+  const available = await filterByAvailability(
+    db,
+    candidates,
+    (booking as any).scheduled_at,
+  );
+
+  // Availability is applied before the cap so a fully-booked top 20 cannot hide
+  // providers further down who are actually free.
+  return available
     .sort((a, b) => score(b) - score(a))
     .slice(0, 20);
+}
+
+/**
+ * Drop candidates who are on time off, or whose working hours do not cover the
+ * booking slot.
+ *
+ * This lived only in the Deno `match-cascade` edge function, so it applied when the
+ * cron expired an offer but not when createBooking, a decline, or a UI-triggered
+ * expiry cascaded — those paths call this engine directly and offered work to
+ * providers who were on holiday or off shift.
+ */
+async function filterByAvailability(
+  db: SupabaseClient,
+  candidates: Candidate[],
+  scheduledAt: string | null,
+): Promise<Candidate[]> {
+  if (!scheduledAt || !candidates.length) return candidates;
+
+  const { dateStr, timeStr, weekday } = bookingLocalSlot(scheduledAt);
+
+  const ids = candidates.map((c) => c.provider_id);
+  const [{ data: offs }, { data: slots }] = await Promise.all([
+    db
+      .from('time_off')
+      .select('provider_id')
+      .in('provider_id', ids)
+      .lte('start_date', dateStr)
+      .gte('end_date', dateStr),
+    db
+      .from('availability_slots')
+      .select('provider_id, weekday, start_time, end_time')
+      .in('provider_id', ids),
+  ]);
+
+  const away = new Set((offs ?? []).map((o: any) => o.provider_id));
+  const hasSlots = new Set((slots ?? []).map((s: any) => s.provider_id));
+  const fits = new Set(
+    (slots ?? [])
+      .filter(
+        (s: any) =>
+          s.weekday === weekday && s.start_time <= timeStr && s.end_time >= timeStr,
+      )
+      .map((s: any) => s.provider_id),
+  );
+
+  // ponytail: no slots defined = always available; flip to opt-in once every
+  // provider has set their hours, otherwise new providers get zero work.
+  return candidates.filter(
+    (c) =>
+      !away.has(c.provider_id) &&
+      (!hasSlots.has(c.provider_id) || fits.has(c.provider_id)),
+  );
 }
 
 export async function sendNextOffer(db: SupabaseClient, bookingId: string) {
@@ -296,14 +389,3 @@ export async function expireOfferIfStale(
   return { changed: true };
 }
 
-function haversineKm(a: number, b: number, c: number, d: number): number {
-  const R = 6371;
-  const dLat = ((c - a) * Math.PI) / 180;
-  const dLng = ((d - b) * Math.PI) / 180;
-  const lat1 = (a * Math.PI) / 180;
-  const lat2 = (c * Math.PI) / 180;
-  const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
-}

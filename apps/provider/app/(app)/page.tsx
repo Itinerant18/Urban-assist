@@ -33,12 +33,62 @@ export default async function Home() {
     .limit(1)
     .maybeSingle();
 
+  // Real numbers for the two dashboard tiles that used to be literals: the
+  // "Weekly Earnings Chart" was a fixed Mon–Sun array and Completion Rate was "98%".
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - 6);
+
+  const [{ data: weekJobs }, completedCount, cancelledCount] = await Promise.all([
+    db
+      .from('bookings')
+      .select('total_pence, completed_at')
+      .eq('provider_id', user.id)
+      .eq('status', 'completed')
+      .gte('completed_at', weekStart.toISOString()),
+    db
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('provider_id', user.id)
+      .eq('status', 'completed'),
+    db
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('provider_id', user.id)
+      .eq('status', 'cancelled'),
+  ]);
+
+  // Seven buckets, oldest first, keyed to local calendar days.
+  const weeklyEarnings = Array.from({ length: 7 }, (_, i) => {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    const next = new Date(day);
+    next.setDate(day.getDate() + 1);
+    const pence = (weekJobs ?? [])
+      .filter((j: any) => {
+        const at = j.completed_at ? new Date(j.completed_at) : null;
+        return at !== null && at >= day && at < next;
+      })
+      .reduce((sum: number, j: any) => sum + (j.total_pence ?? 0), 0);
+    return {
+      label: day.toLocaleDateString('en-GB', { weekday: 'short' }),
+      pence,
+    };
+  });
+
+  const finished = completedCount.count ?? 0;
+  const cancelled = cancelledCount.count ?? 0;
+  // null (not 100%) when there is no history — a new provider has no rate to show.
+  const completionRate =
+    finished + cancelled > 0 ? finished / (finished + cancelled) : null;
+
   return (
     <Dashboard
       profile={profile}
       jobsToday={jobsToday ?? []}
       openOffer={openOffer}
       servicesCount={services?.length ?? 0}
+      weeklyEarnings={weeklyEarnings}
+      completionRate={completionRate}
     />
   );
 }
