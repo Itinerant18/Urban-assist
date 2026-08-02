@@ -37,6 +37,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     });
     return NextResponse.json(result);
   } catch (e: any) {
-    return NextResponse.json({ error: e.message ?? 'failed' }, { status: 400 });
+    const message = e.message ?? 'failed';
+    if (parsed.data.accept && /training|Complete /i.test(message)) {
+      // Best-effort instrumentation for blocked accepts.
+      const { data: offerRow } = await admin
+        .from('booking_offers')
+        .select('booking_id, bookings(category_id)')
+        .eq('id', params.id)
+        .maybeSingle();
+      const booking = Array.isArray(offerRow?.bookings)
+        ? offerRow?.bookings[0]
+        : offerRow?.bookings;
+      track(admin, user.id, {
+        type: 'offer.blocked_training',
+        payload: {
+          booking_id: offerRow?.booking_id ?? params.id,
+          provider_id: user.id,
+          category_id: booking?.category_id ?? null,
+        },
+      });
+    }
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

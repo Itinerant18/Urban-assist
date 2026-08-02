@@ -9,6 +9,7 @@ import {
   TTL,
 } from '@urban-assist/integrations/redis';
 import { appendBookingStatus } from '@urban-assist/integrations/firebase';
+import { loadCategoryTrainingEligibility } from '../../training/eligibility-loader';
 
 interface Candidate {
   provider_id: string;
@@ -98,13 +99,34 @@ async function locationMap(db: SupabaseClient, ids: string[]): Promise<Map<strin
   return map;
 }
 
+/**
+ * Rank by score, then pull preferred_provider_id to the front if still eligible.
+ * Soft signal only — unavailable preferred providers are skipped, not forced.
+ */
+export function rankCandidates(
+  candidates: Candidate[],
+  preferredProviderId: string | null | undefined,
+  limit = 20,
+): Candidate[] {
+  const sorted = [...candidates].sort((a, b) => score(b) - score(a));
+  if (!preferredProviderId) return sorted.slice(0, limit);
+  const preferred = sorted.find((c) => c.provider_id === preferredProviderId);
+  if (!preferred) return sorted.slice(0, limit);
+  return [preferred, ...sorted.filter((c) => c.provider_id !== preferredProviderId)].slice(
+    0,
+    limit,
+  );
+}
+
 export async function findCandidates(
   db: SupabaseClient,
   bookingId: string,
 ): Promise<Candidate[]> {
   const { data: booking, error: bErr } = await db
     .from('bookings')
-    .select('id, category_id, address_id, scheduled_at, addresses!inner(lat,lng)')
+    .select(
+      'id, category_id, address_id, scheduled_at, preferred_provider_id, addresses!inner(lat,lng)',
+    )
     .eq('id', bookingId)
     .single();
   if (bErr || !booking) throw bErr ?? new Error('booking_not_found');
@@ -157,9 +179,7 @@ export async function findCandidates(
 
   // Availability is applied before the cap so a fully-booked top 20 cannot hide
   // providers further down who are actually free.
-  return available
-    .sort((a, b) => score(b) - score(a))
-    .slice(0, 20);
+  return rankCandidates(available, (booking as any).preferred_provider_id);
 }
 
 /**
@@ -314,6 +334,20 @@ export async function respondToOffer(
     }
 
     if (accept) {
+      const { data: bookingMeta } = await db
+        .from('bookings')
+        .select('id, category_id')
+        .eq('id', offer.booking_id)
+        .maybeSingle();
+      const training = await loadCategoryTrainingEligibility(
+        db,
+        providerId,
+        bookingMeta?.category_id,
+      );
+      if (!training.eligible) {
+        throw new Error(training.message ?? 'training_required');
+      }
+
       const { data: assigned } = await db
         .from('bookings')
         .update({ provider_id: providerId })

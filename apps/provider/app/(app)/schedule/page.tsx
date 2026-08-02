@@ -1,9 +1,10 @@
 'use client';
 import * as React from 'react';
-import { Card, Button, Badge, Field, Input, EmptyState } from '@urban-assist/ui';
+import { Card, Button, Badge, EmptyState } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { ukDate, ukDateTime } from '@urban-assist/lib';
-import { Calendar, Clock, Coffee, Plus, Trash2 } from 'lucide-react';
+import { Calendar, Check, Clock, Coffee, Plus, Trash2 } from 'lucide-react';
+import { DateField, DayCheckbox, TimeField } from './schedule-fields';
 
 // DB convention: weekday 0 = Sunday (matches JS getDay()). UI renders Monday-first.
 const WEEKDAYS = [
@@ -46,11 +47,17 @@ function defaultWeek(): Record<number, DayWindow> {
   return wk;
 }
 
-// '09:00' → '9', '17:30' → '5:30' — week-strip chip shorthand.
-function shortTime(t: string) {
-  const [h, m] = t.split(':').map(Number);
-  const h12 = h % 12 || 12;
-  return m ? `${h12}:${String(m).padStart(2, '0')}` : `${h12}`;
+function minutesBetween(start: string, end: string): number {
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  return eh * 60 + em - (sh * 60 + sm);
+}
+
+function formatWeeklyHours(totalMinutes: number): string {
+  if (totalMinutes <= 0) return '0 hrs/week configured';
+  const hours = totalMinutes / 60;
+  const rounded = Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, '');
+  return `${rounded} hrs/week configured`;
 }
 
 export default function SchedulePage() {
@@ -69,7 +76,20 @@ export default function SchedulePage() {
   const [newStartOff, setNewStartOff] = React.useState('');
   const [newEndOff, setNewEndOff] = React.useState('');
   const [timeOffError, setTimeOffError] = React.useState<string | null>(null);
+  const [timeOffSaved, setTimeOffSaved] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+
+  const scrollByTab = React.useRef({ jobs: 0, availability: 0 });
+
+  function switchTab(next: 'jobs' | 'availability') {
+    if (next === tab) return;
+    scrollByTab.current[tab] = window.scrollY;
+    setTab(next);
+  }
+
+  React.useEffect(() => {
+    window.scrollTo(0, scrollByTab.current[tab]);
+  }, [tab]);
 
   React.useEffect(() => {
     async function loadData() {
@@ -131,6 +151,16 @@ export default function SchedulePage() {
     setScheduleError(null);
   }
 
+  const weeklyMinutes = DAY_ORDER.reduce((sum, d) => {
+    const w = week[d];
+    if (!w.enabled) return sum;
+    const mins = minutesBetween(w.start, w.end);
+    return mins > 0 ? sum + mins : sum;
+  }, 0);
+  const enabledDays = DAY_ORDER.filter((d) => week[d].enabled).length;
+  const canAddTimeOff =
+    Boolean(newStartOff && newEndOff) && newStartOff <= newEndOff && !submitting;
+
   async function saveSchedule() {
     if (!userId) return;
     setScheduleError(null);
@@ -169,8 +199,9 @@ export default function SchedulePage() {
 
   async function addTimeOff(e: React.FormEvent) {
     e.preventDefault();
-    if (!userId) return;
+    if (!userId || !canAddTimeOff) return;
     setTimeOffError(null);
+    setTimeOffSaved(false);
     setSubmitting(true);
 
     try {
@@ -196,6 +227,7 @@ export default function SchedulePage() {
       setTimeOffList([...timeOffList, data].sort((a, b) => a.start_date.localeCompare(b.start_date)));
       setNewStartOff('');
       setNewEndOff('');
+      setTimeOffSaved(true);
     } catch (err: any) {
       setTimeOffError(err.message);
     } finally {
@@ -205,6 +237,7 @@ export default function SchedulePage() {
 
   async function deleteTimeOff(id: string) {
     setTimeOffError(null);
+    setTimeOffSaved(false);
     try {
       const sb = supabase();
       const { error } = await sb.from('time_off').delete().eq('id', id);
@@ -226,16 +259,18 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="space-y-5 py-2">
+    <div className="space-y-6 py-4">
       <header>
         <p className="font-mono-utility text-muted">Management</p>
         <h1 className="font-display text-2xl font-bold text-ink">Schedule</h1>
       </header>
 
-      {/* Tabs selector */}
-      <div className="flex gap-2 rounded-xl bg-bg p-1 border border-hairline">
+      <div className="flex gap-2 rounded-xl bg-bg p-1.5 border border-hairline" role="tablist">
         <button
-          onClick={() => setTab('jobs')}
+          type="button"
+          role="tab"
+          aria-selected={tab === 'jobs'}
+          onClick={() => switchTab('jobs')}
           className={`flex-1 rounded-lg py-2.5 text-xs font-mono-utility font-medium transition flex items-center justify-center gap-1.5 ${
             tab === 'jobs' ? 'bg-ink text-bg shadow-sm' : 'text-muted hover:text-ink'
           }`}
@@ -243,7 +278,10 @@ export default function SchedulePage() {
           <Calendar className="h-3.5 w-3.5" /> Agenda ({jobs.length})
         </button>
         <button
-          onClick={() => setTab('availability')}
+          type="button"
+          role="tab"
+          aria-selected={tab === 'availability'}
+          onClick={() => switchTab('availability')}
           className={`flex-1 rounded-lg py-2.5 text-xs font-mono-utility font-medium transition flex items-center justify-center gap-1.5 ${
             tab === 'availability' ? 'bg-ink text-bg shadow-sm' : 'text-muted hover:text-ink'
           }`}
@@ -252,187 +290,249 @@ export default function SchedulePage() {
         </button>
       </div>
 
-      {/* Agenda/Upcoming Jobs */}
-      {tab === 'jobs' && (
-        <section className="space-y-3">
-          {!jobs.length ? (
-            <EmptyState
-              title="No upcoming jobs"
-              description="Your upcoming assigned bookings will be listed here. Go online on the dashboard to accept new offers."
-            />
-          ) : (
-            <ul className="space-y-2.5">
-              {jobs.map((j) => (
-                <li key={j.id}>
-                  <Card
-                    onClick={() => window.location.href = `/jobs/${j.id}`}
-                    className="flex items-center justify-between gap-4 cursor-pointer hover:border-ink transition"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm sm:text-base">
-                          {j.category?.name}
-                        </span>
-                        <Badge tone="accent">
-                          {j.status.replace(/_/g, ' ')}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted mt-1">
-                        {ukDateTime(j.scheduled_at)} · {[j.address?.line1, j.address?.postcode].filter(Boolean).join(', ')}
-                      </p>
-                      <p className="font-mono-utility text-muted mt-0.5">#{j.short_code}</p>
+      <section
+        className={`space-y-3 ${tab === 'jobs' ? '' : 'hidden'}`}
+        aria-hidden={tab !== 'jobs'}
+      >
+        {!jobs.length ? (
+          <EmptyState
+            title="No upcoming jobs"
+            description="Your upcoming assigned bookings will be listed here. Go online on the dashboard to accept new offers."
+          />
+        ) : (
+          <ul className="space-y-2.5">
+            {jobs.map((j) => (
+              <li key={j.id}>
+                <Card
+                  onClick={() => window.location.href = `/jobs/${j.id}`}
+                  className="flex items-center justify-between gap-4 cursor-pointer hover:border-ink transition"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm sm:text-base">
+                        {j.category?.name}
+                      </span>
+                      <Badge tone="accent">
+                        {j.status.replace(/_/g, ' ')}
+                      </Badge>
                     </div>
-                    <Button variant="outline" size="sm" onClick={(e) => {
-                      e.stopPropagation();
-                      window.location.href = `/jobs/${j.id}`;
-                    }}>
-                      Open
-                    </Button>
-                  </Card>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+                    <p className="text-xs text-muted mt-1">
+                      {ukDateTime(j.scheduled_at)} · {[j.address?.line1, j.address?.postcode].filter(Boolean).join(', ')}
+                    </p>
+                    <p className="font-mono-utility text-muted mt-0.5">#{j.short_code}</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/jobs/${j.id}`;
+                  }}>
+                    Open
+                  </Button>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      {/* Availability: week strip + weekly hours editor + time off, co-visible */}
-      {tab === 'availability' && (
-        <section className="space-y-4 pb-24 lg:pb-0">
-          {/* Week strip — desktop only, derived from editor state */}
-          <div className="hidden lg:grid grid-cols-7 gap-2">
-            {DAY_ORDER.map((d) => (
-              <div
-                key={d}
-                className={`rounded-xl border border-hairline px-2 py-2 text-center ${
-                  week[d].enabled ? 'bg-accent/10' : ''
-                }`}
-              >
-                <p className="font-mono-utility text-[10px] text-muted">{WEEKDAYS[d].slice(0, 3)}</p>
-                <p className={`text-xs font-medium ${week[d].enabled ? 'text-ink' : 'text-muted'}`}>
-                  {week[d].enabled ? `${shortTime(week[d].start)}–${shortTime(week[d].end)}` : 'OFF'}
+      <section
+        className={`space-y-6 pb-24 lg:pb-0 ${tab === 'availability' ? '' : 'hidden'}`}
+        aria-hidden={tab !== 'availability'}
+      >
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] lg:items-start">
+          <Card className="space-y-5">
+            <div className="space-y-3">
+              <div>
+                <h3 className="mb-2 font-display text-base font-semibold text-ink">Weekly hours</h3>
+                <p className="max-w-prose text-sm leading-relaxed text-muted">
+                  Set the days and hours you are available. The matching engine only sends you offers inside these windows.
                 </p>
               </div>
-            ))}
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] lg:items-start">
-            {/* Weekly hours editor */}
-            <Card className="space-y-3">
-              <h3 className="font-display text-sm font-semibold">Weekly hours</h3>
-              <p className="text-xs text-muted">
-                Set the days and hours you are available. The matching engine only sends you offers inside these windows.
+              <p
+                className={`inline-flex shrink-0 rounded-lg px-2.5 py-1 text-xs font-mono-utility font-medium ${
+                  weeklyMinutes > 0
+                    ? 'bg-ink/[0.08] text-ink'
+                    : 'bg-hairline/70 text-muted'
+                }`}
+                aria-live="polite"
+              >
+                {formatWeeklyHours(weeklyMinutes)}
+                {enabledDays > 0 && (
+                  <span className="text-muted font-normal">
+                    {' '}· {enabledDays} day{enabledDays === 1 ? '' : 's'}
+                  </span>
+                )}
               </p>
-              <div className="divide-y divide-hairline">
-                {DAY_ORDER.map((d) => {
-                  const w = week[d];
-                  const rowInvalid = w.enabled && w.start >= w.end;
-                  return (
-                    <div key={d} className="py-2.5 first:pt-0 last:pb-0">
-                      <div className="flex items-center gap-3">
-                        <label className="flex w-28 shrink-0 items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={w.enabled}
-                            onChange={(e) => setDay(d, { enabled: e.target.checked })}
-                            className="h-4 w-4 accent-[rgb(var(--accent))]"
-                          />
-                          <span className={`text-sm ${w.enabled ? 'text-ink font-medium' : 'text-muted'}`}>
-                            {WEEKDAYS[d]}
-                          </span>
-                        </label>
-                        <div className={`flex flex-1 items-center gap-2 ${w.enabled ? '' : 'opacity-40'}`}>
-                          <Input
-                            type="time"
-                            value={w.start}
-                            disabled={!w.enabled}
-                            onChange={(e) => setDay(d, { start: e.target.value })}
-                          />
-                          <span className="text-xs text-muted">to</span>
-                          <Input
-                            type="time"
-                            value={w.end}
-                            disabled={!w.enabled}
-                            onChange={(e) => setDay(d, { end: e.target.value })}
-                          />
-                        </div>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-hairline">
+              {DAY_ORDER.map((d, i) => {
+                const w = week[d];
+                const rowInvalid = w.enabled && w.start >= w.end;
+                return (
+                  <div
+                    key={d}
+                    className={`px-3 py-3.5 transition-colors ${
+                      i > 0 ? 'border-t border-hairline' : ''
+                    } ${
+                      w.enabled
+                        ? 'bg-ink/[0.04]'
+                        : i % 2 === 1
+                          ? 'bg-bg/60'
+                          : 'bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <DayCheckbox
+                        checked={w.enabled}
+                        onChange={(enabled) => setDay(d, { enabled })}
+                        label={WEEKDAYS[d]}
+                      />
+                      <div
+                        className={`flex min-w-0 flex-1 items-center gap-2 transition-opacity ${
+                          w.enabled ? 'opacity-100' : 'opacity-40'
+                        }`}
+                      >
+                        <TimeField
+                          value={w.start}
+                          disabled={!w.enabled}
+                          onChange={(start) => setDay(d, { start })}
+                          aria-label={`${WEEKDAYS[d]} start time`}
+                        />
+                        <span className="shrink-0 text-xs text-muted">to</span>
+                        <TimeField
+                          value={w.end}
+                          disabled={!w.enabled}
+                          onChange={(end) => setDay(d, { end })}
+                          aria-label={`${WEEKDAYS[d]} end time`}
+                        />
                       </div>
-                      {rowInvalid && (
-                        <p className="mt-1 text-xs text-danger">End time must be after start time</p>
-                      )}
                     </div>
-                  );
-                })}
-              </div>
+                    {rowInvalid && (
+                      <p className="mt-2 text-xs text-danger">End time must be after start time</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
-              {/* Save bar — fixed above the AppShell bottom tab bar on mobile, static in the card on lg+ */}
-              {/* ponytail: 3.5rem ≈ measured tab-bar height in app-shell.tsx; not tokenized until a second consumer needs it */}
-              <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-hairline bg-bg/95 px-4 py-3 backdrop-blur lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-                {scheduleError && <p className="mb-2 text-xs text-danger">{scheduleError}</p>}
-                <Button onClick={saveSchedule} disabled={saving} className="w-full">
-                  {saving ? 'Saving…' : saved ? 'Saved' : 'Save schedule'}
-                </Button>
+            {/* ponytail: 3.5rem ≈ measured tab-bar height in app-shell.tsx; not tokenized until a second consumer needs it */}
+            <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-hairline bg-bg/95 px-4 py-3 backdrop-blur lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+              <div className="mb-2 rounded-lg border border-ink/10 bg-ink/[0.04] px-2.5 py-2 text-[11px] leading-snug text-ink/80">
+                Saves <span className="font-medium text-ink">weekly hours</span> only.
+                Time off saves when you tap Add time off.
               </div>
-            </Card>
+              {enabledDays === 0 && !saved && (
+                <p className="mb-2 text-xs text-muted" role="status">
+                  No days enabled — saving will clear your availability windows.
+                </p>
+              )}
+              {scheduleError && <p className="mb-2 text-xs text-danger" role="alert">{scheduleError}</p>}
+              {saved && !scheduleError && (
+                <p className="mb-2 flex items-center gap-1.5 text-xs text-success" role="status">
+                  <Check className="h-3.5 w-3.5" aria-hidden /> Weekly hours saved
+                </p>
+              )}
+              <Button
+                onClick={saveSchedule}
+                disabled={saving}
+                className="w-full"
+                aria-busy={saving}
+              >
+                {saving ? 'Saving weekly hours…' : saved ? 'Weekly hours saved' : 'Save weekly hours'}
+              </Button>
+            </div>
+          </Card>
 
-            {/* Time off panel */}
-            <Card className="space-y-3">
-              <h3 className="font-display text-sm font-semibold flex items-center gap-2">
-                <Coffee className="h-4 w-4 text-muted" /> Scheduled Time Off
+          <Card className="space-y-5">
+            <div>
+              <h3 className="mb-2 flex items-center gap-2 font-display text-base font-semibold text-ink">
+                <Coffee className="h-4 w-4 text-ink/70" aria-hidden /> Scheduled Time Off
               </h3>
-              <p className="text-xs text-muted">
+              <p className="text-sm leading-relaxed text-muted">
                 Add dates when you want to block out work. The matching engine will not send you offers during these dates.
               </p>
-              {timeOffList.length > 0 ? (
-                <ul className="space-y-2 divide-y divide-hairline">
-                  {timeOffList.map((t) => (
-                    <li key={t.id} className="flex items-center justify-between pt-2 first:pt-0">
-                      <span className="text-sm font-medium">
-                        {ukDate(t.start_date)}
-                        {t.start_date !== t.end_date && ` to ${ukDate(t.end_date)}`}
-                      </span>
-                      <button
-                        onClick={() => deleteTimeOff(t.id)}
-                        className="tap p-1 text-danger hover:brightness-95"
-                        aria-label="Delete time off"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted">No scheduled time off.</p>
-              )}
+            </div>
 
-              <form onSubmit={addTimeOff} className="space-y-3 border-t border-hairline pt-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="Start date">
-                    <Input
-                      type="date"
-                      required
-                      value={newStartOff}
-                      onChange={(e) => setNewStartOff(e.target.value)}
-                    />
-                  </Field>
-                  <Field label="End date">
-                    <Input
-                      type="date"
-                      required
-                      value={newEndOff}
-                      onChange={(e) => setNewEndOff(e.target.value)}
-                    />
-                  </Field>
-                </div>
-                {timeOffError && <p className="text-xs text-danger">{timeOffError}</p>}
-                <Button type="submit" variant="outline" disabled={submitting} className="w-full flex items-center justify-center gap-1">
-                  <Plus className="h-4 w-4" /> Add time off
-                </Button>
-              </form>
-            </Card>
-          </div>
-        </section>
-      )}
+            {timeOffList.length > 0 ? (
+              <ul className="divide-y divide-hairline overflow-hidden rounded-xl border border-hairline">
+                {timeOffList.map((t) => (
+                  <li key={t.id} className="flex items-center justify-between gap-3 bg-white px-3 py-3">
+                    <span className="text-sm font-medium text-ink">
+                      {ukDate(t.start_date)}
+                      {t.start_date !== t.end_date && ` to ${ukDate(t.end_date)}`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => deleteTimeOff(t.id)}
+                      className="tap inline-flex items-center justify-center rounded-lg p-2 text-danger hover:bg-danger/10"
+                      aria-label="Delete time off"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="rounded-xl border border-dashed border-hairline bg-bg/50 px-4 py-6 text-center">
+                <Calendar className="mx-auto mb-2 h-5 w-5 text-muted" aria-hidden />
+                <p className="text-sm font-medium text-ink">No scheduled time off</p>
+                <p className="mt-1 text-xs text-muted">Pick dates below to block days you cannot work.</p>
+              </div>
+            )}
+
+            <form onSubmit={addTimeOff} className="space-y-3 rounded-xl border border-hairline bg-bg/40 p-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <DateField
+                  label="Start date"
+                  value={newStartOff}
+                  onChange={(v) => {
+                    setNewStartOff(v);
+                    setTimeOffSaved(false);
+                    setTimeOffError(null);
+                    if (newEndOff && v > newEndOff) setNewEndOff(v);
+                  }}
+                />
+                <DateField
+                  label="End date"
+                  value={newEndOff}
+                  min={newStartOff || undefined}
+                  onChange={(v) => {
+                    setNewEndOff(v);
+                    setTimeOffSaved(false);
+                    setTimeOffError(null);
+                  }}
+                />
+              </div>
+              {newStartOff && newEndOff && newStartOff > newEndOff && (
+                <p className="text-xs text-danger" role="alert">
+                  End date must be on or after start date
+                </p>
+              )}
+              {timeOffError && <p className="text-xs text-danger" role="alert">{timeOffError}</p>}
+              {timeOffSaved && !timeOffError && (
+                <p className="flex items-center gap-1.5 text-xs text-success" role="status">
+                  <Check className="h-3.5 w-3.5" aria-hidden /> Time off added
+                </p>
+              )}
+              <Button
+                type="submit"
+                variant="secondary"
+                disabled={!canAddTimeOff}
+                className="w-full"
+                aria-busy={submitting}
+              >
+                <Plus className="h-4 w-4" aria-hidden />
+                {submitting ? 'Adding…' : 'Add time off'}
+              </Button>
+              {!newStartOff || !newEndOff ? (
+                <p className="text-center text-[11px] text-muted">
+                  Select start and end dates to enable Add
+                </p>
+              ) : null}
+            </form>
+          </Card>
+        </div>
+      </section>
     </div>
   );
 }

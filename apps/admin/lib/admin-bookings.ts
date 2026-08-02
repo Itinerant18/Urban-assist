@@ -9,6 +9,8 @@ export interface AdminBookingFilters {
   provider?: string;
   customer?: string;
   unassigned: boolean;
+  /** Bookings where the customer set preferred_provider_id. */
+  withPreference: boolean;
 }
 
 function first(value: string | string[] | undefined) {
@@ -27,6 +29,7 @@ export function readBookingFilters(
     provider: first(input.provider) || undefined,
     customer: first(input.customer) || undefined,
     unassigned: first(input.unassigned) === '1' || first(input.scope) === 'unassigned',
+    withPreference: first(input.preferred) === '1',
   };
 }
 
@@ -41,8 +44,10 @@ const BOOKING_LIST_SELECT = `
   provider_id,
   customer_id,
   category_id,
+  preferred_provider_id,
   customer:profiles!bookings_customer_id_fkey(id, full_name, email),
   provider:profiles!bookings_provider_id_fkey(id, full_name, email),
+  preferred_provider:profiles!bookings_preferred_provider_id_fkey(id, full_name, email),
   category:service_categories!bookings_category_id_fkey(id, name, slug),
   address:addresses!inner(id, line1, city, postcode)
 `;
@@ -69,18 +74,77 @@ export async function listAdminBookings(
   if (filters.postcode) query = query.ilike('address.postcode', `${filters.postcode.trim()}%`);
   if (filters.provider) query = query.eq('provider_id', filters.provider);
   if (filters.customer) query = query.eq('customer_id', filters.customer);
+  if (filters.withPreference) query = query.not('preferred_provider_id', 'is', null);
 
   const { data, error, count } = await query;
   if (error) throw error;
-  const bookings = ((data ?? []) as any[]).map((booking) => ({
-    ...booking,
-    category_name: booking.category?.name ?? null,
-    postcode: booking.address?.postcode ?? null,
-    customer_name: booking.customer?.full_name ?? null,
-    customer_email: booking.customer?.email ?? null,
-    provider_name: booking.provider?.full_name ?? booking.provider?.email ?? null,
-  }));
+  const bookings = ((data ?? []) as any[]).map((booking) => {
+    const preferredId = booking.preferred_provider_id as string | null;
+    const assignedId = booking.provider_id as string | null;
+    let preferenceOutcome: 'none' | 'pending' | 'honored' | 'overridden' = 'none';
+    if (preferredId) {
+      if (!assignedId) preferenceOutcome = 'pending';
+      else if (assignedId === preferredId) preferenceOutcome = 'honored';
+      else preferenceOutcome = 'overridden';
+    }
+    return {
+      ...booking,
+      category_name: booking.category?.name ?? null,
+      postcode: booking.address?.postcode ?? null,
+      customer_name: booking.customer?.full_name ?? null,
+      customer_email: booking.customer?.email ?? null,
+      provider_name: booking.provider?.full_name ?? booking.provider?.email ?? null,
+      preferred_name:
+        booking.preferred_provider?.full_name ?? booking.preferred_provider?.email ?? null,
+      preference_outcome: preferenceOutcome,
+    };
+  });
   return { bookings, count: count ?? bookings.length };
+}
+
+/** Soft-preference KPIs for admin analytics. */
+export async function getPreferenceMetrics(db: SupabaseClient) {
+  const { data, error } = await db
+    .from('bookings')
+    .select('id, status, preferred_provider_id, provider_id')
+    .not('preferred_provider_id', 'is', null)
+    .limit(10_000);
+  if (error) throw error;
+  const rows = data ?? [];
+  const withPreference = rows.length;
+  let honored = 0;
+  let overridden = 0;
+  let pending = 0;
+  let completedHonored = 0;
+  let completedOverridden = 0;
+  let cancelledWithPreference = 0;
+  for (const row of rows) {
+    const preferred = row.preferred_provider_id;
+    const assigned = row.provider_id;
+    if (!assigned) {
+      pending += 1;
+      continue;
+    }
+    const match = assigned === preferred;
+    if (match) honored += 1;
+    else overridden += 1;
+    if (row.status === 'completed') {
+      if (match) completedHonored += 1;
+      else completedOverridden += 1;
+    }
+    if (row.status === 'cancelled') cancelledWithPreference += 1;
+  }
+  const decided = honored + overridden;
+  return {
+    withPreference,
+    pending,
+    honored,
+    overridden,
+    honorRatePct: decided ? Math.round((honored / decided) * 100) : null,
+    completedHonored,
+    completedOverridden,
+    cancelledWithPreference,
+  };
 }
 
 export async function getAdminBooking(db: SupabaseClient, bookingId: string) {

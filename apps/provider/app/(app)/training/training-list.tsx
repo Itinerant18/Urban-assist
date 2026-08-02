@@ -1,17 +1,21 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { Card, Badge, EmptyState } from '@urban-assist/ui';
 import { ukDate } from '@urban-assist/lib';
-import { Check, ExternalLink, PlayCircle, FileText, Users } from 'lucide-react';
+import { Check, ExternalLink, PlayCircle, FileText, Users, ChevronRight } from 'lucide-react';
 
 interface Item {
   id: string;
   title: string;
   description: string | null;
   content_url: string | null;
-  kind: 'video' | 'doc' | 'in_person';
+  kind: 'video' | 'doc' | 'in_person' | 'quiz';
   is_mandatory: boolean;
+  gates_category?: boolean;
+  pass_score?: number | null;
+  estimated_mins?: number | null;
   category: { name: string } | null;
   completed_at: string | null;
 }
@@ -20,15 +24,27 @@ const KIND_ICON = {
   video: PlayCircle,
   doc: FileText,
   in_person: Users,
+  quiz: FileText,
 } as const;
 
 const KIND_LABEL = {
   video: 'Video',
   doc: 'Reading',
   in_person: 'In person',
+  quiz: 'Quiz',
 } as const;
 
-export function TrainingList({ items }: { items: Item[] }) {
+export function TrainingList({
+  items,
+  summary,
+}: {
+  items: Item[];
+  summary?: {
+    mandatoryCompleted: number;
+    mandatoryTotal: number;
+    gatedCategoriesIncomplete: number;
+  };
+}) {
   const [state, setState] = React.useState<Record<string, string | null>>(() =>
     Object.fromEntries(items.map((i) => [i.id, i.completed_at])),
   );
@@ -36,10 +52,15 @@ export function TrainingList({ items }: { items: Item[] }) {
   const [err, setErr] = React.useState<string | null>(null);
 
   async function toggle(id: string) {
+    const item = items.find((i) => i.id === id);
+    if (item?.pass_score != null) {
+      // Quiz modules must be completed via the detail quiz UI.
+      window.location.href = `/training/${id}`;
+      return;
+    }
     const next = !state[id];
     setBusy(id);
     setErr(null);
-    // Optimistic; rolled back below if the write fails.
     setState((s) => ({ ...s, [id]: next ? new Date().toISOString() : null }));
     try {
       const res = await fetch(`/api/training/${id}/complete`, {
@@ -58,7 +79,9 @@ export function TrainingList({ items }: { items: Item[] }) {
 
   const mandatory = items.filter((i) => i.is_mandatory);
   const optional = items.filter((i) => !i.is_mandatory);
-  const mandatoryDone = mandatory.filter((i) => state[i.id]).length;
+  const mandatoryDone =
+    summary?.mandatoryCompleted ?? mandatory.filter((i) => state[i.id]).length;
+  const mandatoryTotal = summary?.mandatoryTotal ?? mandatory.length;
 
   return (
     <div className="space-y-5 py-2">
@@ -66,23 +89,28 @@ export function TrainingList({ items }: { items: Item[] }) {
         <h1 className="font-display text-xl uppercase font-bold text-ink tracking-tight">
           Training
         </h1>
-        {mandatory.length > 0 && (
+        {mandatoryTotal > 0 && (
           <p className="text-xs text-muted">
-            {mandatoryDone} of {mandatory.length} required completed
+            {mandatoryDone} of {mandatoryTotal} required completed
+            {summary && summary.gatedCategoriesIncomplete > 0
+              ? ` · ${summary.gatedCategoriesIncomplete} categor${
+                  summary.gatedCategoriesIncomplete === 1 ? 'y' : 'ies'
+                } need gating modules`
+              : ''}
           </p>
         )}
       </header>
 
-      {mandatory.length > 0 && (
+      {mandatoryTotal > 0 && (
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-hairline">
           <div
             className="h-full rounded-full bg-success transition-all duration-500"
-            style={{ width: `${(mandatoryDone / mandatory.length) * 100}%` }}
+            style={{ width: `${(mandatoryDone / mandatoryTotal) * 100}%` }}
           />
         </div>
       )}
 
-      {err && <p className="text-xs text-danger font-medium">{err}</p>}
+      {err && <p className="text-xs font-medium text-danger">{err}</p>}
 
       {items.length === 0 ? (
         <EmptyState
@@ -91,13 +119,7 @@ export function TrainingList({ items }: { items: Item[] }) {
         />
       ) : (
         <>
-          <Section
-            title="Required"
-            items={mandatory}
-            state={state}
-            busy={busy}
-            onToggle={toggle}
-          />
+          <Section title="Required" items={mandatory} state={state} busy={busy} onToggle={toggle} />
           <Section
             title="Recommended"
             items={optional}
@@ -109,8 +131,8 @@ export function TrainingList({ items }: { items: Item[] }) {
       )}
 
       <p className="text-xs text-muted">
-        Ticking an item records that you have completed it. We may ask you to confirm this
-        during a quality review.
+        Marking complete records that you have finished the module. We may ask you to confirm this
+        during a quality review. Quizzes for high-risk categories will replace self-attest soon.
       </p>
     </div>
   );
@@ -133,16 +155,16 @@ function Section({
 
   return (
     <section className="space-y-2">
-      <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
-        {title}
-      </h2>
+      <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">{title}</h2>
       <ul className="space-y-2">
         {items.map((item) => {
           const done = !!state[item.id];
           const Icon = KIND_ICON[item.kind] ?? FileText;
           return (
             <li key={item.id}>
-              <Card className={`!p-4 transition ${done ? 'bg-success/5 border-success/30' : 'bg-white'}`}>
+              <Card
+                className={`!p-4 transition ${done ? 'border-success/30 bg-success/5' : 'bg-white'}`}
+              >
                 <div className="flex items-start gap-3">
                   <button
                     type="button"
@@ -160,26 +182,32 @@ function Section({
                     {done && <Check className="h-4 w-4" />}
                   </button>
 
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-sm font-semibold ${done ? 'text-muted line-through' : 'text-ink'}`}>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/training/${item.id}`}
+                        className={`text-sm font-semibold hover:underline ${
+                          done ? 'text-muted line-through' : 'text-ink'
+                        }`}
+                      >
                         {item.title}
-                      </span>
+                      </Link>
                       {item.is_mandatory && !done && <Badge tone="accent">Required</Badge>}
+                      {item.gates_category && <Badge tone="warning">Gates</Badge>}
+                      {item.pass_score != null && <Badge tone="muted">Quiz</Badge>}
                       {item.category && <Badge tone="muted">{item.category.name}</Badge>}
                     </div>
 
                     {item.description && (
-                      <p className="text-xs text-charcoal leading-relaxed">{item.description}</p>
+                      <p className="text-xs leading-relaxed text-charcoal">{item.description}</p>
                     )}
 
-                    <div className="flex items-center gap-3 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-3 pt-0.5">
                       <span className="flex items-center gap-1 font-mono-utility text-[10px] uppercase tracking-wider text-muted">
                         <Icon className="h-3.5 w-3.5" />
                         {KIND_LABEL[item.kind] ?? item.kind}
+                        {item.estimated_mins != null ? ` · ${item.estimated_mins}m` : ''}
                       </span>
-                      {/* Nothing is seeded with a content_url yet, so the link only
-                          appears once real material is attached to the item. */}
                       {item.content_url && (
                         <a
                           href={item.content_url}
@@ -195,6 +223,12 @@ function Section({
                           Done {ukDate(state[item.id]!)}
                         </span>
                       )}
+                      <Link
+                        href={`/training/${item.id}`}
+                        className="tap ml-auto inline-flex items-center gap-0.5 text-xs font-semibold text-accent"
+                      >
+                        Details <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
                     </div>
                   </div>
                 </div>

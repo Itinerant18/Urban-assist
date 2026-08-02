@@ -561,6 +561,7 @@ export type Database = {
           matched_at: string | null
           notes: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          preferred_provider_id: string | null
           price_pence: number
           promo_code_id: string | null
           provider_id: string | null
@@ -588,6 +589,7 @@ export type Database = {
           matched_at?: string | null
           notes?: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          preferred_provider_id?: string | null
           price_pence: number
           promo_code_id?: string | null
           provider_id?: string | null
@@ -615,6 +617,7 @@ export type Database = {
           matched_at?: string | null
           notes?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          preferred_provider_id?: string | null
           price_pence?: number
           promo_code_id?: string | null
           provider_id?: string | null

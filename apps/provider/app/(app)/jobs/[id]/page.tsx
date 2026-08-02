@@ -20,9 +20,48 @@ import {
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import type { ChatMessage } from '@urban-assist/types';
+import { canProviderCancel } from '@urban-assist/domain';
 import { postCurrentLocation } from '../../../../lib/post-location';
 
 type DisplayMessage = Pick<ChatMessage, 'id' | 'booking_id' | 'sender_id' | 'content' | 'created_at'>;
+
+const LIFECYCLE_STEPS = [
+  'assigned',
+  'on_the_way',
+  'arrived',
+  'in_progress',
+  'completed',
+] as const;
+
+function JobTimeline({ status }: { status: string }) {
+  if (status === 'cancelled') {
+    return (
+      <p className="rounded-xl border border-danger/20 bg-danger/5 px-3 py-2 text-xs text-danger">
+        This job was cancelled.
+      </p>
+    );
+  }
+  const idx = LIFECYCLE_STEPS.indexOf(status as (typeof LIFECYCLE_STEPS)[number]);
+  const activeIdx = idx < 0 ? 0 : idx;
+  return (
+    <ol className="grid grid-cols-5 gap-1" aria-label="Job progress">
+      {LIFECYCLE_STEPS.map((step, i) => {
+        const done = i <= activeIdx;
+        return (
+          <li key={step} className="flex flex-col items-center gap-1 text-center">
+            <span
+              className={`h-1.5 w-full rounded-full ${done ? 'bg-ink' : 'bg-hairline'}`}
+              aria-hidden
+            />
+            <span className={`text-[9px] leading-tight ${done ? 'text-ink font-medium' : 'text-muted'}`}>
+              {step === 'on_the_way' ? 'En route' : step.replace(/_/g, ' ')}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 function mergeMessages(current: DisplayMessage[], incoming: DisplayMessage[]): DisplayMessage[] {
   const byId = new Map(current.map((message) => [message.id, message]));
@@ -187,6 +226,10 @@ export default function JobDetailPage() {
   // OTP states
   const [enteredOtp, setEnteredOtp] = React.useState('');
   const [otpError, setOtpError] = React.useState<string | null>(null);
+  const [actionError, setActionError] = React.useState<string | null>(null);
+  const [cancelling, setCancelling] = React.useState(false);
+  const [cancelReason, setCancelReason] = React.useState('');
+  const [chatError, setChatError] = React.useState<string | null>(null);
 
   // Geolocation
   const [providerLoc, setProviderLoc] = React.useState<{ lat: number; lng: number } | null>(null);
@@ -392,20 +435,30 @@ export default function JobDetailPage() {
   async function updateStatus(
     nextStatus: 'on_the_way' | 'arrived' | 'in_progress' | 'cancelled',
     startCode?: string,
+    cancellationReason?: string,
   ) {
     setBusy(true);
+    setActionError(null);
     try {
       const res = await fetch(`/api/jobs/${id}/status`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus, start_code: startCode }),
+        body: JSON.stringify({
+          status: nextStatus,
+          start_code: startCode,
+          cancellation_reason: cancellationReason ?? null,
+        }),
       });
       if (!res.ok) {
         const error = await res.json().catch(() => ({}));
-        throw new Error(error.error ?? 'Status update failed');
+        throw new Error(
+          typeof error.error === 'string' ? error.error : 'Status update failed',
+        );
       }
       const data = await res.json();
       setBooking((cur: any) => ({ ...cur, ...data }));
+      setCancelling(false);
+      setCancelReason('');
       // Drives the customer's live tracking map, which subscribes to
       // provider_location changes. Never fired before, so the pin never moved.
       if (nextStatus === 'on_the_way' || nextStatus === 'arrived') {
@@ -416,10 +469,22 @@ export default function JobDetailPage() {
         setOtpError(
           e.message === 'too_many_attempts'
             ? 'Too many attempts. Try again later.'
-            : 'Incorrect verification code. Please ask the customer.',
+            : e.message === 'invalid_start_code' || e.message === 'Incorrect verification code. Please ask the customer.'
+              ? 'Incorrect verification code. Please ask the customer.'
+              : e.message === 'start_code_required'
+                ? 'Enter the 4-digit code from the customer.'
+                : 'Could not start the job. Check the code and try again.',
         );
       } else {
-        alert(e.message);
+        setActionError(
+          e.message === 'invalid_status_transition'
+            ? 'That step is no longer available — refresh and try again.'
+            : e.message === 'forbidden'
+              ? 'You are not assigned to this job.'
+              : e.message === 'cancellation_reason_required'
+                ? 'Add a short reason (at least 3 characters).'
+                : e.message,
+        );
       }
     } finally {
       setBusy(false);
@@ -428,16 +493,26 @@ export default function JobDetailPage() {
 
   async function confirmCash() {
     setBusy(true);
+    setActionError(null);
     try {
       const res = await fetch('/api/cash-confirm', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ booking_id: id }),
       });
-      if (!res.ok) throw new Error('Failed to confirm cash collection');
-      setPayment((cur: any) => ({ ...cur, status: 'succeeded' }));
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(
+          typeof body.error === 'string' ? body.error : 'Failed to confirm cash collection',
+        );
+      }
+      setPayment((cur: any) => ({
+        ...cur,
+        status: 'succeeded',
+        cash_collected_at: new Date().toISOString(),
+      }));
     } catch (e: any) {
-      alert(e.message);
+      setActionError(e.message);
     } finally {
       setBusy(false);
     }
@@ -446,6 +521,7 @@ export default function JobDetailPage() {
   async function uploadCompletion(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    setActionError(null);
     setUploadProgress('Uploading completion report…');
     try {
       const form = new FormData();
@@ -460,7 +536,7 @@ export default function JobDetailPage() {
       setBooking(completed);
       setUploadProgress(null);
     } catch (err: any) {
-      alert(err.message);
+      setActionError(err.message);
       setUploadProgress(null);
     } finally {
       setBusy(false);
@@ -469,6 +545,7 @@ export default function JobDetailPage() {
 
   async function submitCustomerReview() {
     setBusy(true);
+    setActionError(null);
     try {
       const res = await fetch('/api/reviews', {
         method: 'POST',
@@ -485,7 +562,7 @@ export default function JobDetailPage() {
       }
       setReviewed(true);
     } catch (err: any) {
-      alert(err.message);
+      setActionError(err.message);
     } finally {
       setBusy(false);
     }
@@ -496,11 +573,16 @@ export default function JobDetailPage() {
     if (!draft.trim()) return;
     const body = draft;
     setDraft('');
-    await fetch('/api/messages', {
+    setChatError(null);
+    const res = await fetch('/api/messages', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ booking_id: id, content: body }),
     });
+    if (!res.ok) {
+      setDraft(body);
+      setChatError('Message failed to send. Try again.');
+    }
   }
 
   if (loading) {
@@ -585,10 +667,18 @@ export default function JobDetailPage() {
               <h1 className="font-display text-2xl font-bold text-ink">{booking.category?.name}</h1>
               <p className="font-mono-utility text-xs text-muted">#{booking.short_code}</p>
             </div>
-            <Badge tone={booking.status === 'completed' ? 'success' : 'accent'}>
+            <Badge tone={booking.status === 'completed' ? 'success' : booking.status === 'cancelled' ? 'danger' : 'accent'}>
               {booking.status.replace(/_/g, ' ').toUpperCase()}
             </Badge>
           </div>
+
+          <JobTimeline status={booking.status} />
+
+          {actionError && (
+            <p role="alert" className="rounded-xl border border-danger/20 bg-danger/5 px-3 py-2 text-xs text-danger">
+              {actionError}
+            </p>
+          )}
 
           {/* Customer info card */}
           <Card className="p-4 border border-hairline space-y-3">
@@ -729,6 +819,59 @@ export default function JobDetailPage() {
                   </Button>
                 </form>
               )}
+
+              {canProviderCancel(booking.status) && (
+                <div className="border-t border-hairline pt-3 space-y-2">
+                  {!cancelling ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCancelling(true);
+                        setActionError(null);
+                      }}
+                      className="tap text-xs font-medium text-danger hover:underline"
+                      disabled={busy}
+                    >
+                      Can&apos;t make this job?
+                    </button>
+                  ) : (
+                    <Card className="p-3 border border-danger/20 bg-danger/5 space-y-2">
+                      <Field label="Why are you cancelling?">
+                        <Input
+                          value={cancelReason}
+                          onChange={(e) => setCancelReason(e.target.value.slice(0, 200))}
+                          placeholder="e.g. vehicle issue, emergency"
+                          maxLength={200}
+                        />
+                      </Field>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1 text-xs"
+                          disabled={busy}
+                          onClick={() => {
+                            setCancelling(false);
+                            setCancelReason('');
+                          }}
+                        >
+                          Keep job
+                        </Button>
+                        <Button
+                          type="button"
+                          className="flex-1 text-xs"
+                          disabled={busy || cancelReason.trim().length < 3}
+                          onClick={() =>
+                            void updateStatus('cancelled', undefined, cancelReason.trim())
+                          }
+                        >
+                          Confirm cancel
+                        </Button>
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -740,7 +883,8 @@ export default function JobDetailPage() {
               <span className="font-display text-base font-bold">{pence(booking.total_pence)}</span>
             </div>
             <div className="text-xs text-muted">
-              Method: {booking.payment_method === 'card' ? 'Card' : 'Cash'} ·{' '}
+              Method:{' '}
+              {booking.payment_method === 'card' ? 'Pay now (card)' : 'Pay after service (cash)'} ·{' '}
               <span
                 className={
                   payment?.status === 'succeeded' ? 'text-success font-semibold' : 'text-accent'
@@ -753,8 +897,16 @@ export default function JobDetailPage() {
               booking.status === 'completed' &&
               payment?.status !== 'succeeded' && (
                 <Button onClick={confirmCash} disabled={busy} className="w-full mt-2 text-xs">
-                  Confirm Cash Collected
+                  Confirm cash collected
                 </Button>
+              )}
+            {booking.payment_method === 'card' &&
+              booking.status === 'completed' &&
+              payment?.status !== 'succeeded' && (
+                <p className="text-[11px] text-muted mt-2">
+                  Card payment still pending — customer may need to finish checkout. You can still
+                  open the job statement.
+                </p>
               )}
           </Card>
 
@@ -834,6 +986,7 @@ export default function JobDetailPage() {
                 </Button>
               </form>
             )}
+            {chatError && <p className="text-xs text-danger">{chatError}</p>}
           </Card>
 
           {/* Rating customer review */}

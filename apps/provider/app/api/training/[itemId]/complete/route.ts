@@ -3,7 +3,11 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
 
-const Schema = z.object({ completed: z.boolean() });
+const Schema = z.object({
+  completed: z.boolean(),
+  /** Optional score when a quiz is attached later. */
+  score: z.number().min(0).max(100).optional(),
+});
 
 /**
  * Mark a training item done or undone for the signed-in provider.
@@ -18,7 +22,9 @@ export async function POST(
   { params }: { params: { itemId: string } },
 ) {
   const db = getSupabaseServer();
-  const { data: { user } } = await db.auth.getUser();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const parsed = Schema.safeParse(await req.json().catch(() => ({})));
@@ -28,22 +34,44 @@ export async function POST(
 
   const admin = createServiceRole();
 
-  // Reject unknown or retired items rather than storing a dangling completion.
   const { data: item } = await admin
     .from('training_items')
-    .select('id')
+    .select('id, pass_score, gates_category, category_id')
     .eq('id', params.itemId)
     .eq('is_active', true)
     .maybeSingle();
   if (!item) return NextResponse.json({ error: 'item_not_found' }, { status: 404 });
 
   if (parsed.data.completed) {
-    const { error } = await admin
-      .from('provider_training_completions')
-      .upsert(
-        { provider_id: user.id, item_id: params.itemId },
-        { onConflict: 'provider_id,item_id', ignoreDuplicates: true },
-      );
+    // Quiz modules cannot be self-attested — must go through /quiz.
+    if (item.pass_score != null) {
+      const { count } = await admin
+        .from('training_quiz_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('item_id', params.itemId)
+        .eq('is_active', true);
+      if ((count ?? 0) > 0) {
+        return NextResponse.json({ error: 'quiz_required' }, { status: 400 });
+      }
+      if (parsed.data.score == null) {
+        return NextResponse.json({ error: 'score_required' }, { status: 400 });
+      }
+      if (parsed.data.score < item.pass_score) {
+        return NextResponse.json({ error: 'score_below_pass' }, { status: 400 });
+      }
+    }
+
+    const { error } = await admin.from('provider_training_completions').upsert(
+      {
+        provider_id: user.id,
+        item_id: params.itemId,
+        score: parsed.data.score ?? null,
+        source: item.pass_score != null ? 'quiz' : 'self_attested',
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'provider_id,item_id' },
+    );
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   } else {
     const { error } = await admin
@@ -53,6 +81,11 @@ export async function POST(
       .eq('item_id', params.itemId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  // Refresh soft eligibility snapshot (no hard job gating yet).
+  await admin.rpc('refresh_provider_training_eligibility', {
+    p_provider_id: user.id,
+  });
 
   return NextResponse.json({ ok: true, completed: parsed.data.completed });
 }

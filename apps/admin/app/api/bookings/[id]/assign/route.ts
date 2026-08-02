@@ -50,14 +50,17 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     return NextResponse.json(assigned);
   } catch (error: any) {
-    const message = String(error?.message ?? 'assignment_failed');
-    const status = message === 'unauthorized'
+    const raw = String(error?.message ?? 'assignment_failed');
+    const message = raw.includes('preference_override_reason_required')
+      ? 'Override reason required when assigning someone other than the customer’s preferred pro (min 3 characters).'
+      : raw;
+    const status = raw === 'unauthorized'
       ? 401
-      : message === 'mfa_required'
+      : raw === 'mfa_required'
         ? 403
-      : message.includes('forbidden')
+      : raw.includes('forbidden')
         ? 403
-        : message.includes('already') || message.includes('not_assignable')
+        : raw.includes('already') || raw.includes('not_assignable')
           ? 409
           : 400;
     return NextResponse.json({ error: message }, { status });

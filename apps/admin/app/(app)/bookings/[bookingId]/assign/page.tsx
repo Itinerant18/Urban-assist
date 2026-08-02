@@ -17,7 +17,9 @@ export default async function AssignBookingPage({
   const { db, user, roles } = await requireAdminPermission('can_manage_bookings');
   const { data: booking, error } = await db
     .from('bookings')
-    .select('id, short_code, status, scheduled_at, provider_id, customer_id, category_id, address_id')
+    .select(
+      'id, short_code, status, scheduled_at, provider_id, customer_id, category_id, address_id, preferred_provider_id',
+    )
     .eq('id', params.bookingId)
     .single();
   if (error || !booking) notFound();
@@ -32,12 +34,19 @@ export default async function AssignBookingPage({
     );
   }
 
-  const [categoryRes, addressRes, customerRes, providerRes] = await Promise.all([
+  const [categoryRes, addressRes, customerRes, providerRes, preferredRes] = await Promise.all([
     db.from('service_categories').select('name').eq('id', booking.category_id).single(),
     db.from('addresses').select('postcode, city').eq('id', booking.address_id).single(),
     db.from('profiles').select('full_name, email').eq('id', booking.customer_id).single(),
     booking.provider_id
       ? db.from('profiles').select('full_name, email').eq('id', booking.provider_id).single()
+      : Promise.resolve({ data: null }),
+    booking.preferred_provider_id
+      ? db
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', booking.preferred_provider_id)
+          .single()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -69,7 +78,7 @@ export default async function AssignBookingPage({
       </section>
 
       {providerRes.data && (
-        <p className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-ink">
+        <p className="rounded-lg border border-hairline bg-bg px-4 py-3 text-sm text-ink">
           Currently assigned to <strong>{providerRes.data.full_name ?? providerRes.data.email}</strong>. A reason is required to reassign.
         </p>
       )}
@@ -79,6 +88,9 @@ export default async function AssignBookingPage({
           id: booking.id,
           shortCode: booking.short_code,
           currentProviderId: booking.provider_id,
+          preferredProviderId: booking.preferred_provider_id,
+          preferredProviderName:
+            preferredRes.data?.full_name ?? preferredRes.data?.email ?? null,
         }}
         candidates={candidates}
       />

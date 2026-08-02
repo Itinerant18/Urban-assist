@@ -16,6 +16,7 @@ import {
   TicketCheck,
   ShieldCheck,
   UserRound,
+  GraduationCap,
 } from 'lucide-react';
 import { PageHeader, TableTile } from '@/components/bento';
 
@@ -27,6 +28,7 @@ const links = [
   { href: '/customers', label: 'Customers', icon: UserRound },
   { href: '/staff', label: 'Staff Roles', icon: ShieldAlert },
   { href: '/kyc', label: 'KYC Queue', icon: ShieldCheck },
+  { href: '/training', label: 'Training', icon: GraduationCap },
   { href: '/financials', label: 'Financials', icon: Wallet },
   { href: '/pricing', label: 'Pricing', icon: Percent },
   { href: '/promotions', label: 'Promotions', icon: Tag },

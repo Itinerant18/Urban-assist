@@ -10,6 +10,9 @@ export interface AssignmentCandidate {
   last_seen_at: string | null;
   earnings_pence: number;
   is_available: boolean;
+  is_preferred?: boolean;
+  /** False when gating training for the booking category is incomplete. */
+  training_eligible?: boolean;
 }
 
 export interface AssignmentCommand {

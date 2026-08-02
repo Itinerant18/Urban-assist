@@ -17,6 +17,8 @@ export {
   cancelBooking,
   rescheduleBooking,
   updateJobStatus,
+  JOB_STATUS_TRANSITIONS,
+  canProviderCancel,
 } from './bookings';
 export type {
   CreateBookingInput,
@@ -30,6 +32,31 @@ export { submitReview } from './reviews';
 export type { SubmitReviewInput } from './reviews';
 
 export { sendBookingMessage } from './messages';
+
+export {
+  summarizeTraining,
+  isCategoryTrainingEligible,
+  completionSatisfiesModule,
+  buildOfferedCategoryTrainingRow,
+  filterAdminTrainingRows,
+  scoreQuizAttempt,
+  trainingGateMessage,
+  loadCategoryTrainingEligibility,
+} from './training';
+export type {
+  TrainingSummary,
+  TrainingItemLike,
+  TrainingCompletionLike,
+  CategoryEligibilityLike,
+  TrainingCompletionSource,
+  AdminTrainingComplianceRow,
+  AdminTrainingComplianceInput,
+  AdminTrainingFilters,
+  GatingItemLike,
+  QuizQuestion,
+  QuizAnswer,
+  QuizScoreResult,
+} from './training';
 
 export {
   listBookings, getBooking, updateBookingStatus,

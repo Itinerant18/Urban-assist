@@ -14,6 +14,8 @@ export interface CreateBookingInput {
   promoCode?: string | null;
   applyWallet?: boolean;
   notes?: string | null;
+  /** Soft dispatch signal — never a hard assignment guarantee. */
+  preferredProviderId?: string | null;
 }
 
 export interface CreateBookingResult {
@@ -82,6 +84,7 @@ export async function createBooking(
       payment_method: input.paymentMethod,
       promo_code_id: promo?.id ?? null,
       notes: input.notes ?? null,
+      preferred_provider_id: input.preferredProviderId ?? null,
     })
     .select()
     .single();
@@ -422,6 +425,10 @@ export const JOB_STATUS_TRANSITIONS: Record<string, string[]> = {
   arrived: ['in_progress', 'cancelled'],
   in_progress: ['completed'],
 };
+
+export function canProviderCancel(status: string): boolean {
+  return JOB_STATUS_TRANSITIONS[status]?.includes('cancelled') ?? false;
+}
 
 export async function updateJobStatus(
   db: SupabaseClient,

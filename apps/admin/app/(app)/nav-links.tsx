@@ -18,6 +18,7 @@ import {
   Percent,
   LayoutGrid,
   UserRound,
+  GraduationCap,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -49,6 +50,7 @@ const navSections: NavSection[] = [
       { href: '/customers', label: 'Customers', icon: UserRound },
       { href: '/staff', label: 'Staff', icon: Users },
       { href: '/kyc', label: 'KYC Queue', icon: ShieldCheck },
+      { href: '/training', label: 'Training', icon: GraduationCap },
     ],
   },
   {
