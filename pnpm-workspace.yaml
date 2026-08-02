@@ -4,7 +4,8 @@ packages:
   - "infra/supabase/functions/*"
   - "infra/firebase/functions"
   - "tooling"
+# ponytail: pnpm 9 ignores this; was unanswered pnpm-10 prompt noise
 allowBuilds:
-  '@firebase/util': set this to true or false
-  protobufjs: set this to true or false
-  unrs-resolver: set this to true or false
+  '@firebase/util': true
+  protobufjs: true
+  unrs-resolver: true
