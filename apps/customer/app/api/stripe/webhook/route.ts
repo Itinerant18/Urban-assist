@@ -1,5 +1,5 @@
 // Stripe webhook — settles card payments when the PaymentIntent succeeds.
-// Configure: stripe listen --forward-to localhost:3000/api/stripe/webhook
+// Configure Stripe CLI forwarding to /api/stripe/webhook on the customer app.
 import type { NextRequest} from 'next/server';
 import { NextResponse } from 'next/server';
 import { stripe } from '@urban-assist/integrations/stripe';

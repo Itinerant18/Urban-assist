@@ -3,6 +3,7 @@ import { requireAdminRole } from '../../../lib/admin-auth';
 import { AssignmentPanel } from './assignment-panel';
 
 import Link from 'next/link';
+import { Button, Input, Select } from '@urban-assist/ui';
 import { listAdminBookings, readBookingFilters } from '../../../lib/admin-bookings';
 import {
   PageHeader,
@@ -14,9 +15,6 @@ import {
 } from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
-
-const fieldClass =
-  'mt-1 w-full rounded-xl border border-hairline bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none';
 
 export default async function BookingsPage({
   searchParams,
@@ -64,7 +62,7 @@ export default async function BookingsPage({
         <form className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" method="GET">
           <label className="text-xs text-muted">
             Status
-            <select className={fieldClass} name="status" defaultValue={filters.status ?? ''}>
+            <Select className="mt-1" name="status" defaultValue={filters.status ?? ''}>
               <option value="">All statuses</option>
               {[
                 'pending_match',
@@ -81,31 +79,31 @@ export default async function BookingsPage({
                   {status.replaceAll('_', ' ')}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="text-xs text-muted">
             From
-            <input className={fieldClass} type="date" name="from" defaultValue={filters.from} />
+            <Input className="mt-1" type="date" name="from" defaultValue={filters.from} />
           </label>
           <label className="text-xs text-muted">
             To
-            <input className={fieldClass} type="date" name="to" defaultValue={filters.to} />
+            <Input className="mt-1" type="date" name="to" defaultValue={filters.to} />
           </label>
           <label className="text-xs text-muted">
             Category
-            <select className={fieldClass} name="category" defaultValue={filters.category ?? ''}>
+            <Select className="mt-1" name="category" defaultValue={filters.category ?? ''}>
               <option value="">All categories</option>
               {(categoriesRes.data ?? []).map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="text-xs text-muted">
             Postcode
-            <input
-              className={fieldClass}
+            <Input
+              className="mt-1"
               name="postcode"
               defaultValue={filters.postcode}
               placeholder="SW1"
@@ -113,34 +111,31 @@ export default async function BookingsPage({
           </label>
           <label className="text-xs text-muted">
             Provider
-            <select className={fieldClass} name="provider" defaultValue={filters.provider ?? ''}>
+            <Select className="mt-1" name="provider" defaultValue={filters.provider ?? ''}>
               <option value="">All providers</option>
               {(providersRes.data ?? []).map((provider) => (
                 <option key={provider.id} value={provider.id}>
                   {provider.full_name ?? provider.email}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="text-xs text-muted">
             Customer
-            <select className={fieldClass} name="customer" defaultValue={filters.customer ?? ''}>
+            <Select className="mt-1" name="customer" defaultValue={filters.customer ?? ''}>
               <option value="">All customers</option>
               {(customersRes.data ?? []).map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {customer.full_name ?? customer.email}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           {filters.unassigned && <input type="hidden" name="unassigned" value="1" />}
           <div className="flex items-end gap-2">
-            <button
-              className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
-              type="submit"
-            >
+            <Button type="submit" className="font-semibold">
               Apply filters
-            </button>
+            </Button>
             <Link
               className="rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-ink hover:bg-bg transition-colors"
               href="/bookings"
@@ -157,6 +152,35 @@ export default async function BookingsPage({
         </TableTile>
       ) : (
         <TableTile>
+          <div className="divide-y divide-hairline sm:hidden">
+            {bookings.map((b) => (
+              <article key={b.id} className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-mono-utility text-xs text-muted">{b.short_code ?? b.id.slice(0, 8)}</p>
+                    <p className="mt-1 text-sm font-semibold text-ink">{b.category_name ?? 'Uncategorised'}</p>
+                  </div>
+                  <StatusChip tone={statusToneFrom(b.status)}>{b.status.replaceAll('_', ' ')}</StatusChip>
+                </div>
+                <dl className="grid grid-cols-2 gap-2 text-xs">
+                  <div><dt className="text-muted">Customer</dt><dd className="mt-0.5 truncate text-ink">{b.customer_name ?? b.customer_email ?? 'Unknown'}</dd></div>
+                  <div><dt className="text-muted">Provider</dt><dd className="mt-0.5 truncate text-ink">{b.provider_name ?? 'Unassigned'}</dd></div>
+                  <div><dt className="text-muted">Schedule</dt><dd className="mt-0.5 text-ink">{new Date(b.scheduled_at).toLocaleString()}</dd></div>
+                  <div><dt className="text-muted">Total</dt><dd className="mt-0.5 font-mono-utility text-ink">£{((b.total_pence ?? 0) / 100).toFixed(2)}</dd></div>
+                </dl>
+                <div className="flex flex-wrap items-center justify-end gap-2 border-t border-hairline pt-3">
+                  {['pending_match', 'unmatched'].includes(b.status) && !b.provider_id && <AssignmentPanel bookingId={b.id} />}
+                  {b.provider_id && !['completed', 'in_progress'].includes(b.status) && (
+                    <Link className="tap inline-flex items-center rounded-xl border border-hairline bg-white px-3 text-xs text-ink" href={'/bookings/' + b.id + '/assign'}>Reassign</Link>
+                  )}
+                  <Link aria-label="View booking" href={'/bookings/' + b.id} className="tap inline-flex items-center justify-center rounded-xl border border-hairline bg-white">
+                    <ChevronRight className="h-4 w-4 text-muted" />
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="hidden divide-y divide-hairline sm:block">
           {bookings.map((b) => (
             <div
               key={b.id}
@@ -201,6 +225,7 @@ export default async function BookingsPage({
               </div>
             </div>
           ))}
+          </div>
         </TableTile>
       )}
     </div>

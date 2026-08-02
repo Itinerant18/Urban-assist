@@ -1,19 +1,7 @@
--- Reconstructed from supabase_migrations.schema_migrations on the linked project.
---
--- This migration was applied to the remote database, but its file was missing from
--- this repository. That mismatch made the CLI refuse to push any new migration,
--- because it will not operate on a history it cannot account for.
---
--- The statements below are exactly those recorded in the migration history, joined
--- in their recorded order. Applied remotely as 202607220004 (schedule_edge_dispatch),
--- so it is already present on that database; the file exists so local and remote
--- agree, not to be re-run against it.
-
 -- Schedule durable notification delivery and stale-offer cascading.
 -- The base URL is configured through app.settings.edge_function_url and the
 -- shared EDGE_FUNCTION_SECRET value is stored in Vault as edge_function_secret.
 create extension if not exists pg_cron;
-
 create extension if not exists pg_net;
 
 create or replace function public.invoke_scheduled_edge_function(p_path text)

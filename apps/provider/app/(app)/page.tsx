@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { Dashboard } from './dashboard';
+import { buildWeeklyEarnings, weeklyWindow } from '../../lib/weekly-earnings';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,7 @@ export default async function Home() {
   tomorrow.setDate(today.getDate() + 1);
   const { data: jobsToday } = await db
     .from('bookings')
-    .select('id, short_code, scheduled_at, status, total_pence, category:service_categories(name), address:addresses(line1,postcode)')
+    .select('id, short_code, scheduled_at, status, price_pence, total_pence, category:service_categories(name), address:addresses(line1,postcode)')
     .eq('provider_id', user.id)
     .gte('scheduled_at', today.toISOString())
     .lt('scheduled_at', tomorrow.toISOString())
@@ -32,54 +33,35 @@ export default async function Home() {
     .order('offered_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-
-  // Real numbers for the two dashboard tiles that used to be literals: the
-  // "Weekly Earnings Chart" was a fixed Mon–Sun array and Completion Rate was "98%".
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - 6);
-
-  const [{ data: weekJobs }, completedCount, cancelledCount] = await Promise.all([
+  const now = new Date();
+  const { start: weekStart, end: weekEnd } = weeklyWindow(now);
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const [{ data: completedBookings }, { data: terminalBookings }] = await Promise.all([
     db
       .from('bookings')
-      .select('total_pence, completed_at')
+      .select('completed_at, price_pence')
       .eq('provider_id', user.id)
       .eq('status', 'completed')
-      .gte('completed_at', weekStart.toISOString()),
+      .gte('completed_at', weekStart.toISOString())
+      .lt('completed_at', weekEnd.toISOString()),
     db
       .from('bookings')
-      .select('id', { count: 'exact', head: true })
+      .select('status, completed_at, cancelled_at')
       .eq('provider_id', user.id)
-      .eq('status', 'completed'),
-    db
-      .from('bookings')
-      .select('id', { count: 'exact', head: true })
-      .eq('provider_id', user.id)
-      .eq('status', 'cancelled'),
+      .in('status', ['completed', 'cancelled'])
+      .not('matched_at', 'is', null)
+      .or(
+        `completed_at.gte.${thirtyDaysAgo.toISOString()},cancelled_at.gte.${thirtyDaysAgo.toISOString()}`,
+      ),
   ]);
-
-  // Seven buckets, oldest first, keyed to local calendar days.
-  const weeklyEarnings = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(weekStart);
-    day.setDate(weekStart.getDate() + i);
-    const next = new Date(day);
-    next.setDate(day.getDate() + 1);
-    const pence = (weekJobs ?? [])
-      .filter((j: any) => {
-        const at = j.completed_at ? new Date(j.completed_at) : null;
-        return at !== null && at >= day && at < next;
-      })
-      .reduce((sum: number, j: any) => sum + (j.total_pence ?? 0), 0);
-    return {
-      label: day.toLocaleDateString('en-GB', { weekday: 'short' }),
-      pence,
-    };
-  });
-
-  const finished = completedCount.count ?? 0;
-  const cancelled = cancelledCount.count ?? 0;
-  // null (not 100%) when there is no history — a new provider has no rate to show.
-  const completionRate =
-    finished + cancelled > 0 ? finished / (finished + cancelled) : null;
+  const completedCount = (terminalBookings ?? []).filter(
+    (booking) => booking.status === 'completed' && booking.completed_at,
+  ).length;
+  const cancelledCount = (terminalBookings ?? []).filter(
+    (booking) => booking.status === 'cancelled' && booking.cancelled_at,
+  ).length;
+  const completionDenominator = completedCount + cancelledCount;
 
   return (
     <Dashboard
@@ -87,8 +69,12 @@ export default async function Home() {
       jobsToday={jobsToday ?? []}
       openOffer={openOffer}
       servicesCount={services?.length ?? 0}
-      weeklyEarnings={weeklyEarnings}
-      completionRate={completionRate}
+      weeklyEarnings={buildWeeklyEarnings(completedBookings ?? [], now)}
+      completionRate={
+        completionDenominator === 0
+          ? null
+          : Math.round((completedCount / completionDenominator) * 100)
+      }
     />
   );
 }

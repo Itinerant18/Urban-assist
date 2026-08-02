@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Users, ChevronRight } from 'lucide-react';
+import { Input } from '@urban-assist/ui';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
 import {
@@ -52,12 +53,12 @@ export default async function CustomersPage({
         <form action="/customers">
           <label className="text-xs text-muted">
             Search
-            <input
+            <Input
               type="search"
               name="q"
               defaultValue={q ?? ''}
               placeholder="Search name or email…"
-              className="mt-1 w-full rounded-xl border border-hairline bg-bg px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+              className="mt-1"
             />
           </label>
         </form>
@@ -69,6 +70,20 @@ export default async function CustomersPage({
         </TableTile>
       ) : (
         <TableTile>
+          <div className="divide-y divide-hairline sm:hidden">
+            {customers.map((c) => (
+              <Link key={c.id} href={`/customers/${c.id}`} className="tap flex items-center gap-3 p-4 hover:bg-bg/60">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-ink">{c.full_name ?? 'Unnamed'}</p>
+                  <p className="mt-1 truncate font-mono-utility text-xs text-muted">{c.email}</p>
+                  <p className="mt-2 text-xs text-muted">Joined {new Date(c.created_at).toLocaleDateString('en-GB')}</p>
+                </div>
+                {c.is_blocked ? <StatusChip tone="danger">Blocked</StatusChip> : null}
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+              </Link>
+            ))}
+          </div>
+          <div className="hidden divide-y divide-hairline sm:block">
           {customers.map((c) => (
             <Link
               key={c.id}
@@ -83,6 +98,7 @@ export default async function CustomersPage({
               <ChevronRight className="h-4 w-4 text-muted shrink-0" aria-hidden />
             </Link>
           ))}
+          </div>
         </TableTile>
       )}
     </div>

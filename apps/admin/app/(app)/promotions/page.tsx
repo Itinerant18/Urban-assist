@@ -1,5 +1,6 @@
 import { revalidatePath } from 'next/cache';
 import { Tag } from 'lucide-react';
+import { Button, Input, Select } from '@urban-assist/ui';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
 import {
@@ -83,9 +84,6 @@ function isActive(p: Promo) {
   return notExpired && underCap;
 }
 
-const fieldClass =
-  'mt-1 w-full rounded-xl border border-hairline bg-bg px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none';
-
 export default async function PromotionsPage() {
   const { db } = await requireAdminPermission('can_manage_promo_codes');
   const { data } = await (db as any)
@@ -103,46 +101,43 @@ export default async function PromotionsPage() {
         <form action={createPromo} className="grid grid-cols-2 sm:grid-cols-6 gap-3 items-end">
           <label className="col-span-2 sm:col-span-2 text-xs text-muted">
             Code
-            <input name="code" required placeholder="WELCOME10" className={`${fieldClass} uppercase`} />
+            <Input name="code" required placeholder="WELCOME10" className="mt-1 uppercase" />
           </label>
           <label className="text-xs text-muted">
             Type
-            <select name="discount_type" className={fieldClass}>
+            <Select name="discount_type" className="mt-1">
               <option value="percent">% off</option>
               <option value="fixed">£ off</option>
-            </select>
+            </Select>
           </label>
           <label className="text-xs text-muted">
             Value
-            <input
+            <Input
               name="discount_value"
               type="number"
               min="1"
               required
               placeholder="10"
-              className={fieldClass}
+              className="mt-1"
             />
           </label>
           <label className="text-xs text-muted">
             Max uses
-            <input
+            <Input
               name="max_redemptions"
               type="number"
               min="1"
               placeholder="∞"
-              className={fieldClass}
+              className="mt-1"
             />
           </label>
           <label className="text-xs text-muted">
             Expires
-            <input name="expires_at" type="date" className={fieldClass} />
+            <Input name="expires_at" type="date" className="mt-1" />
           </label>
-          <button
-            type="submit"
-            className="col-span-2 sm:col-span-6 rounded-xl bg-accent py-2 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
-          >
+          <Button type="submit" className="col-span-2 font-semibold sm:col-span-6">
             Create code
-          </button>
+          </Button>
         </form>
       </BentoTile>
 
@@ -182,9 +177,9 @@ export default async function PromotionsPage() {
                   {active && (
                     <form action={deactivatePromo}>
                       <input type="hidden" name="id" value={p.id} />
-                      <button type="submit" className="text-xs text-danger hover:underline">
+                      <Button type="submit" variant="ghost" size="sm" className="text-danger hover:bg-danger/10">
                         Deactivate
-                      </button>
+                      </Button>
                     </form>
                   )}
                 </div>

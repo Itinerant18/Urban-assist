@@ -4,12 +4,13 @@
 // Use createBrowser() when you need a fresh instance (rare).
 
 import { createBrowserClient } from '@supabase/ssr';
-import { readPublicEnv } from './env';
+import { authCookieName, readPublicEnv } from './env';
 
 /** Creates a new Supabase browser client instance. */
 export function createBrowser() {
   const { url, anon } = readPublicEnv();
-  return createBrowserClient(url, anon);
+  const name = authCookieName();
+  return createBrowserClient(url, anon, name ? { cookieOptions: { name } } : undefined);
 }
 
 /**

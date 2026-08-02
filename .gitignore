@@ -70,3 +70,6 @@ Thumbs.db
 # ──────────────────────────────────────────────────
 check*.js
 clean.js
+
+# Local DB inspection scripts (contain service-role keys - never commit)
+check*.js

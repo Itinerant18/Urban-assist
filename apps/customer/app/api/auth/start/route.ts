@@ -3,6 +3,8 @@ import type { NextRequest} from 'next/server';
 import { NextResponse } from 'next/server';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { otpRateLimit } from '@urban-assist/integrations/redis';
+import { inPhoneE164, normaliseMobile, ukPhoneE164 } from '@urban-assist/utils';
+import { z } from 'zod';
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? 'anon';
@@ -17,7 +19,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { mode, value } = (await req.json()) as { mode: 'email' | 'phone'; value: string };
+  const { mode, value, referralCode: rawReferralCode } = (await req.json()) as {
+    mode: 'email' | 'phone';
+    value: string;
+    referralCode?: unknown;
+  };
+  const referralResult = z.string().trim().max(32).optional().safeParse(rawReferralCode);
+  if (!referralResult.success) {
+    return NextResponse.json({ error: 'Invalid referral code' }, { status: 400 });
+  }
+  const referralCode = referralResult.data || undefined;
   if (!value) return NextResponse.json({ error: 'Missing value' }, { status: 400 });
 
   // STRICTLY phone-only authentication
@@ -25,9 +36,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Only phone verification is supported.' }, { status: 400 });
   }
 
-  // Validate E.164 prefixes for UK (+44) and India (+91)
-  const isUK = value.startsWith('+44') && /^\+447\d{9}$/.test(value);
-  const isIndia = value.startsWith('+91') && /^\+91[6-9]\d{9}$/.test(value);
+  const phone = normaliseMobile(value);
+  const isUK = phone !== null && ukPhoneE164.safeParse(phone).success;
+  const isIndia = phone !== null && inPhoneE164.safeParse(phone).success;
 
   if (!isUK && !isIndia) {
     return NextResponse.json(
@@ -40,8 +51,11 @@ export async function POST(req: NextRequest) {
 
   const db = getSupabaseServer();
   const { error } = await db.auth.signInWithOtp({
-    phone: value,
-    options: { shouldCreateUser: true },
+    phone: phone!,
+    options: {
+      shouldCreateUser: true,
+      data: referralCode ? { referral_code: referralCode } : undefined,
+    },
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

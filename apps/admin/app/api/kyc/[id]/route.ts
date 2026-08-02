@@ -58,7 +58,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (error) throw error;
     return NextResponse.json({ ok: true, vettingStatus: data });
   } catch (e: any) {
-    const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' ? 401 : 400;
+    const status =
+      e.message === 'forbidden' || e.message === 'mfa_required'
+        ? 403
+        : e.message === 'unauthorized'
+          ? 401
+          : 400;
     return NextResponse.json({ error: e.message }, { status });
   }
 }

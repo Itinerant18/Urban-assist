@@ -48,6 +48,12 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-surface-sunk">
+      <a
+        href="#main-content"
+        className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:not-sr-only focus:rounded-xl focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-ink focus:shadow-card"
+      >
+        Skip to main content
+      </a>
       {/* MOBILE HEADER */}
       <header className="lg:hidden border-b border-hairline bg-white">
         <div className="flex items-center justify-between px-4 pt-3">
@@ -80,7 +86,7 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
             <button
               type="submit"
               id="admin-logout"
-              className="flex items-center gap-2.5 px-2 py-2 min-h-[40px] rounded-lg text-sm text-muted hover:text-danger hover:bg-danger/10 w-full transition-colors"
+              className="tap flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-muted transition-colors hover:bg-danger/10 hover:text-danger"
             >
               <LogOut className="h-4 w-4 shrink-0" />
               Sign out
@@ -90,12 +96,12 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
       </aside>
 
       {/* MAIN CONTENT AREA — sunk gutter so white bento tiles lift */}
-      <main className="flex-1 overflow-auto p-6 pb-24 lg:p-8 lg:pb-8">
+      <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto p-6 pb-24 lg:p-8 lg:pb-8">
         <div className="mx-auto w-full max-w-[1200px]">{children}</div>
       </main>
 
       {/* MOBILE BOTTOM NAVIGATION BAR */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white pb-[env(safe-area-inset-bottom)] pt-2 lg:hidden">
+      <nav aria-label="Admin mobile navigation" className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white pb-[env(safe-area-inset-bottom)] pt-2 lg:hidden">
         <MobileNav kycPending={kycPending} />
       </nav>
     </div>

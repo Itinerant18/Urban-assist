@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { Button, EmptyState } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { Phone } from 'lucide-react';
+import { ArrowLeft, Phone } from 'lucide-react';
 import type { ChatMessage } from '@urban-assist/types';
 
 type DisplayMessage = Pick<ChatMessage, 'id' | 'booking_id' | 'sender_id' | 'content' | 'created_at'>;
@@ -127,7 +127,7 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
   if (!conversations.length) {
     return (
       <div className="space-y-4 py-2">
-        <h1 className="font-display text-xl">Messages</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">Messages</h1>
         <EmptyState
           title="No conversations yet"
           description="Once a provider is matched to your booking, you'll be able to chat with them here."
@@ -145,7 +145,7 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
         {!selected ? (
           /* Mobile List View */
           <div className="flex flex-col h-full space-y-3">
-            <h1 className="font-display text-xl font-bold text-ink">Messages</h1>
+            <h1 className="font-display text-2xl font-bold text-ink">Messages</h1>
             <input
               className="tap w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none"
               placeholder="Search chats..."
@@ -181,7 +181,9 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
                   </li>
                 );
               })}
-              {!filtered.length && <li className="text-center py-12 text-sm text-muted">No matches for “{search}”.</li>}
+              {!filtered.length && (
+                <li><EmptyState title="No matching conversations" description={`No chats match “${search}”.`} /></li>
+              )}
             </ul>
           </div>
         ) : (
@@ -190,10 +192,11 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
             {/* Mobile Header */}
             <div className="flex items-center justify-between border-b border-hairline bg-white px-4 py-3 shadow-sm">
               <button
+                aria-label="Back to conversations"
                 onClick={() => setSelectedId(null)}
-                className="text-sm font-semibold text-muted hover:text-ink flex items-center gap-1"
+                className="tap flex items-center gap-1 text-sm font-semibold text-muted hover:text-ink"
               >
-                ◀ Back
+                <ArrowLeft className="h-4 w-4" aria-hidden /> Back
               </button>
               <div className="text-center min-w-0 flex-1 px-4">
                 <h2 className="font-display text-sm font-bold text-ink truncate">{selected.provider.full_name}</h2>
@@ -204,6 +207,7 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
               {selected.provider.phone ? (
                 <a
                   href={`tel:${selected.provider.phone}`}
+                  aria-label={`Call ${selected.provider.full_name ?? 'provider'}`}
                   className="rounded-full bg-accent/10 p-2 text-accent hover:bg-accent/20"
                 >
                   <Phone className="h-4 w-4" />
@@ -258,7 +262,7 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
       <div className="hidden lg:grid lg:h-full lg:grid-cols-[320px_1fr] lg:gap-4">
         {/* Left: conversation list */}
         <div className="flex min-h-0 flex-col space-y-3">
-          <h1 className="font-display text-xl font-bold text-ink">Messages</h1>
+          <h1 className="font-display text-2xl font-bold text-ink">Messages</h1>
           <input
             className="tap w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm focus:border-ink focus:outline-none"
             placeholder="Search chats..."
@@ -297,7 +301,9 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
                 </li>
               );
             })}
-            {!filtered.length && <li className="px-3 py-4 text-sm text-muted">No matches for “{search}”.</li>}
+            {!filtered.length && (
+              <li><EmptyState title="No matching conversations" description={`No chats match “${search}”.`} /></li>
+            )}
           </ul>
         </div>
 

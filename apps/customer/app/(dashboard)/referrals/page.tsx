@@ -26,14 +26,14 @@ export default async function ReferralDashboardPage() {
     // Generate a new code
     const { data: profile } = await db.from('profiles').select('full_name').eq('id', authUser.id).single();
     const cleanName = profile?.full_name?.replace(/\s/g, '').slice(0, 4).toUpperCase() || 'REF';
-    const code = `URBAN10${cleanName}${Math.floor(1000 + Math.random() * 9000)}`;
+    const code = `URBAN${cleanName}${Math.floor(1000 + Math.random() * 9000)}`;
 
     const { data: newRef } = await db
       .from('referrals')
       .insert({
         owner_id: authUser.id,
         code,
-        credit_pence: 1000, // £10
+        credit_pence: 500,
       })
       .select('code')
       .single();
@@ -41,7 +41,7 @@ export default async function ReferralDashboardPage() {
     refCodeObj = newRef;
   }
 
-  const referralCode = refCodeObj?.code || `URBAN10${authUser.id.slice(0, 4).toUpperCase()}`;
+  const referralCode = refCodeObj?.code || `URBAN${authUser.id.slice(0, 4).toUpperCase()}`;
 
   // 3. Fetch referral history ledger
   const { data: history } = await db
@@ -56,8 +56,8 @@ export default async function ReferralDashboardPage() {
       id: row.id,
       email: row.friend?.email || 'Invited Friend',
       name: row.friend?.full_name || 'Invited Friend',
-      status: (row.redeemed_at ? 'Booked' : 'Pending') as 'Booked' | 'Pending',
-      reward: row.redeemed_at ? `+ £${(row.credit_pence / 100).toFixed(2)}` : '--',
+      status: (row.credited_at ? 'Booked' : 'Pending') as 'Booked' | 'Pending',
+      reward: row.credited_at ? `+ £${(row.credit_pence / 100).toFixed(2)}` : '--',
     };
   });
 

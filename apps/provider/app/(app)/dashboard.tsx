@@ -5,6 +5,7 @@ import { Button, Card, Badge, EmptyState, RatingStars } from '@urban-assist/ui';
 import { pence, ukDateTime } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { OfferCard } from './offer-card';
+import type { WeeklyEarning } from '../../lib/weekly-earnings';
 import { postCurrentLocation } from '../../lib/post-location';
 
 export function Dashboard({
@@ -19,8 +20,7 @@ export function Dashboard({
   jobsToday: any[];
   openOffer: any | null;
   servicesCount: number;
-  weeklyEarnings: { label: string; pence: number }[];
-  /** null when the provider has no completed or cancelled jobs yet. */
+  weeklyEarnings: WeeklyEarning[];
   completionRate: number | null;
 }) {
   const [online, setOnline] = React.useState<boolean>(!!profile?.is_online);
@@ -70,16 +70,14 @@ export function Dashboard({
 
   const earningsToday = jobsToday
     .filter((j) => j.status === 'completed')
-    .reduce((s, j) => s + (j.total_pence ?? 0), 0);
-
-  const weekPeak = Math.max(0, ...weeklyEarnings.map((d) => d.pence));
+    .reduce((s, j) => s + (j.price_pence ?? 0), 0);
 
   return (
     <div className="space-y-4 py-2">
       <header className="flex items-center justify-between">
         <div>
           <p className="font-mono-utility text-muted">Today</p>
-          <h1 className="font-display text-xl">{greet()}</h1>
+          <h1 className="font-display text-2xl font-bold text-ink">{greet()}</h1>
         </div>
         <button
           onClick={toggleOnline}
@@ -99,16 +97,12 @@ export function Dashboard({
         </Card>
         <Card className="flex flex-col gap-1 border border-hairline p-4 bg-white shadow-card rounded-xl">
           <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">Completion Rate</span>
-          <span
-            className={`font-display text-2xl font-extrabold ${
-              completionRate === null ? 'text-muted' : 'text-success'
-            }`}
-          >
-            {completionRate === null ? '—' : `${Math.round(completionRate * 100)}%`}
+          <span className="font-display text-2xl font-extrabold text-success">
+            {completionRate === null ? '-' : `${completionRate}%`}
           </span>
         </Card>
-        {/* Links to the offers list — previously the only way to see an offer was to
-            catch the realtime modal while the app was open. */}
+        {/* Links to the offers list — otherwise the only way to see an offer is to
+            catch the realtime modal while the app happens to be open. */}
         <Link href="/offers" className="tap col-span-2 sm:col-span-1">
           <Card className="h-full flex flex-col gap-1 border border-hairline p-4 bg-white shadow-card rounded-xl transition hover:border-ink">
             <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">New Requests</span>
@@ -120,22 +114,16 @@ export function Dashboard({
         </Link>
       </div>
 
-      {/* Both tiles open the performance dashboard, where the same figures are
-          broken down with the thresholds that affect matching. */}
       <div className="grid grid-cols-2 gap-3">
-        <Link href="/performance" className="tap">
-          <Card className="h-full !p-3 flex flex-col justify-between bg-white border border-hairline rounded-xl transition hover:border-ink">
-            <div className="font-mono-utility text-xs text-muted">Rating</div>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="font-display text-lg font-bold">{Number(profile.rating_avg ?? 0).toFixed(1)}</span>
-              <RatingStars value={Number(profile.rating_avg ?? 0)} />
-            </div>
-            <div className="text-[10px] text-muted mt-1">{profile.rating_count ?? 0} reviews</div>
-          </Card>
-        </Link>
-        <Link href="/performance" className="tap">
-          <Stat label="Accept rate" value={`${Math.round(Number(profile.acceptance_rate ?? 1) * 100)}%`} />
-        </Link>
+        <Card className="!p-3 flex flex-col justify-between bg-white border border-hairline rounded-xl">
+          <div className="font-mono-utility text-xs text-muted">Rating</div>
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className="font-display text-lg font-bold">{Number(profile.rating_avg ?? 0).toFixed(1)}</span>
+            <RatingStars value={Number(profile.rating_avg ?? 0)} />
+          </div>
+          <div className="text-[10px] text-muted mt-1">{profile.rating_count ?? 0} reviews</div>
+        </Card>
+        <Stat label="Accept rate" value={`${Math.round(Number(profile.acceptance_rate ?? 1) * 100)}%`} />
       </div>
 
       {/* Weekly Earnings Chart - Desktop Only */}
@@ -145,31 +133,42 @@ export function Dashboard({
           <span className="text-xs text-muted">Last 7 Days</span>
         </div>
         <div className="flex items-end justify-between h-40 px-4 pt-4 border-b border-hairline">
-          {weeklyEarnings.map((bar, i) => (
-            <div
-              key={`${bar.label}-${i}`}
-              className="flex flex-col items-center gap-2 w-10 group relative justify-end h-full"
-            >
+          {weeklyEarnings.map((bar) => (
+            <div key={bar.day} className="flex flex-col items-center gap-2 w-10 group relative justify-end h-full">
               {/* Tooltip */}
               <span className="absolute -top-8 scale-0 transition-all rounded bg-ink px-2 py-1 text-[10px] text-bg group-hover:scale-100 font-mono-utility">
-                {pence(bar.pence)}
+                {pence(bar.amountPence)}
               </span>
-              {/* Bar — scaled against the week's own peak, so the shape is readable
-                  whatever the absolute amounts. Inline height: Tailwind cannot
-                  generate arbitrary values at runtime. A zero day keeps a 2px stub
-                  so the day is still visibly present rather than missing. */}
+              {/* Bar */}
               <div
-                className="w-6 rounded-t bg-accent/80 transition group-hover:bg-accent min-h-[2px]"
-                style={{ height: weekPeak > 0 ? `${(bar.pence / weekPeak) * 100}%` : '2px' }}
+                className="w-6 rounded-t bg-accent/80 transition group-hover:bg-accent"
+                style={{ height: `${bar.heightPercent}%` }}
               />
               {/* Label */}
-              <span className="text-[10px] text-muted font-mono-utility">{bar.label}</span>
+              <span className="text-[10px] text-muted font-mono-utility">{bar.day}</span>
             </div>
           ))}
         </div>
-        {weekPeak === 0 && (
-          <p className="mt-3 text-center text-xs text-muted">No completed jobs in the last 7 days.</p>
-        )}
+      </Card>
+
+      {/* Weekly earnings — compact mobile view */}
+      <Card className="border border-hairline bg-white p-4 shadow-card lg:hidden">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-display text-xs font-bold uppercase tracking-wider text-ink">Weekly earnings</h3>
+          <span className="text-xs text-muted">Last 7 days</span>
+        </div>
+        <div className="flex h-28 items-end justify-between gap-2 border-b border-hairline px-1 pt-2">
+          {weeklyEarnings.map((bar) => (
+            <div key={bar.day} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
+              <span className="font-mono-utility text-[9px] text-muted">{pence(bar.amountPence)}</span>
+              <div
+                className="w-full max-w-5 rounded-t bg-accent/80"
+                style={{ height: `${bar.heightPercent}%` }}
+              />
+              <span className="font-mono-utility text-[9px] text-muted">{bar.day.slice(0, 1)}</span>
+            </div>
+          ))}
+        </div>
       </Card>
 
       {profile.kyc_status !== 'approved' && (
@@ -240,7 +239,7 @@ export function Dashboard({
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <Card className="h-full !p-3 transition hover:border-ink">
+    <Card className="!p-3">
       <div className="font-mono-utility text-muted">{label}</div>
       <div className="font-display text-lg">{value}</div>
       {sub && <div className="text-[10px] text-muted">{sub}</div>}

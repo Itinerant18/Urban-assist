@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { LayoutGrid, ChevronRight, Plus } from 'lucide-react';
+import { Button, Input } from '@urban-assist/ui';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
 import { PageHeader, TableTile, SectionHeader, BentoEmpty } from '@/components/bento';
@@ -99,18 +100,15 @@ export default async function ServicesPage() {
                 ))}
                 <form action={createSubcategory} className="flex items-center gap-2 px-5 py-3">
                   <input type="hidden" name="category_id" value={cat.id} />
-                  <input
+                  <Input
                     name="name"
                     required
                     placeholder="New subcategory name"
-                    className="flex-1 rounded-xl border border-hairline bg-bg px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                    className="flex-1"
                   />
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-1 rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
-                  >
+                  <Button type="submit" size="sm" className="font-semibold">
                     <Plus className="h-3.5 w-3.5" aria-hidden /> Add
-                  </button>
+                  </Button>
                 </form>
               </TableTile>
             </section>

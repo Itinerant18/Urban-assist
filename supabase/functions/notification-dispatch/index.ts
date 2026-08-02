@@ -1,5 +1,5 @@
 // Dispatches durable notifications created in Postgres to registered FCM devices.
-// Invoke from a trusted scheduler with x-edge-function-secret: EDGE_FUNCTION_SECRET.
+// Invoke from a trusted scheduler with Authorization: Bearer EDGE_FUNCTION_SECRET.
 
 // @ts-expect-error Deno globals
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
@@ -272,7 +272,8 @@ function isAuthorized(req: Request): boolean {
   const secret = req.headers.get('x-edge-function-secret') ?? '';
   const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
   return Boolean(
-    (EDGE_FUNCTION_SECRET && secret === EDGE_FUNCTION_SECRET) ||
+    (EDGE_FUNCTION_SECRET &&
+      (secret === EDGE_FUNCTION_SECRET || bearer === EDGE_FUNCTION_SECRET)) ||
       (SERVICE_ROLE_KEY && bearer === SERVICE_ROLE_KEY),
   );
 }

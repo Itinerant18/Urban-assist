@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { ArrowLeft, Plus } from 'lucide-react';
+import { Button, Input } from '@urban-assist/ui';
 
 import { requireAdminPermission } from '../../../../lib/admin-auth';
 
@@ -113,15 +114,15 @@ export default async function SubcategoryDetailPage({
             <div className="flex flex-wrap items-end gap-3">
               <label className="text-xs text-muted">
                 Min £
-                <input name="min" type="number" min="0" step="0.01" defaultValue={gbp(s.min_price_pence)} className="mt-1 block w-24 rounded-xl border border-hairline bg-bg px-2 py-1.5 text-sm text-ink focus:border-accent focus:outline-none" />
+                <Input name="min" type="number" min="0" step="0.01" defaultValue={gbp(s.min_price_pence)} className="mt-1 w-24" />
               </label>
               <label className="text-xs text-muted">
                 Max £
-                <input name="max" type="number" min="0" step="0.01" defaultValue={gbp(s.max_price_pence)} className="mt-1 block w-24 rounded-xl border border-hairline bg-bg px-2 py-1.5 text-sm text-ink focus:border-accent focus:outline-none" />
+                <Input name="max" type="number" min="0" step="0.01" defaultValue={gbp(s.max_price_pence)} className="mt-1 w-24" />
               </label>
               <label className="text-xs text-muted">
                 Mins
-                <input name="duration" type="number" min="0" defaultValue={s.duration_mins ?? ''} className="mt-1 block w-20 rounded-xl border border-hairline bg-bg px-2 py-1.5 text-sm text-ink focus:border-accent focus:outline-none" />
+                <Input name="duration" type="number" min="0" defaultValue={s.duration_mins ?? ''} className="mt-1 w-20" />
               </label>
               <label className="flex items-center gap-1.5 text-xs text-ink">
                 <input name="is_popular" type="checkbox" defaultChecked={s.is_popular} className="h-4 w-4 rounded border-hairline" /> Popular
@@ -129,9 +130,9 @@ export default async function SubcategoryDetailPage({
               <label className="flex items-center gap-1.5 text-xs text-ink">
                 <input name="is_active" type="checkbox" defaultChecked={s.is_active} className="h-4 w-4 rounded border-hairline" /> Active
               </label>
-              <button type="submit" className="ml-auto rounded-xl border border-hairline bg-white px-3 py-1.5 text-sm text-ink hover:bg-bg">
+              <Button type="submit" variant="outline" size="sm" className="ml-auto">
                 Save
-              </button>
+              </Button>
             </div>
           </form>
         ))}
@@ -142,23 +143,23 @@ export default async function SubcategoryDetailPage({
         <input type="hidden" name="subcategory_id" value={params.subcategoryId} />
         <label className="text-xs text-muted flex-1 min-w-[160px]">
           Name
-          <input name="name" required placeholder="e.g. Oven Cleaning" className="mt-1 w-full rounded-xl border border-hairline bg-bg px-3 py-1.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none" />
+          <Input name="name" required placeholder="e.g. Oven Cleaning" className="mt-1" />
         </label>
         <label className="text-xs text-muted">
           Min £
-          <input name="min" type="number" min="0" step="0.01" defaultValue="0" className="mt-1 block w-24 rounded-xl border border-hairline bg-bg px-2 py-1.5 text-sm text-ink focus:border-accent focus:outline-none" />
+          <Input name="min" type="number" min="0" step="0.01" defaultValue="0" className="mt-1 w-24" />
         </label>
         <label className="text-xs text-muted">
           Max £
-          <input name="max" type="number" min="0" step="0.01" defaultValue="0" className="mt-1 block w-24 rounded-xl border border-hairline bg-bg px-2 py-1.5 text-sm text-ink focus:border-accent focus:outline-none" />
+          <Input name="max" type="number" min="0" step="0.01" defaultValue="0" className="mt-1 w-24" />
         </label>
         <label className="text-xs text-muted">
           Mins
-          <input name="duration" type="number" min="0" className="mt-1 block w-20 rounded-xl border border-hairline bg-bg px-2 py-1.5 text-sm text-ink focus:border-accent focus:outline-none" />
+          <Input name="duration" type="number" min="0" className="mt-1 w-20" />
         </label>
-        <button type="submit" className="inline-flex items-center gap-1 rounded-xl bg-accent px-3 py-1.5 text-sm font-semibold text-white hover:bg-accent-hover">
+        <Button type="submit" size="sm" className="font-semibold">
           <Plus className="h-3.5 w-3.5" /> Add
-        </button>
+        </Button>
       </form>
     </div>
   );

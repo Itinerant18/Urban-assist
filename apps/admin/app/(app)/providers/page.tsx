@@ -48,6 +48,26 @@ export default async function ProvidersPage() {
         </TableTile>
       ) : (
         <TableTile>
+          <div className="divide-y divide-hairline sm:hidden">
+            {providers.map((p: ProviderSummary) => (
+              <Link key={p.id} href={`/providers/${p.id}`} className="tap block p-4 hover:bg-bg/60">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink">{p.full_name ?? 'Unnamed'}</p>
+                    <p className="mt-1 truncate font-mono-utility text-xs text-muted">{p.email}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <StatusChip tone={statusToneFrom(p.kyc_status)}>{p.kyc_status}</StatusChip>
+                  {p.is_online ? <StatusChip tone="success">Online</StatusChip> : null}
+                  {p.is_blocked ? <StatusChip tone="danger">Blocked</StatusChip> : null}
+                  <span className="font-mono-utility text-xs text-muted">★ {Number(p.rating_avg ?? 0).toFixed(1)}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <div className="hidden divide-y divide-hairline sm:block">
           {providers.map((p: ProviderSummary) => (
             <Link
               key={p.id}
@@ -69,6 +89,7 @@ export default async function ProvidersPage() {
               <ChevronRight className="h-4 w-4 text-muted shrink-0" aria-hidden />
             </Link>
           ))}
+          </div>
         </TableTile>
       )}
     </div>

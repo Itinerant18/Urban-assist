@@ -93,7 +93,7 @@ export default async function RatingsPage({
                   <div className="flex items-center gap-2">
                     <span
                       className={`text-sm font-semibold font-mono tracking-wider ${
-                        isLow ? 'text-danger' : 'text-amber-600'
+                        isLow ? 'text-danger' : 'text-amber'
                       }`}
                     >
                       {'★'.repeat(r.rating)}

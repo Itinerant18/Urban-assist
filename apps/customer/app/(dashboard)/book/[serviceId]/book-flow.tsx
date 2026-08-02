@@ -251,7 +251,7 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
   return (
     <div className="mx-auto max-w-6xl py-4 pb-28 lg:py-6 lg:pb-0">
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-ink lg:text-3xl">Secure Checkout</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">Secure Checkout</h1>
         <p className="text-sm text-muted mt-1">Review your service details, choose an address, and confirm your scheduling.</p>
       </div>
 
@@ -399,9 +399,13 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
                         <Textarea
                           placeholder="e.g. key box code, gate entry instructions, parking availability"
                           value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value)}
+                          onChange={(e) => field.onChange(e.target.value.slice(0, 500))}
                           rows={3}
+                          maxLength={500}
                         />
+                        <p className="mt-1 text-right text-xs text-muted">
+                          {(field.value || '').length}/500
+                        </p>
                       </Field>
                     )}
                   />

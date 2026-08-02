@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
 import { lookupPostcode } from '@urban-assist/integrations/postcode';
+import { UK_POSTCODE_RE } from '@urban-assist/utils';
 
-const UK_POSTCODE_RE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
 const NINO_RE = /^[A-CEGHJ-PR-TW-Z]{2}\d{6}[A-D]$/i;
 
 function isAtLeast18(iso: string): boolean {

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import type { AssignmentCandidate } from '../../../../../lib/assignment-engine';
+import { Button, Textarea } from '@urban-assist/ui';
 
 interface AssignmentWorkspaceProps {
   booking: {
@@ -65,8 +66,8 @@ export function AssignmentWorkspace({ booking, candidates }: AssignmentWorkspace
       {isReassignment && (
         <label className="card block text-sm text-ink">
           <span className="font-semibold">Why is this booking being reassigned?</span>
-          <textarea
-            className="input mt-3 min-h-24 w-full"
+          <Textarea
+            className="mt-3 min-h-24"
             maxLength={500}
             required
             value={reason}
@@ -133,9 +134,9 @@ export function AssignmentWorkspace({ booking, candidates }: AssignmentWorkspace
 
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <div className="flex justify-end">
-        <button className="btn-primary" type="submit" disabled={!selectedProvider || pending}>
+        <Button type="submit" disabled={!selectedProvider || pending}>
           {pending ? 'Assigning…' : isReassignment ? 'Confirm reassignment' : 'Assign provider'}
-        </button>
+        </Button>
       </div>
     </form>
   );

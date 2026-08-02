@@ -208,7 +208,7 @@ export function ProviderList({ initialServices, categorySlug }: ProviderListProp
 
         {/* MOBILE COLLAPSIBLE/SLIDE OUT FILTERS PANEL */}
         {mobileFiltersOpen && (
-          <div className="fixed inset-0 z-50 bg-black/45 lg:hidden flex justify-end">
+          <div className="fixed inset-0 z-50 flex justify-end bg-ink/40 lg:hidden">
             <div className="w-[280px] bg-white h-full p-6 space-y-6 overflow-y-auto flex flex-col justify-between">
               <div className="space-y-6">
                 <div className="flex items-center justify-between border-b border-hairline pb-3">

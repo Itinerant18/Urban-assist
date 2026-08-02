@@ -8,6 +8,8 @@ export type { AnalyticsEvent } from './analytics';
 
 export { verifyProviderDocuments } from './providers';
 
+export { exportUserData, deleteUserAccount } from './account';
+
 export {
   createBooking,
   confirmCashPayment,
@@ -32,6 +34,6 @@ export { sendBookingMessage } from './messages';
 export {
   listBookings, getBooking, updateBookingStatus,
   listProviders, getProvider,
-  listPendingKyc, getProviderKyc, approveKyc, rejectKyc,
+  listPendingKyc, getProviderKyc,
   listTickets, getTicket, updateTicketStatus,
 } from './admin';

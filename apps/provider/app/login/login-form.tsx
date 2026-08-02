@@ -38,9 +38,9 @@ const COUNTRIES: Country[] = [
 
 const RESEND_SECONDS = 30;
 
-const SIGN_IN_ERRORS: Record<string, string> = {
-  wrong_app: 'That account is not a provider account. Use the customer app to book services.',
-};
+// wrong_app gets its own banner below rather than an inline error, since it is a
+// state the provider arrives in rather than a mistake they just made.
+const SIGN_IN_ERRORS: Record<string, string> = {};
 
 export function LoginForm() {
   const router = useRouter();
@@ -133,6 +133,12 @@ export function LoginForm() {
 
   return (
     <div className="space-y-6">
+      {entryError === 'wrong_app' && (
+        <div className="rounded-xl border border-danger/30 bg-danger/5 p-3 text-xs font-semibold text-danger">
+          You&apos;re signed in with a customer account. Use the customer app, or sign in with your
+          provider number.
+        </div>
+      )}
       <div className="rounded-xl border border-hairline bg-white p-5 shadow-card space-y-4">
         {phase === 'phone' ? (
           <form onSubmit={sendCode} className="space-y-4">

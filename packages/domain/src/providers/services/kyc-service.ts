@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export async function verifyProviderDocuments(
   db: SupabaseClient,
+  admin: SupabaseClient,
   providerId: string,
 ): Promise<{ success: boolean; status: 'pending' | 'approved' | 'rejected' }> {
   const { data: docs, error } = await db
@@ -23,11 +24,11 @@ export async function verifyProviderDocuments(
     }
   }
 
-  const isApproved = validTypes.has('id') && validTypes.has('insurance');
+  const isApproved = validTypes.has('id') && validTypes.has('selfie');
 
   const newStatus = isApproved ? 'approved' : 'pending';
 
-  const { error: updateErr } = await db
+  const { error: updateErr } = await admin
     .from('profiles')
     .update({ kyc_status: newStatus })
     .eq('id', providerId);

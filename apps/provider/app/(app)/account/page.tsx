@@ -2,7 +2,8 @@
 import * as React from 'react';
 import { Card, Button, Badge, Field, Input } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { formatUkPhone, ukDate } from '@urban-assist/lib';
+import { ukDate } from '@urban-assist/lib';
+import { normaliseMobile } from '@urban-assist/utils';
 import Link from 'next/link';
 import {
   Star,
@@ -10,9 +11,9 @@ import {
   User,
   Briefcase,
   Inbox,
-  Settings,
-  LifeBuoy,
   GraduationCap,
+  Settings as SettingsIcon,
+  LifeBuoy,
 } from 'lucide-react';
 
 interface Review {
@@ -51,52 +52,6 @@ export default function AccountPage() {
   const [ticketError, setTicketError] = React.useState<string | null>(null);
   const [ticketOk, setTicketOk] = React.useState<string | null>(null);
   const [ticketBusy, setTicketBusy] = React.useState(false);
-
-  const [gdprBusy, setGdprBusy] = React.useState<'export' | 'delete' | null>(null);
-  const [gdprMsg, setGdprMsg] = React.useState<string | null>(null);
-  const [gdprErr, setGdprErr] = React.useState<string | null>(null);
-
-  async function requestGdpr(kind: 'export' | 'delete') {
-    if (
-      kind === 'delete' &&
-      !window.confirm(
-        'Request account deletion? We will contact you to confirm before anything is removed. Jobs already completed are kept where the law requires.',
-      )
-    ) {
-      return;
-    }
-    setGdprBusy(kind);
-    setGdprMsg(null);
-    setGdprErr(null);
-    try {
-      const res = await fetch('/api/support', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          category: 'other',
-          description:
-            kind === 'export'
-              ? 'GDPR: request for a copy of all personal data held on this provider account.'
-              : 'GDPR: request to delete this provider account and associated personal data.',
-        }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error ?? 'Could not raise the request');
-      }
-      const created = await res.json();
-      setTickets((cur) => [created, ...cur]);
-      setGdprMsg(
-        kind === 'export'
-          ? 'Data export requested. We will send it within 30 days.'
-          : 'Deletion requested. We will contact you to confirm within 30 days.',
-      );
-    } catch (e: any) {
-      setGdprErr(e.message);
-    } finally {
-      setGdprBusy(null);
-    }
-  }
 
   React.useEffect(() => {
     async function loadData() {
@@ -146,25 +101,24 @@ export default function AccountPage() {
     setProfileBusy(true);
 
     try {
-      const cleanPhone = phone.replace(/\s+/g, '');
-      if (cleanPhone && !cleanPhone.startsWith('+44') && !cleanPhone.startsWith('0')) {
-        throw new Error('Enter a valid UK phone number starting with +44 or 0');
+      const cleanPhone = phone.trim();
+      const normalisedPhone = cleanPhone ? normaliseMobile(cleanPhone) : '';
+      if (cleanPhone && !normalisedPhone) {
+        throw new Error('Enter a valid UK or Indian mobile number');
       }
-
-      const formattedPhone = cleanPhone ? formatUkPhone(cleanPhone) : '';
 
       const sb = supabase();
       const { error } = await sb
         .from('profiles')
         .update({
           full_name: fullName.trim(),
-          phone: formattedPhone,
+          phone: normalisedPhone,
         })
         .eq('id', user.id);
 
       if (error) throw error;
       setProfileOk('Profile updated.');
-      setProfile({ ...profile, full_name: fullName.trim(), phone: formattedPhone });
+      setProfile({ ...profile, full_name: fullName.trim(), phone: normalisedPhone });
     } catch (err: any) {
       setProfileError(err.message);
     } finally {
@@ -208,9 +162,73 @@ export default function AccountPage() {
     }
   }
 
+  const [gdprProgress, setGdprProgress] = React.useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = React.useState(false);
+
+  async function handleAvatarUpload(file: File) {
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileError('Image too large (max 5 MB).');
+      return;
+    }
+    setAvatarBusy(true);
+    setProfileError(null);
+    try {
+      const sb = supabase();
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+      const { error: upErr } = await sb.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data } = sb.storage.from('avatars').getPublicUrl(path);
+      const { error } = await sb.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', user.id);
+      if (error) throw error;
+      setProfile({ ...profile, avatar_url: data.publicUrl });
+    } catch (err: any) {
+      setProfileError(err.message ?? 'Could not update photo.');
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
   async function handleLogout() {
     await supabase().auth.signOut();
     window.location.href = '/login';
+  }
+
+  async function exportData() {
+    setGdprProgress('Preparing your data export…');
+    try {
+      const res = await fetch('/api/account/export', { method: 'POST' });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? 'Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'urban-assist-data.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      setGdprProgress('Your data has been downloaded.');
+    } catch (err: any) {
+      setGdprProgress(err.message ?? 'Export failed. Please try again.');
+    } finally {
+      setTimeout(() => setGdprProgress(null), 4000);
+    }
+  }
+
+  async function deleteAccount() {
+    if (!confirm('Delete your account permanently? This cannot be undone.')) return;
+    setGdprProgress('Deleting your account…');
+    try {
+      const res = await fetch('/api/account/delete', { method: 'POST' });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? 'Deletion failed');
+      await supabase().auth.signOut();
+      window.location.href = '/login';
+    } catch (err: any) {
+      setGdprProgress(err.message ?? 'Deletion failed. Please try again.');
+      setTimeout(() => setGdprProgress(null), 6000);
+    }
   }
 
   if (loading) {
@@ -226,7 +244,7 @@ export default function AccountPage() {
     <div className="space-y-5 py-2">
       <header>
         <p className="font-mono-utility text-muted">Settings</p>
-        <h1 className="font-display text-xl">Account</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">Account</h1>
       </header>
 
       {/* The bottom nav is full at six tabs, so this is the entry point for the
@@ -238,7 +256,7 @@ export default function AccountPage() {
           { href: '/jobs', label: 'All jobs', icon: <Briefcase className="h-4 w-4" /> },
           { href: '/offers', label: 'Job offers', icon: <Inbox className="h-4 w-4" /> },
           { href: '/training', label: 'Training', icon: <GraduationCap className="h-4 w-4" /> },
-          { href: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> },
+          { href: '/settings', label: 'Settings', icon: <SettingsIcon className="h-4 w-4" /> },
           { href: '/help', label: 'Help & support', icon: <LifeBuoy className="h-4 w-4" /> },
         ].map((l) => (
           <Link key={l.href} href={l.href} className="tap">
@@ -256,6 +274,29 @@ export default function AccountPage() {
           <h3 className="font-display text-sm font-semibold flex items-center gap-1">
             <User className="h-4 w-4 text-muted" /> Profile details
           </h3>
+          <div className="flex items-center gap-3">
+            <div className="h-14 w-14 overflow-hidden rounded-full bg-accent/10 flex items-center justify-center text-lg font-bold text-accent">
+              {profile?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                (fullName || 'U')[0].toUpperCase()
+              )}
+            </div>
+            <label className="cursor-pointer text-xs font-semibold text-accent hover:underline">
+              {avatarBusy ? 'Uploading…' : 'Change photo'}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                disabled={avatarBusy}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleAvatarUpload(f);
+                }}
+              />
+            </label>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <Field label="Full name">
               <Input
@@ -375,31 +416,15 @@ export default function AccountPage() {
         <p className="text-xs text-muted">
           Under UK GDPR, you have the right to request a data export or account deletion. We process all requests within 30 days.
         </p>
-        {/* ponytail: both buttons had no onClick at all. The copy already promises a
-            30-day manual process, so they raise a tracked ticket rather than pretending
-            to be self-service. Upgrade to an automated export when there is one. */}
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs"
-            disabled={gdprBusy !== null}
-            onClick={() => requestGdpr('export')}
-          >
-            {gdprBusy === 'export' ? 'Requesting…' : 'Export My Data'}
+          <Button variant="outline" size="sm" className="text-xs" onClick={exportData}>
+            Export My Data
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs text-danger"
-            disabled={gdprBusy !== null}
-            onClick={() => requestGdpr('delete')}
-          >
-            {gdprBusy === 'delete' ? 'Requesting…' : 'Delete Account'}
+          <Button variant="ghost" size="sm" className="text-xs text-danger" onClick={deleteAccount}>
+            Delete Account
           </Button>
         </div>
-        {gdprMsg && <p className="text-xs text-success font-medium">{gdprMsg}</p>}
-        {gdprErr && <p className="text-xs text-danger font-medium">{gdprErr}</p>}
+        {gdprProgress && <p className="text-xs font-medium text-muted">{gdprProgress}</p>}
       </Card>
 
       {/* Logout button */}

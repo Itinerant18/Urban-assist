@@ -2,19 +2,18 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { Card, Button, EmptyState, Skeleton } from '@urban-assist/ui';
 import { Bell, BellDot, CheckCircle2 } from 'lucide-react';
+import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { ukDateTime } from '@urban-assist/lib';
-import { notificationView } from '../../../lib/notification-view';
+import { Button, Card, EmptyState, Skeleton } from '@urban-assist/ui';
 
-interface Notification {
+type Notification = {
   id: string;
   type: string;
   payload: any;
   read_at: string | null;
   created_at: string;
-}
+};
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
@@ -23,11 +22,11 @@ export default function NotificationsPage() {
   React.useEffect(() => {
     const sb = supabase();
     let channel: ReturnType<typeof sb.channel> | null = null;
-    let cancelled = false;
+    let disposed = false;
 
-    (async () => {
+    async function load() {
       const { data: { user } } = await sb.auth.getUser();
-      if (cancelled || !user) {
+      if (!user) {
         setLoading(false);
         return;
       }
@@ -39,12 +38,10 @@ export default function NotificationsPage() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (cancelled) return;
-      setNotifications((data as Notification[]) ?? []);
+      if (disposed) return;
+      setNotifications(data || []);
       setLoading(false);
 
-      // Filtered by profile_id: RLS already scopes reads, but an unfiltered
-      // subscription would still wake this component on every row in the table.
       channel = sb
         .channel('provider-notifications-page')
         .on(
@@ -55,7 +52,8 @@ export default function NotificationsPage() {
             table: 'notifications',
             filter: `profile_id=eq.${user.id}`,
           },
-          (p: any) => setNotifications((cur) => [p.new as Notification, ...cur]),
+          (payload: any) =>
+            setNotifications((current) => [payload.new as Notification, ...current]),
         )
         .on(
           'postgres_changes',
@@ -65,56 +63,75 @@ export default function NotificationsPage() {
             table: 'notifications',
             filter: `profile_id=eq.${user.id}`,
           },
-          (p: any) =>
-            setNotifications((cur) =>
-              cur.map((n) => (n.id === p.new.id ? (p.new as Notification) : n)),
+          (payload: any) =>
+            setNotifications((current) =>
+              current.map((notification) =>
+                notification.id === payload.new.id
+                  ? (payload.new as Notification)
+                  : notification,
+              ),
             ),
         )
         .subscribe();
-    })();
+    }
+
+    void load();
 
     return () => {
-      cancelled = true;
+      disposed = true;
       if (channel) sb.removeChannel(channel);
     };
   }, []);
 
-  async function markRead(ids: string[]) {
-    if (ids.length === 0) return;
+  async function markAllRead() {
+    const unread = notifications.filter((notification) => !notification.read_at);
+    if (unread.length === 0) return;
+
     const readAt = new Date().toISOString();
-    // Optimistic: the row is already gated to read_at by grant (migration 0019).
-    setNotifications((cur) =>
-      cur.map((n) => (ids.includes(n.id) ? { ...n, read_at: n.read_at ?? readAt } : n)),
+    setNotifications((current) =>
+      current.map((notification) => ({
+        ...notification,
+        read_at: notification.read_at || readAt,
+      })),
     );
-    await supabase().from('notifications').update({ read_at: readAt }).in('id', ids);
+
+    await supabase()
+      .from('notifications')
+      .update({ read_at: readAt })
+      .in('id', unread.map((notification) => notification.id));
   }
 
-  const unread = notifications.filter((n) => !n.read_at);
+  async function markRead(id: string) {
+    const readAt = new Date().toISOString();
+    setNotifications((current) =>
+      current.map((notification) =>
+        notification.id === id ? { ...notification, read_at: readAt } : notification,
+      ),
+    );
+    await supabase().from('notifications').update({ read_at: readAt }).eq('id', id);
+  }
 
   if (loading) {
     return (
-      <div className="space-y-3 py-2">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
+      <div className="space-y-3" aria-label="Loading notifications">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
       </div>
     );
   }
 
+  const unreadCount = notifications.filter((notification) => !notification.read_at).length;
+
   return (
-    <div className="space-y-4 py-2">
-      <header className="flex items-center justify-between">
+    <div className="space-y-4">
+      <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-xl uppercase font-bold text-ink tracking-tight">
-            Notifications
-          </h1>
-          {unread.length > 0 && (
-            <p className="text-xs text-muted mt-0.5">{unread.length} unread</p>
-          )}
+          <h1 className="font-display text-2xl font-bold text-ink">Notifications</h1>
+          <p className="mt-1 text-sm text-muted">Jobs, payments, reviews, and account updates.</p>
         </div>
-        {unread.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={() => markRead(unread.map((n) => n.id))}>
+        {unreadCount > 0 && (
+          <Button variant="ghost" size="sm" onClick={markAllRead}>
             Mark all read
           </Button>
         )}
@@ -122,70 +139,63 @@ export default function NotificationsPage() {
 
       {notifications.length === 0 ? (
         <EmptyState
-          title="Nothing yet"
-          description="Job offers, schedule changes, reviews and payouts will appear here."
+          title="No notifications yet"
+          description="Jobs, payments, reviews, and account updates will appear here."
         />
       ) : (
         <div className="space-y-2">
-          {notifications.map((n) => {
-            const view = notificationView(n.type, n.payload);
-            const isUnread = !n.read_at;
-
-            const body = (
-              <div className="flex gap-3">
-                <div className="pt-0.5">
-                  {isUnread ? (
+          {notifications.map((notification) => (
+            <Card
+              key={notification.id}
+              className={`p-4 transition-colors ${
+                !notification.read_at ? 'border-accent/20 bg-accent/5' : ''
+              }`}
+            >
+              <div className="flex gap-4">
+                <div className="pt-1">
+                  {!notification.read_at ? (
                     <BellDot className="h-5 w-5 text-accent" />
                   ) : (
                     <Bell className="h-5 w-5 text-muted" />
                   )}
                 </div>
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className={`text-sm text-ink ${isUnread ? 'font-semibold' : ''}`}>
-                      {view.title}
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className={`text-sm ${!notification.read_at ? 'font-medium' : ''}`}>
+                      {notification.payload?.title || notification.type}
                     </p>
-                    <span className="text-[10px] text-muted whitespace-nowrap font-mono-utility">
-                      {ukDateTime(n.created_at)}
+                    <span className="ml-2 whitespace-nowrap text-[10px] text-muted">
+                      {ukDateTime(notification.created_at)}
                     </span>
                   </div>
-                  {view.body && <p className="text-xs text-muted">{view.body}</p>}
+                  {notification.payload?.body && (
+                    <p className="text-xs text-muted">{notification.payload.body}</p>
+                  )}
+                  {notification.payload?.link && (
+                    <Link
+                      href={notification.payload.link}
+                      className="mt-1 block text-xs text-accent hover:underline"
+                    >
+                      View details
+                    </Link>
+                  )}
                 </div>
-                {isUnread && (
-                  <button
-                    type="button"
-                    aria-label="Mark as read"
-                    className="tap self-start rounded-full p-1 text-muted hover:text-ink"
-                    onClick={(e) => {
-                      // Sits inside the card link when one exists.
-                      e.preventDefault();
-                      e.stopPropagation();
-                      void markRead([n.id]);
-                    }}
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                  </button>
+                {!notification.read_at && (
+                  <div className="flex items-center">
+                    <Button
+                      aria-label="Mark notification as read"
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-full px-3"
+                      onClick={() => markRead(notification.id)}
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
               </div>
-            );
-
-            return (
-              <Card
-                key={n.id}
-                className={`!p-4 transition-colors ${
-                  isUnread ? 'bg-accent/5 border-accent/20' : 'bg-white'
-                }`}
-              >
-                {view.href ? (
-                  <Link href={view.href} onClick={() => markRead([n.id])} className="block">
-                    {body}
-                  </Link>
-                ) : (
-                  body
-                )}
-              </Card>
-            );
-          })}
+            </Card>
+          ))}
         </div>
       )}
     </div>

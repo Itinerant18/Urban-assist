@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { Button, Field, Input, Card } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
+import { normaliseMobile } from '@urban-assist/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 type Country = {
@@ -32,20 +33,34 @@ const COUNTRIES: Country[] = [
   },
 ];
 
+const PROVIDER_APP_URL = (
+  process.env.NEXT_PUBLIC_PROVIDER_APP_URL ?? 'http://localhost:3001'
+).replace(/\/$/, '');
+
 export function LoginForm() {
   const [phase, setPhase] = React.useState<'enter' | 'otp'>('enter');
 
   // Phone components
-  const [selectedCountry, setSelectedCountry] = React.useState<Country>(COUNTRIES[1]); // Default to India as per wireframe +91
+  const [selectedCountry, setSelectedCountry] = React.useState<Country>(COUNTRIES[0]); // UK-first product
   const [phoneVal, setPhoneVal] = React.useState('');
+  const [showReferralCode, setShowReferralCode] = React.useState(false);
+  const [referralCode, setReferralCode] = React.useState('');
   const [otp, setOtp] = React.useState('');
 
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [cooldown, setCooldown] = React.useState(0);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const redirectTo = searchParams.get('redirect') || '/';
+  const wrongApp = searchParams.get('error') === 'wrong_app';
+
+  React.useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   const cleanNationalNumber = (num: string) => {
     const raw = num.replace(/\D/g, '');
@@ -56,8 +71,10 @@ export function LoginForm() {
     setPhoneVal(cleanNationalNumber(e.target.value));
   };
 
+  // Must match what /api/auth/start sent the OTP to, or verification fails.
   const getFullE164 = () => {
-    return `${selectedCountry.dial}${phoneVal}`;
+    const raw = `${selectedCountry.dial}${phoneVal}`;
+    return normaliseMobile(raw) ?? raw;
   };
 
   async function handleSendOtp(e?: React.FormEvent) {
@@ -75,13 +92,18 @@ export function LoginForm() {
       const res = await fetch('/api/auth/start', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ mode: 'phone', value: e164 }),
+        body: JSON.stringify({
+          mode: 'phone',
+          value: e164,
+          referralCode: referralCode.trim() || undefined,
+        }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error ?? 'Could not send verification code');
       }
       setPhase('otp');
+      setCooldown(30);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -115,6 +137,12 @@ export function LoginForm() {
 
   return (
     <div className="space-y-6">
+      {wrongApp && (
+        <div className="rounded-xl border border-danger/30 bg-danger/5 p-3 text-xs font-semibold text-danger">
+          This account is registered as a professional. Use the provider app, or sign in with a
+          different number.
+        </div>
+      )}
       <Card className="space-y-4 shadow-card border border-hairline bg-white p-5 rounded-xl">
         {phase === 'enter' ? (
           <form onSubmit={handleSendOtp} className="space-y-4">
@@ -126,7 +154,7 @@ export function LoginForm() {
                     const found = COUNTRIES.find((c) => c.code === e.target.value);
                     if (found) setSelectedCountry(found);
                   }}
-                  className="rounded-xl border border-hairline bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent font-semibold"
+                  className="rounded-xl border border-hairline bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent font-semibold"
                 >
                   {COUNTRIES.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -145,6 +173,27 @@ export function LoginForm() {
                 />
               </div>
             </Field>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setShowReferralCode((shown) => !shown)}
+                className="text-xs font-semibold text-accent hover:underline"
+                aria-expanded={showReferralCode}
+              >
+                Have a referral code?
+              </button>
+              {showReferralCode && (
+                <Field label="Referral code" hint="Optional">
+                  <Input
+                    maxLength={32}
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
+                    autoComplete="off"
+                  />
+                </Field>
+              )}
+            </div>
 
             {error && <p className="text-xs text-danger font-semibold">{error}</p>}
 
@@ -187,10 +236,10 @@ export function LoginForm() {
               <button
                 type="button"
                 onClick={() => handleSendOtp()}
-                disabled={loading}
+                disabled={loading || cooldown > 0}
                 className="text-xs font-semibold text-accent hover:underline disabled:opacity-50"
               >
-                Resend code
+                {cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
               </button>
             </div>
           </form>
@@ -202,7 +251,7 @@ export function LoginForm() {
       {/* Professional Apply Footer (Only Customer login) */}
       <div className="text-center text-xs text-muted">
         Are you a professional?{' '}
-        <a href="http://localhost:3001/register" className="text-accent font-bold hover:underline">
+        <a href={`${PROVIDER_APP_URL}/register`} className="text-accent font-bold hover:underline">
           Apply Here
         </a>
       </div>

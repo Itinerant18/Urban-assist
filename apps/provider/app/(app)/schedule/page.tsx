@@ -229,7 +229,7 @@ export default function SchedulePage() {
     <div className="space-y-5 py-2">
       <header>
         <p className="font-mono-utility text-muted">Management</p>
-        <h1 className="font-display text-xl">Schedule</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">Schedule</h1>
       </header>
 
       {/* Tabs selector */}

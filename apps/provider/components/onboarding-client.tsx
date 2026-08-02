@@ -17,7 +17,7 @@ interface OnboardingClientProps {
   initialDocs: DocumentRow[];
 }
 
-export function OnboardingClient({ profile: _profile, initialDocs }: OnboardingClientProps) {
+export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps) {
   const router = useRouter();
   const [docs, setDocs] = React.useState<DocumentRow[]>(initialDocs);
   const [busy, setBusy] = React.useState<string | null>(null);
@@ -27,7 +27,7 @@ export function OnboardingClient({ profile: _profile, initialDocs }: OnboardingC
 
   // KYC States
   const [idType, setIdType] = React.useState<'passport' | 'license'>('passport');
-  const [bgConsent, setBgConsent] = React.useState(false);
+  const [bgConsent, setBgConsent] = React.useState(Boolean(profile?.bg_consent));
   
   // Webcam States
   const [webcamOpen, setWebcamOpen] = React.useState(false);
@@ -184,12 +184,15 @@ export function OnboardingClient({ profile: _profile, initialDocs }: OnboardingC
         if (rowErr) throw rowErr;
       }
 
-      // kyc_status is set server-side by /api/kyc/verify (pending until an admin
-      // approves). The client cannot write it — see migration 202608020001.
-      const res = await fetch('/api/kyc/verify', { method: 'POST' });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error ?? 'Could not submit documents for verification');
+      // Trigger KYC verification check on the server
+      const response = await fetch('/api/kyc/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bg_consent: bgConsent }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error ?? 'Verification request failed');
       }
 
       router.refresh();

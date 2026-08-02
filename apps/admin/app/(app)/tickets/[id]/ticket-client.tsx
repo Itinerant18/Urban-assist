@@ -114,7 +114,7 @@ export function TicketClient({
         {/* Ticket Title Header */}
         <div className="border-b border-hairline pb-4 flex justify-between items-start">
           <div>
-            <h1 className="font-display font-bold text-xl text-ink">Ticket #{ticket.id.slice(0, 8)}</h1>
+            <h1 className="font-display font-bold text-2xl text-ink">Ticket #{ticket.id.slice(0, 8)}</h1>
             <p className="text-xs text-muted mt-1">
               Raised by: <strong className="text-ink">{ticket.customer?.full_name || 'Unnamed'}</strong> ({ticket.customer?.email}) ·{' '}
               {new Date(ticket.created_at).toLocaleDateString('en-GB')}

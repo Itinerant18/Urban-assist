@@ -29,6 +29,12 @@ export function AppShell({
 
   return (
     <div className="min-h-dvh bg-bg lg:flex">
+      <a
+        href="#main-content"
+        className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:not-sr-only focus:rounded-xl focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-ink focus:shadow-card"
+      >
+        Skip to main content
+      </a>
       {/* Desktop sidebar */}
       <aside className="hidden w-60 shrink-0 border-r border-hairline px-5 py-6 lg:block">
         <div className="mb-8 font-display text-lg">{brand}</div>
@@ -36,7 +42,7 @@ export function AppShell({
       </aside>
  
       {/* Content */}
-      <main className={cn("flex-1 pb-24 lg:pb-12", isSuccessPage && "pb-0")}>
+      <main id="main-content" tabIndex={-1} className={cn("flex-1 pb-24 lg:pb-12", isSuccessPage && "pb-0")}>
         <header className="flex items-center justify-between px-5 py-4 lg:hidden">
           <div className="font-display text-base">{brand}</div>
           {headerRight && <div>{headerRight}</div>}
@@ -70,6 +76,7 @@ export function AppShell({
 function SidebarNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
   return (
+    <nav aria-label="Primary">
     <ul className="space-y-1">
       {items.map((it) => {
         const active = pathname === it.href || pathname?.startsWith(it.href + '/');
@@ -89,6 +96,7 @@ function SidebarNav({ items }: { items: NavItem[] }) {
         );
       })}
     </ul>
+    </nav>
   );
 }
 

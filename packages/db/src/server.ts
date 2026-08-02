@@ -11,7 +11,7 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import { readPublicEnv, readServerEnv } from './env';
+import { authCookieName, readPublicEnv, readServerEnv } from './env';
 import { cache } from 'react';
 
 type CookieStore = {
@@ -27,7 +27,9 @@ type CookieStore = {
  */
 export function createServer(cookies: CookieStore) {
   const { url, anon } = readPublicEnv();
+  const name = authCookieName();
   return createServerClient(url, anon, {
+    ...(name ? { cookieOptions: { name } } : {}),
     cookies: {
       get(name: string) {
         return cookies.get(name)?.value;

@@ -1,14 +1,12 @@
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { ScrollText } from 'lucide-react';
 import Link from 'next/link';
+import { Button, Input } from '@urban-assist/ui';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
 import { PageHeader, BentoTile, TableTile, BentoEmpty } from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
-
-const fieldClass =
-  'w-full rounded-xl border border-hairline bg-bg px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none';
 
 export default async function AuditLogPage({
   searchParams,
@@ -59,17 +57,14 @@ export default async function AuditLogPage({
 
       <BentoTile static className="mb-6 !justify-start">
         <form className="grid gap-3 md:grid-cols-3 xl:grid-cols-6 items-end" method="GET">
-          <input className={fieldClass} name="actor" defaultValue={value('actor')} placeholder="Actor UUID" />
-          <input className={fieldClass} name="action_type" defaultValue={value('action_type')} placeholder="Action type" />
-          <input className={fieldClass} name="entity_type" defaultValue={value('entity_type')} placeholder="Entity type" />
-          <input className={fieldClass} type="date" name="from" defaultValue={value('from')} />
-          <input className={fieldClass} type="date" name="to" defaultValue={value('to')} />
-          <button
-            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
-            type="submit"
-          >
+          <Input name="actor" defaultValue={value('actor')} placeholder="Actor UUID" />
+          <Input name="action_type" defaultValue={value('action_type')} placeholder="Action type" />
+          <Input name="entity_type" defaultValue={value('entity_type')} placeholder="Entity type" />
+          <Input type="date" name="from" defaultValue={value('from')} />
+          <Input type="date" name="to" defaultValue={value('to')} />
+          <Button type="submit" className="font-semibold">
             Filter
-          </button>
+          </Button>
         </form>
       </BentoTile>
 

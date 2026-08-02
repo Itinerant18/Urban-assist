@@ -5,13 +5,18 @@ export async function POST(req: NextRequest) {
   const db = getSupabaseServer();
   const { data: { user } } = await db.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const { online } = await req.json();
-  // is_online/last_seen_at are not client-writable (202608020001). The row is still
-  // pinned to the authenticated user's own id, so service-role grants no extra reach.
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body.online !== 'boolean') {
+    return NextResponse.json({ error: 'invalid_online_status' }, { status: 400 });
+  }
+  const { online } = body;
+  // is_online/last_seen_at are no longer client-writable — migration 202608020001
+  // narrowed the authenticated UPDATE grant on profiles to five presentation columns.
+  // The row is still pinned to the caller's own id, so service-role adds no reach.
   const { error } = await createServiceRole()
     .from('profiles')
-    .update({ is_online: !!online, last_seen_at: new Date().toISOString() })
+    .update({ is_online: online, last_seen_at: new Date().toISOString() })
     .eq('id', user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ ok: true, online: !!online });
+  return NextResponse.json({ ok: true, online });
 }

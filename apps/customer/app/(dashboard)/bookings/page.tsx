@@ -59,7 +59,10 @@ export default async function BookingsList({ searchParams }: { searchParams: { t
 
   return (
     <div className="space-y-4 py-2">
-      <h1 className="font-display text-xl">Your bookings</h1>
+      <header>
+        <h1 className="font-display text-2xl font-bold text-ink">Your bookings</h1>
+        <p className="mt-1 text-sm text-muted">Track upcoming work and revisit past services.</p>
+      </header>
 
       <div className="flex gap-2">
         {(Object.keys(TABS) as Tab[]).map((t) => (
@@ -99,7 +102,7 @@ export default async function BookingsList({ searchParams }: { searchParams: { t
                   <div className="mt-1 font-mono-utility text-muted">#{b.short_code}</div>
                 </Link>
                 <div className="flex flex-col items-end gap-2">
-                  <div className="font-display text-lg">{pence(b.total_pence)}</div>
+                  <div className="font-display text-lg font-bold text-ink">{pence(b.total_pence)}</div>
                   {tab === 'completed' && (
                     <div className="flex gap-2">
                       {!reviewedIds.has(b.id) && (

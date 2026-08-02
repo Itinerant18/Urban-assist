@@ -1,18 +1,3 @@
--- Reconstructed from supabase_migrations.schema_migrations on the linked project.
---
--- This migration was applied to the remote database, but its file was missing from
--- this repository. That mismatch made the CLI refuse to push any new migration,
--- because it will not operate on a history it cannot account for.
---
--- The statements below are exactly those recorded in the migration history, joined
--- in their recorded order. Applied remotely as 202607220009 (referral_credit_on_first_completion),
--- so it is already present on that database; the file exists so local and remote
--- agree, not to be re-run against it.
-
--- Referral rows have redeemed_by/redeemed_at linkage columns, but no current
--- signup or redemption path populates them. This trigger therefore returns
--- early today; once an existing flow links a referred customer, it atomically
--- awards the referrer on that customer's first completed booking.
 alter table public.referrals
   add column if not exists credited_at timestamptz;
 
@@ -49,7 +34,6 @@ begin
   limit 1
   for update;
 
-  -- No code currently links redeemed_by, so the live flow exits here.
   if not found then
     return new;
   end if;
@@ -74,7 +58,6 @@ revoke all on function public.credit_referrer_on_first_completion()
   from public, anon, authenticated;
 
 drop trigger if exists bookings_credit_referrer on public.bookings;
-
 create trigger bookings_credit_referrer
 after update of status on public.bookings
 for each row

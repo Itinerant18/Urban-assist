@@ -11,23 +11,24 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   React.useEffect(() => {
     const sb = supabase();
     let channel: ReturnType<typeof sb.channel> | null = null;
-    let cancelled = false;
+    let disposed = false;
 
-    sb.auth.getUser().then(({ data }) => {
-      if (cancelled || !data.user) return;
-      const profileId = data.user.id;
+    sb.auth.getUser().then(({ data }: any) => {
+      if (!data.user || disposed) return;
 
       channel = sb
-        .channel('provider-notifications-bell')
+        // Unique per mount: reusing a fixed name can return a channel still
+        // tearing down from the previous mount, and .on() after subscribe() throws.
+        .channel(`provider-notifications-bell-${crypto.randomUUID()}`)
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
             table: 'notifications',
-            filter: `profile_id=eq.${profileId}`,
+            filter: `profile_id=eq.${data.user.id}`,
           },
-          () => setUnread((u) => u + 1),
+          () => setUnread((count) => count + 1),
         )
         .on(
           'postgres_changes',
@@ -35,11 +36,11 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
             event: 'UPDATE',
             schema: 'public',
             table: 'notifications',
-            filter: `profile_id=eq.${profileId}`,
+            filter: `profile_id=eq.${data.user.id}`,
           },
-          (p: any) => {
-            if (p.old && !p.old.read_at && p.new?.read_at) {
-              setUnread((u) => Math.max(0, u - 1));
+          (payload: any) => {
+            if (payload.old && !payload.old.read_at && payload.new?.read_at) {
+              setUnread((count) => Math.max(0, count - 1));
             }
           },
         )
@@ -47,9 +48,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
     });
 
     return () => {
-      cancelled = true;
-      // Remove only this channel. The customer twin calls removeAllChannels(), which
-      // would also tear down the dashboard's `provider-<id>` offer subscription.
+      disposed = true;
       if (channel) sb.removeChannel(channel);
     };
   }, []);
@@ -57,12 +56,11 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   return (
     <Link
       href="/notifications"
-      aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
-      className="relative tap p-2 flex items-center justify-center rounded-full hover:bg-hairline/40 transition"
+      className="relative tap flex items-center justify-center rounded-full p-2 transition hover:bg-hairline/40"
     >
       <Bell className="h-5 w-5 text-ink" />
       {unread > 0 && (
-        <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-bold text-white">
+        <span className="absolute right-1.5 top-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white">
           {unread > 9 ? '9+' : unread}
         </span>
       )}

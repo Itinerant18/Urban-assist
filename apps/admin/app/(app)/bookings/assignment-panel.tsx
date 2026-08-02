@@ -59,11 +59,13 @@ export function AssignmentPanel({ bookingId }: { bookingId: string }) {
       {!loading &&
         !message &&
         providers.map((provider) => (
-          <button
+          <Button
             key={provider.provider_id}
+            variant="outline"
+            size="sm"
             onClick={() => assign(provider.provider_id)}
             disabled={!provider.is_available}
-            className="rounded-lg border border-hairline px-3 py-2 text-left text-xs hover:bg-bg"
+            className="h-auto flex-col items-start text-left"
           >
             <span className="block font-semibold text-ink">
               {provider.full_name || provider.email || provider.provider_id.slice(0, 8)}
@@ -72,7 +74,7 @@ export function AssignmentPanel({ bookingId }: { bookingId: string }) {
               {provider.is_available ? 'Available' : 'Unavailable'} ·{' '}
               {Number(provider.rating ?? 0).toFixed(1)} rating · {provider.completed_jobs} jobs
             </span>
-          </button>
+          </Button>
         ))}
       {!loading && !message && !providers.length && (
         <span className="text-xs text-muted">No eligible providers</span>

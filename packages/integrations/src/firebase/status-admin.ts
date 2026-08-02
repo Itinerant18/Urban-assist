@@ -2,6 +2,7 @@ import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import type { BookingStatusEventInput } from '@urban-assist/types';
+import { createPrivateKey } from 'node:crypto';
 
 interface FirebaseServiceAccount {
   project_id: string;
@@ -12,13 +13,29 @@ interface FirebaseServiceAccount {
 function getServiceAccount(): FirebaseServiceAccount | null {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (!raw) return null;
+  let account: FirebaseServiceAccount;
   try {
-    const account = JSON.parse(raw) as FirebaseServiceAccount;
-    if (!account.project_id || !account.client_email || !account.private_key) return null;
-    return { ...account, private_key: account.private_key.replace(/\\n/g, '\n') };
+    account = JSON.parse(raw) as FirebaseServiceAccount;
   } catch {
-    return null;
+    throw new Error('firebase_service_account_json_invalid');
   }
+  if (!account.project_id || !account.client_email || !account.private_key) {
+    throw new Error('firebase_service_account_invalid');
+  }
+
+  const privateKey = `${account.private_key
+    .trim()
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '\n')
+    .replace(/\r\n?/g, '\n')}\n`;
+  try {
+    createPrivateKey(privateKey);
+  } catch {
+    throw new Error('firebase_private_key_invalid');
+  }
+
+  return { ...account, private_key: privateKey };
 }
 
 export function getFirebaseAdminApp(): App | null {
@@ -27,20 +44,27 @@ export function getFirebaseAdminApp(): App | null {
   const appName = 'urban-assist-firestore';
   const existing = getApps().find((app) => app.name === appName);
   if (existing) return existing;
-  return initializeApp(
-    {
-      credential: cert({
+  try {
+    return initializeApp(
+      {
+        credential: cert({
+          projectId: account.project_id,
+          clientEmail: account.client_email,
+          privateKey: account.private_key,
+        }),
         projectId: account.project_id,
-        clientEmail: account.client_email,
-        privateKey: account.private_key,
-      }),
-      projectId: account.project_id,
-    },
-    appName,
-  );
+      },
+      appName,
+    );
+  } catch (error) {
+    const concurrentlyInitialized = getApps().find((app) => app.name === appName);
+    if (concurrentlyInitialized) return concurrentlyInitialized;
+    throw error;
+  }
 }
 
 let warnedMissingConfig = false;
+let warnedInvalidConfig = false;
 
 /**
  * Append one immutable event below bookings/{bookingId}/status_stream. The
@@ -50,7 +74,16 @@ export async function appendBookingStatus(
   input: BookingStatusEventInput,
   eventId?: string,
 ): Promise<string | null> {
-  const app = getFirebaseAdminApp();
+  let app: App | null;
+  try {
+    app = getFirebaseAdminApp();
+  } catch (error) {
+    if (!warnedInvalidConfig) {
+      warnedInvalidConfig = true;
+      console.warn('[urban-assist] Firebase service account invalid — status sync disabled', error);
+    }
+    return null;
+  }
   if (!app) {
     if (!warnedMissingConfig) {
       warnedMissingConfig = true;
