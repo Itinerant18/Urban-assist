@@ -46,14 +46,14 @@
 
 @layer utilities {
   .card {
-    @apply rounded-[var(--card-radius)] border border-hairline bg-white;
+    @apply rounded-[var(--card-radius)] border border-hairline bg-white p-4 sm:p-5;
   }
   .card-shadow {
     box-shadow: 0 4px 14px rgba(31, 58, 77, 0.05);
   }
   .tap {
-    min-height: 44px;
-    min-width: 44px;
+    min-height: 48px;
+    min-width: 48px;
   }
 }
 

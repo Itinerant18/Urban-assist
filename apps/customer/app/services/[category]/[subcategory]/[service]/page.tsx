@@ -151,22 +151,6 @@ export default async function ServiceDetailPage({
         </div>
       </main>
 
-      {/* Sticky mobile book bar */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white/95 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-          <div>
-            <div className="text-[11px] text-muted">From</div>
-            <div className="text-[17px] font-extrabold leading-tight text-ink">{pence(service.minPricePence)}</div>
-          </div>
-          <Link
-            href={`/browse?category=${category.slug}&q=${encodeURIComponent(service.name)}`}
-            className="rounded-xl bg-accent px-8 py-3 text-[14px] font-bold text-white transition hover:bg-accent-hover"
-          >
-            Book now
-          </Link>
-        </div>
-      </div>
-
       <Footer />
     </>
   );

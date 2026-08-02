@@ -7,9 +7,17 @@ import { Button, Card, Field, Input, Textarea, Badge, RatingStars } from '@urban
 import { pence, quote } from '@urban-assist/lib';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { CreditCard, Banknote, MapPin, Plus, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import { CreditCard, Banknote, MapPin, Plus, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { AddressForm } from '../../../../components/address-form';
+import { StickyActionBar, StickyActionMeta } from '../../../../components/sticky-action-bar';
+import {
+  defaultFutureSlot,
+  dateKeyFromScheduledAt,
+  formatSlotSummary,
+  listBookingDays,
+  listSlotsForDay,
+} from '../../../../lib/booking-slots';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
 
@@ -37,34 +45,55 @@ const CheckoutSchema = z.object({
   scheduledAt: z.string().refine((val) => {
     const d = new Date(val);
     return !isNaN(d.getTime()) && d.getTime() > Date.now();
-  }, 'Schedule time must be in the future'),
+  }, 'Choose a future date and time window'),
   paymentMethod: z.enum(['card', 'cash']),
   notes: z.string().max(500, 'Notes must be less than 500 characters').optional().nullable(),
   promoCode: z.string().optional().nullable(),
+  preferPrevious: z.boolean().optional(),
 });
 
 type CheckoutFormValues = z.infer<typeof CheckoutSchema>;
+type WizardStep = 'address' | 'schedule' | 'confirm';
 
-export function BookFlow({ service, addresses: initialAddresses, walletBalance = 0 }: { service: Service; addresses: Address[]; walletBalance?: number }) {
+const STEPS: { id: WizardStep; label: string }[] = [
+  { id: 'address', label: 'Address' },
+  { id: 'schedule', label: 'Date & time' },
+  { id: 'confirm', label: 'Confirm & pay' },
+];
+
+type PreviousProvider = { id: string; full_name: string };
+
+export function BookFlow({
+  service,
+  addresses: initialAddresses,
+  walletBalance = 0,
+  previousProvider = null,
+}: {
+  service: Service;
+  addresses: Address[];
+  walletBalance?: number;
+  previousProvider?: PreviousProvider | null;
+}) {
   const router = useRouter();
   const [addresses, setAddresses] = React.useState<Address[]>(initialAddresses);
   const [applyWallet, setApplyWallet] = React.useState(false);
-  
-  // Accordion active step on mobile: 'address' | 'schedule' | 'payment'
-  const [activeStep, setActiveStep] = React.useState<'address' | 'schedule' | 'payment'>('address');
+  const [step, setStep] = React.useState<WizardStep>('address');
   const [adding, setAdding] = React.useState(addresses.length === 0);
   const [promoError, setPromoError] = React.useState<string | null>(null);
   const [promoDiscount, setPromoDiscount] = React.useState<{ type: 'percent' | 'fixed'; value: number } | null>(null);
+  const [stepError, setStepError] = React.useState<string | null>(null);
 
-  // Form setup
-  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<CheckoutFormValues>({
+  const days = React.useMemo(() => listBookingDays(), []);
+
+  const { control, handleSubmit, watch, setValue, trigger, formState: { errors } } = useForm<CheckoutFormValues>({
     resolver: zodResolver(CheckoutSchema),
     defaultValues: {
-      addressId: addresses.find(a => a.is_default)?.id || addresses[0]?.id || '',
-      scheduledAt: defaultSlot(),
+      addressId: addresses.find((a) => a.is_default)?.id || addresses[0]?.id || '',
+      scheduledAt: defaultFutureSlot(),
       paymentMethod: 'card',
       notes: '',
       promoCode: '',
+      preferPrevious: Boolean(previousProvider),
     },
   });
 
@@ -72,8 +101,9 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
   const selectedPaymentMethod = watch('paymentMethod');
   const selectedDate = watch('scheduledAt');
   const promoCodeValue = watch('promoCode');
+  const selectedDayKey = dateKeyFromScheduledAt(selectedDate || defaultFutureSlot());
+  const slots = React.useMemo(() => listSlotsForDay(selectedDayKey), [selectedDayKey]);
 
-  // Stripe checkout states
   const [paymentSecret, setPaymentSecret] = React.useState<string | null>(null);
   const [createdBookingId, setCreatedBookingId] = React.useState<string | null>(null);
   const [payError, setPayError] = React.useState<string | null>(null);
@@ -83,7 +113,6 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
   const [submitting, setSubmitting] = React.useState(false);
   const [bookingError, setBookingError] = React.useState<string | null>(null);
 
-  // Fetch promo details if valid
   const applyPromo = async () => {
     if (!promoCodeValue) return;
     setPromoError(null);
@@ -113,13 +142,14 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
     }
   };
 
-  // Re-calculate pricing quote
   const q = React.useMemo(() => {
-    const promoObj = promoDiscount ? {
-      id: 'promo-active',
-      discount_type: promoDiscount.type,
-      discount_value: promoDiscount.value,
-    } : null;
+    const promoObj = promoDiscount
+      ? {
+          id: 'promo-active',
+          discount_type: promoDiscount.type,
+          discount_value: promoDiscount.value,
+        }
+      : null;
     return quote(service.price_pence, promoObj);
   }, [service.price_pence, promoDiscount]);
 
@@ -136,9 +166,9 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
         style: {
           base: {
             fontSize: '15px',
-            color: '#1C2024',
+            color: '#2B2B28',
             fontFamily: 'Inter, system-ui, sans-serif',
-            '::placeholder': { color: '#8B8D91' },
+            '::placeholder': { color: '#6B6A62' },
           },
         },
       });
@@ -159,13 +189,9 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
     setPayError(null);
     try {
       const { paymentIntent, error: payErr } = await stripeElements.confirmCardPayment(paymentSecret, {
-        payment_method: {
-          card: cardElementRef,
-        },
+        payment_method: { card: cardElementRef },
       });
-      if (payErr) {
-        throw new Error(payErr.message ?? 'Payment failed');
-      }
+      if (payErr) throw new Error(payErr.message ?? 'Payment failed');
       if (paymentIntent?.status === 'succeeded') {
         router.replace(`/book/success?id=${createdBookingId}`);
       } else {
@@ -182,6 +208,9 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
     setBookingError(null);
     setSubmitting(true);
     try {
+      const preferredProviderId =
+        values.preferPrevious && previousProvider ? previousProvider.id : service.provider.id;
+
       const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -193,8 +222,19 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
           promo_code: promoDiscount ? values.promoCode : null,
           apply_wallet: applyWallet && walletBalance > 0,
           notes: values.notes || null,
+          preferred_provider_id: preferredProviderId,
         }),
       });
+      if (res.status === 401) {
+        const redirect = encodeURIComponent(
+          typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/book',
+        );
+        router.push(`/login?redirect=${redirect}`);
+        return;
+      }
+      if (res.status === 429) {
+        throw new Error('Too many booking attempts. Please wait a moment and try again.');
+      }
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(typeof j.error === 'string' ? j.error : 'Could not create booking');
@@ -203,6 +243,7 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
       if (values.paymentMethod === 'card' && data.payment?.client_secret) {
         setPaymentSecret(data.payment.client_secret);
         setCreatedBookingId(data.booking.id);
+        setStep('confirm');
       } else {
         router.replace(`/book/success?id=${data.booking.id}`);
       }
@@ -215,94 +256,141 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
 
   const handleAddNewAddress = (newAddrId: string) => {
     const sb = supabase();
-    sb.from('addresses').select('*').eq('id', newAddrId).single().then(({ data }) => {
-      if (data) {
-        const mapped: Address = {
-          id: data.id,
-          label: data.label,
-          line1: data.line1,
-          line2: data.line2,
-          city: data.city,
-          postcode: data.postcode,
-          is_default: data.is_default || false,
-        };
-        setAddresses((prev) => [...prev, mapped]);
-        setValue('addressId', mapped.id);
-        setAdding(false);
+    sb.from('addresses')
+      .select('*')
+      .eq('id', newAddrId)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          const mapped: Address = {
+            id: data.id,
+            label: data.label,
+            line1: data.line1,
+            line2: data.line2,
+            city: data.city,
+            postcode: data.postcode,
+            is_default: data.is_default || false,
+          };
+          setAddresses((prev) => [...prev, mapped]);
+          setValue('addressId', mapped.id);
+          setAdding(false);
+        }
+      });
+  };
+
+  const stepIndex = STEPS.findIndex((s) => s.id === step);
+
+  async function goNext() {
+    setStepError(null);
+    if (step === 'address') {
+      const ok = await trigger('addressId');
+      if (!ok || !selectedAddressId) {
+        setStepError('Select or add a service address to continue.');
+        return;
       }
-    });
-  };
+      setStep('schedule');
+      return;
+    }
+    if (step === 'schedule') {
+      const ok = await trigger('scheduledAt');
+      if (!ok) {
+        setStepError(errors.scheduledAt?.message ?? 'Choose a date and time window.');
+        return;
+      }
+      setStep('confirm');
+    }
+  }
 
-  const getAddressText = () => {
-    const addr = addresses.find(a => a.id === selectedAddressId);
+  function goBack() {
+    setStepError(null);
+    if (step === 'schedule') setStep('address');
+    if (step === 'confirm' && !paymentSecret) setStep('schedule');
+  }
+
+  const addrSummary = (() => {
+    const addr = addresses.find((a) => a.id === selectedAddressId);
     if (!addr) return 'No address selected';
-    return `${addr.label} (${[addr.line1, addr.line2, addr.city, addr.postcode].filter(Boolean).join(', ')})`;
-  };
-
-  const getScheduleText = () => {
-    if (!selectedDate) return 'No date selected';
-    return new Date(selectedDate).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
-  };
-
-  const getPaymentText = () => {
-    return selectedPaymentMethod === 'card' ? 'Credit/Debit Card' : 'Pay in Cash';
-  };
+    return `${addr.label} · ${[addr.line1, addr.postcode].filter(Boolean).join(', ')}`;
+  })();
 
   return (
-    <div className="mx-auto max-w-6xl py-4 pb-28 lg:py-6 lg:pb-0">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-ink">Secure Checkout</h1>
-        <p className="text-sm text-muted mt-1">Review your service details, choose an address, and confirm your scheduling.</p>
+    <div className="mx-auto max-w-6xl py-4 pb-36 lg:py-6 lg:pb-8">
+      <div className="mb-5">
+        <h1 className="font-display text-2xl font-bold text-ink">Book {service.title}</h1>
+        <p className="mt-1 text-sm text-muted">
+          One step at a time. We&apos;ll match a verified professional after you confirm — preference is a soft
+          request, not a guarantee.
+        </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr,360px] lg:items-start">
-        {/* Left Side: Form Sections */}
+      {/* Progress strip */}
+      <ol className="mb-6 flex items-center gap-1 sm:gap-2" aria-label="Booking progress">
+        {STEPS.map((s, i) => {
+          const done = i < stepIndex;
+          const current = i === stepIndex;
+          return (
+            <li key={s.id} className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+              <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                <span
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
+                    current
+                      ? 'bg-accent text-white'
+                      : done
+                        ? 'bg-ink text-bg'
+                        : 'bg-hairline text-muted'
+                  }`}
+                  aria-current={current ? 'step' : undefined}
+                >
+                  {done ? '✓' : i + 1}
+                </span>
+                <span
+                  className={`truncate text-[10px] font-semibold sm:text-[11px] ${
+                    current ? 'text-ink' : 'text-muted'
+                  }`}
+                >
+                  {s.label}
+                </span>
+              </div>
+              {i < STEPS.length - 1 && (
+                <div className={`mb-4 h-0.5 w-full max-w-[40px] sm:max-w-[64px] ${done ? 'bg-ink' : 'bg-hairline'}`} />
+              )}
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr,320px] lg:items-start">
         <div className="space-y-4">
-          <Card className="p-4 border border-hairline bg-white shadow-sm flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-hairline">
+          <Card className="flex items-center justify-between gap-4 border border-hairline bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-hairline">
                 {service.provider.avatar_url && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={service.provider.avatar_url} alt="" className="h-full w-full object-cover" />
                 )}
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-ink text-sm lg:text-base">{service.provider.full_name}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-bold text-ink">{service.provider.full_name}</span>
                   {service.provider.kyc_status === 'approved' && <Badge tone="success">Verified</Badge>}
                 </div>
-                <div className="text-xs text-muted flex items-center gap-1.5 mt-0.5">
+                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
                   <RatingStars value={Number(service.provider.rating_avg ?? 0)} />
                   <span>·</span>
-                  <span>{service.category.name}</span>
+                  <span>{service.duration_mins} mins</span>
                 </div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-muted">Estimated Duration</div>
-              <div className="font-medium text-sm text-ink">{service.duration_mins} mins</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted">From</div>
+              <div className="text-sm font-extrabold text-ink">{pence(service.price_pence)}</div>
             </div>
           </Card>
 
           <form onSubmit={handleSubmit(onCheckoutSubmit)} className="space-y-4">
-            {/* --- 1. Address Section --- */}
-            <div className="border border-hairline rounded-2xl overflow-hidden bg-white shadow-sm">
-              <button
-                type="button"
-                onClick={() => setActiveStep('address')}
-                className="w-full flex items-center justify-between p-4 bg-bg/40 hover:bg-bg/70 transition text-left border-b border-hairline"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-xs font-bold text-bg">1</span>
-                  <div>
-                    <h3 className="font-bold text-ink text-sm">Service Address</h3>
-                    <p className="text-xs text-muted mt-0.5 lg:hidden">{getAddressText()}</p>
-                  </div>
-                </div>
-                {activeStep === 'address' ? <ChevronUp className="h-4 w-4 text-muted" /> : <ChevronDown className="h-4 w-4 text-muted" />}
-              </button>
-
-              <div className={`${activeStep === 'address' ? 'block' : 'hidden lg:block'} p-4 space-y-4`}>
+            {step === 'address' && (
+              <section className="space-y-4 rounded-2xl border border-hairline bg-white p-4 shadow-sm">
+                <h2 className="text-base font-bold text-ink">Where should we come?</h2>
                 <Controller
                   control={control}
                   name="addressId"
@@ -313,21 +401,27 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
                           {addresses.map((a) => (
                             <label
                               key={a.id}
-                              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors ${field.value === a.id ? 'border-ink bg-accent/5' : 'border-hairline hover:bg-bg/25'}`}
+                              className={`flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors ${
+                                field.value === a.id
+                                  ? 'border-accent bg-accent/5'
+                                  : 'border-hairline hover:bg-bg/25'
+                              }`}
                             >
                               <input
                                 type="radio"
                                 checked={field.value === a.id}
                                 onChange={() => field.onChange(a.id)}
-                                className="mt-1 accent-ink"
+                                className="mt-1 accent-[var(--accent,#C1622E)]"
                               />
                               <div className="flex-1">
-                                <div className="flex items-center gap-1.5 font-bold text-sm text-ink">
+                                <div className="flex items-center gap-1.5 text-sm font-bold text-ink">
                                   <MapPin className="h-3.5 w-3.5 text-muted" />
                                   {a.label}
-                                  {a.is_default && <span className="font-normal text-xs text-muted ml-1">(Default)</span>}
+                                  {a.is_default && (
+                                    <span className="ml-1 text-xs font-normal text-muted">(Default)</span>
+                                  )}
                                 </div>
-                                <div className="text-xs text-muted mt-1 leading-normal">
+                                <div className="mt-1 text-xs leading-normal text-muted">
                                   {[a.line1, a.line2, a.city, a.postcode].filter(Boolean).join(', ')}
                                 </div>
                               </div>
@@ -336,184 +430,315 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
                           <button
                             type="button"
                             onClick={() => setAdding(true)}
-                            className="flex items-center gap-2 text-xs font-medium text-accent hover:text-accent/80 w-fit mt-1"
+                            className="mt-1 flex min-h-11 w-fit items-center gap-2 text-sm font-medium text-accent"
                           >
-                            <Plus className="h-3.5 w-3.5" /> Add a new address
+                            <Plus className="h-4 w-4" /> Add a new address
                           </button>
                         </div>
                       )}
-
                       {(adding || addresses.length === 0) && (
-                        <div className="border border-dashed border-hairline p-4 rounded-xl">
+                        <div className="rounded-xl border border-dashed border-hairline p-4">
                           <AddressForm
                             onAdded={handleAddNewAddress}
                             onCancel={addresses.length ? () => setAdding(false) : undefined}
                           />
                         </div>
                       )}
-                      {errors.addressId && <p className="text-xs text-danger mt-1">{errors.addressId.message}</p>}
+                      {errors.addressId && (
+                        <p className="mt-1 text-xs text-danger">{errors.addressId.message}</p>
+                      )}
                     </div>
                   )}
                 />
-              </div>
-            </div>
+              </section>
+            )}
 
-            {/* --- 2. Schedule Section --- */}
-            <div className="border border-hairline rounded-2xl overflow-hidden bg-white shadow-sm">
-              <button
-                type="button"
-                onClick={() => setActiveStep('schedule')}
-                className="w-full flex items-center justify-between p-4 bg-bg/40 hover:bg-bg/70 transition text-left border-b border-hairline"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-xs font-bold text-bg">2</span>
-                  <div>
-                    <h3 className="font-bold text-ink text-sm">Schedule Booking</h3>
-                    <p className="text-xs text-muted mt-0.5 lg:hidden">{getScheduleText()}</p>
+            {step === 'schedule' && (
+              <section className="space-y-5 rounded-2xl border border-hairline bg-white p-4 shadow-sm">
+                <div>
+                  <h2 className="text-base font-bold text-ink">Pick a date &amp; window</h2>
+                  <p className="mt-1 text-xs text-muted">
+                    These are platform booking windows — not live diary slots. We match a verified pro after you
+                    confirm.
+                  </p>
+                </div>
+
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Date</p>
+                  <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none">
+                    {days.map((day) => {
+                      const selected = day.dateKey === selectedDayKey;
+                      return (
+                        <button
+                          key={day.dateKey}
+                          type="button"
+                          onClick={() => {
+                            const nextSlots = listSlotsForDay(day.dateKey);
+                            const open = nextSlots.find((s) => !s.disabled) ?? nextSlots[0];
+                            if (open) setValue('scheduledAt', open.value, { shouldValidate: true });
+                          }}
+                          className={`tap flex min-h-14 min-w-[4.25rem] shrink-0 flex-col items-center justify-center rounded-xl border px-2 py-2 transition-colors ${
+                            selected
+                              ? 'border-accent bg-accent/10 text-ink'
+                              : 'border-hairline bg-white text-muted'
+                          }`}
+                        >
+                          <span className="text-[10px] font-semibold uppercase">{day.weekday}</span>
+                          <span className="text-lg font-extrabold leading-none text-ink">{day.dayNum}</span>
+                          <span className="text-[10px]">{day.monthShort}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-                {activeStep === 'schedule' ? <ChevronUp className="h-4 w-4 text-muted" /> : <ChevronDown className="h-4 w-4 text-muted" />}
-              </button>
 
-              <div className={`${activeStep === 'schedule' ? 'block' : 'hidden lg:block'} p-4 space-y-4`}>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Controller
-                    control={control}
-                    name="scheduledAt"
-                    render={({ field }) => (
-                      <Field label="Service Date & Time" error={errors.scheduledAt?.message}>
-                        <Input
-                          type="datetime-local"
-                          value={field.value}
-                          min={isoNow()}
-                          onChange={(e) => field.onChange(e.target.value)}
-                        />
-                      </Field>
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name="notes"
-                    render={({ field }) => (
-                      <Field label="Instructions/Notes for Provider (optional)">
-                        <Textarea
-                          placeholder="e.g. key box code, gate entry instructions, parking availability"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value.slice(0, 500))}
-                          rows={3}
-                          maxLength={500}
-                        />
-                        <p className="mt-1 text-right text-xs text-muted">
-                          {(field.value || '').length}/500
-                        </p>
-                      </Field>
-                    )}
-                  />
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Time window</p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {slots.map((slot) => {
+                      const selected = selectedDate === slot.value;
+                      return (
+                        <button
+                          key={slot.value}
+                          type="button"
+                          disabled={slot.disabled}
+                          onClick={() => setValue('scheduledAt', slot.value, { shouldValidate: true })}
+                          className={`tap min-h-12 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                            slot.disabled
+                              ? 'cursor-not-allowed border-hairline bg-bg/50 text-muted/50 line-through'
+                              : selected
+                                ? 'border-accent bg-accent text-white'
+                                : 'border-hairline bg-white text-ink hover:border-accent/40'
+                          }`}
+                        >
+                          {slot.rangeLabel}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {errors.scheduledAt && (
+                    <p className="mt-2 text-xs text-danger">{errors.scheduledAt.message}</p>
+                  )}
                 </div>
-              </div>
-            </div>
 
-            {/* --- 3. Payment Method Section --- */}
-            <div className="border border-hairline rounded-2xl overflow-hidden bg-white shadow-sm">
-              <button
-                type="button"
-                onClick={() => setActiveStep('payment')}
-                className="w-full flex items-center justify-between p-4 bg-bg/40 hover:bg-bg/70 transition text-left border-b border-hairline"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-xs font-bold text-bg">3</span>
-                  <div>
-                    <h3 className="font-bold text-ink text-sm">Payment Method</h3>
-                    <p className="text-xs text-muted mt-0.5 lg:hidden">{getPaymentText()}</p>
+                <Controller
+                  control={control}
+                  name="notes"
+                  render={({ field }) => (
+                    <Field label="Notes for the professional (optional)">
+                      <Textarea
+                        placeholder="e.g. key box code, gate entry, parking"
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(e.target.value.slice(0, 500))}
+                        rows={3}
+                        maxLength={500}
+                      />
+                      <p className="mt-1 text-right text-xs text-muted">{(field.value || '').length}/500</p>
+                    </Field>
+                  )}
+                />
+
+                {previousProvider && (
+                  <Controller
+                    control={control}
+                    name="preferPrevious"
+                    render={({ field }) => (
+                      <label className="flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border border-hairline bg-bg/40 p-3.5">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(field.value)}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                          className="mt-0.5 h-5 w-5 accent-[var(--accent,#C1622E)]"
+                        />
+                        <span className="text-sm text-ink">
+                          <span className="font-medium">Prefer {previousProvider.full_name} from last time</span>
+                          <span className="mt-0.5 block text-xs text-muted">
+                            Soft request only — we&apos;ll try if they&apos;re available for this window.
+                          </span>
+                        </span>
+                      </label>
+                    )}
+                  />
+                )}
+              </section>
+            )}
+
+            {step === 'confirm' && (
+              <section className="space-y-4 rounded-2xl border border-hairline bg-white p-4 shadow-sm">
+                <h2 className="text-base font-bold text-ink">Confirm &amp; pay</h2>
+
+                <div className="space-y-2 rounded-xl bg-bg/50 p-3 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted">Service</span>
+                    <span className="text-right font-medium text-ink">{service.title}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted">Address</span>
+                    <span className="text-right font-medium text-ink">{addrSummary}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted">When</span>
+                    <span className="text-right font-medium text-ink">{formatSlotSummary(selectedDate)}</span>
                   </div>
                 </div>
-                {activeStep === 'payment' ? <ChevronUp className="h-4 w-4 text-muted" /> : <ChevronDown className="h-4 w-4 text-muted" />}
-              </button>
 
-              <div className={`${activeStep === 'payment' ? 'block' : 'hidden lg:block'} p-4 space-y-4`}>
                 <Controller
                   control={control}
                   name="paymentMethod"
                   render={({ field }) => (
-                    <div className="space-y-4">
-                      <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Payment</p>
+                      <div className="grid gap-3">
                         <label
-                          className={`flex flex-col items-start gap-1 cursor-pointer rounded-xl border p-4 transition-colors ${field.value === 'card' ? 'border-ink bg-accent/5' : 'border-hairline hover:bg-bg/25'}`}
+                          className={`flex min-h-14 cursor-pointer flex-col gap-1 rounded-xl border p-4 transition-colors ${
+                            field.value === 'card' ? 'border-accent bg-accent/5' : 'border-hairline'
+                          }`}
                         >
-                          <div className="flex items-center gap-2 font-bold text-sm text-ink">
+                          <div className="flex items-center gap-2 text-sm font-bold text-ink">
                             <input
                               type="radio"
                               name="payMethod"
                               checked={field.value === 'card'}
                               onChange={() => field.onChange('card')}
-                              className="accent-ink"
+                              className="accent-[var(--accent,#C1622E)]"
+                              disabled={Boolean(paymentSecret)}
                             />
                             <CreditCard className="h-4 w-4 text-muted" />
-                            Credit/Debit Card
+                            Pay now
                           </div>
-                          <span className="text-xs text-muted ml-5">Processed securely by Stripe</span>
+                          <span className="ml-6 text-xs text-muted">
+                            Card via Stripe — secures your booking window and reduces no-shows. Charged when you
+                            confirm.
+                          </span>
                         </label>
 
                         <label
-                          className={`flex flex-col items-start gap-1 cursor-pointer rounded-xl border p-4 transition-colors ${field.value === 'cash' ? 'border-ink bg-accent/5' : 'border-hairline hover:bg-bg/25'}`}
+                          className={`flex min-h-14 cursor-pointer flex-col gap-1 rounded-xl border p-4 transition-colors ${
+                            field.value === 'cash' ? 'border-accent bg-accent/5' : 'border-hairline'
+                          }`}
                         >
-                          <div className="flex items-center gap-2 font-bold text-sm text-ink">
+                          <div className="flex items-center gap-2 text-sm font-bold text-ink">
                             <input
                               type="radio"
                               name="payMethod"
                               checked={field.value === 'cash'}
                               onChange={() => field.onChange('cash')}
-                              className="accent-ink"
+                              className="accent-[var(--accent,#C1622E)]"
+                              disabled={Boolean(paymentSecret)}
                             />
                             <Banknote className="h-4 w-4 text-muted" />
-                            Cash on Completion
+                            Pay after service
                           </div>
-                          <span className="text-xs text-muted ml-5">Pay provider directly after the job</span>
+                          <span className="ml-6 text-xs text-muted">
+                            Cash to the professional after the job — confirm payment in-app when done. Invoice and
+                            payment link may also be sent.
+                          </span>
                         </label>
                       </div>
 
                       {field.value === 'card' && paymentSecret && (
-                        <div className="border border-hairline rounded-xl p-4 bg-bg/50 mt-4 space-y-3">
-                          <span className="font-mono-utility text-xs text-muted block">Secure Card Input</span>
-                          <div id="card-element" className="p-3.5 bg-white border border-hairline rounded-xl shadow-inner" />
-                          {payError && <p className="text-xs text-danger font-medium mt-1">{payError}</p>}
+                        <div className="mt-2 space-y-3 rounded-xl border border-hairline bg-bg/50 p-4">
+                          <span className="block font-mono-utility text-xs text-muted">Secure card input</span>
+                          <div
+                            id="card-element"
+                            className="rounded-xl border border-hairline bg-white p-3.5 shadow-inner"
+                          />
+                          {payError && <p className="text-xs font-medium text-danger">{payError}</p>}
                         </div>
                       )}
                     </div>
                   )}
                 />
-              </div>
-            </div>
 
-            {bookingError && <p className="text-sm text-danger font-medium text-center">{bookingError}</p>}
-            
-            {/* Desktop form submit button */}
-            <div className="hidden lg:block">
-              {selectedPaymentMethod === 'card' && paymentSecret ? (
-                <Button type="button" onClick={confirmPayment} size="block" disabled={payBusy}>
-                  {payBusy ? 'Processing Payment…' : `Complete Card Payment ${pence(q.total_pence)}`}
-                </Button>
-              ) : (
-                <Button type="submit" size="block" disabled={submitting || !selectedAddressId}>
-                  {submitting ? 'Booking…' : `Confirm & Place Booking ${pence(q.total_pence)}`}
-                </Button>
-              )}
-            </div>
+                <div className="space-y-2 border-t border-hairline pt-4 lg:hidden">
+                  <label className="block text-xs font-bold text-ink">Promo code</label>
+                  <div className="flex gap-2">
+                    <Controller
+                      control={control}
+                      name="promoCode"
+                      render={({ field }) => (
+                        <Input
+                          placeholder="e.g. SAVE10"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          className="flex-1 font-mono-utility text-xs uppercase"
+                          disabled={!!promoDiscount || Boolean(paymentSecret)}
+                        />
+                      )}
+                    />
+                    {promoDiscount ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setPromoDiscount(null);
+                          setValue('promoCode', '');
+                        }}
+                        disabled={Boolean(paymentSecret)}
+                      >
+                        Clear
+                      </Button>
+                    ) : (
+                      <Button type="button" onClick={applyPromo} disabled={!promoCodeValue}>
+                        Apply
+                      </Button>
+                    )}
+                  </div>
+                  {promoError && <p className="text-[11px] font-medium text-danger">{promoError}</p>}
+                  {promoDiscount && (
+                    <p className="flex items-center gap-1 text-[11px] font-medium text-success">
+                      <CheckCircle2 className="h-3 w-3" /> Promo applied
+                    </p>
+                  )}
+                  {walletBalance > 0 && (
+                    <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-ink">
+                      <input
+                        type="checkbox"
+                        checked={applyWallet}
+                        onChange={(e) => setApplyWallet(e.target.checked)}
+                        className="h-4 w-4 rounded border-hairline"
+                        disabled={Boolean(paymentSecret)}
+                      />
+                      Apply wallet credit (£{(walletBalance / 100).toFixed(2)} available)
+                    </label>
+                  )}
+                </div>
+
+                {bookingError && <p className="text-center text-sm font-medium text-danger">{bookingError}</p>}
+
+                <div className="hidden lg:block">
+                  {selectedPaymentMethod === 'card' && paymentSecret ? (
+                    <Button type="button" onClick={confirmPayment} size="block" disabled={payBusy}>
+                      {payBusy ? 'Processing payment…' : `Pay ${pence(q.total_pence)}`}
+                    </Button>
+                  ) : (
+                    <Button type="submit" size="block" disabled={submitting || !selectedAddressId}>
+                      {submitting ? 'Booking…' : `Confirm booking ${pence(q.total_pence)}`}
+                    </Button>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {(stepError || (step === 'address' && errors.addressId)) && step !== 'confirm' && (
+              <p className="text-center text-sm text-danger">{stepError}</p>
+            )}
           </form>
         </div>
 
-        {/* Right Side: Sticky Checkout / Summary card (Desktop Only) */}
-        <aside className="lg:sticky lg:top-6 lg:self-start space-y-4">
-          <Card className="border border-hairline bg-white shadow-sm p-4 space-y-4">
-            <h3 className="font-display font-bold text-lg text-ink border-b border-hairline pb-2">Order Summary</h3>
+        <aside className="hidden space-y-4 lg:sticky lg:top-6 lg:block lg:self-start">
+          <Card className="space-y-4 border border-hairline bg-white p-4 shadow-sm">
+            <h3 className="border-b border-hairline pb-2 font-display text-lg font-bold text-ink">
+              Order summary
+            </h3>
             <div className="space-y-2.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted">Standard Rate ({service.title})</span>
+                <span className="text-muted">{service.title}</span>
                 <span className="font-medium text-ink">{pence(q.net_pence)}</span>
               </div>
               {q.discount_pence > 0 && (
                 <div className="flex justify-between text-success">
-                  <span>Discount Code Applied</span>
+                  <span>Discount</span>
                   <span>-{pence(q.discount_pence)}</span>
                 </div>
               )}
@@ -521,16 +746,15 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
                 <span className="text-muted">VAT (20%)</span>
                 <span className="font-medium text-ink">{pence(q.vat_pence)}</span>
               </div>
-              <div className="border-t border-hairline pt-3 flex justify-between items-baseline">
-                <span className="font-bold text-ink text-base">Total Price</span>
-                <span className="font-display font-extrabold text-2xl text-ink">{pence(q.total_pence)}</span>
+              <div className="flex items-baseline justify-between border-t border-hairline pt-3">
+                <span className="text-base font-bold text-ink">Total</span>
+                <span className="font-display text-2xl font-extrabold text-ink">{pence(q.total_pence)}</span>
               </div>
-              <p className="text-[10px] text-muted text-right">VAT Included · GBP</p>
+              <p className="text-right text-[10px] text-muted">VAT included · GBP</p>
             </div>
 
-            {/* Promo Code section */}
-            <div className="pt-3 border-t border-hairline space-y-2">
-              <label className="text-xs font-bold text-ink block">Promo Code</label>
+            <div className="space-y-2 border-t border-hairline pt-3">
+              <label className="block text-xs font-bold text-ink">Promo code</label>
               <div className="flex gap-2">
                 <Controller
                   control={control}
@@ -540,8 +764,8 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
                       placeholder="e.g. SAVE10"
                       value={field.value || ''}
                       onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                      className="flex-1 uppercase font-mono-utility text-xs"
-                      disabled={!!promoDiscount}
+                      className="flex-1 font-mono-utility text-xs uppercase"
+                      disabled={!!promoDiscount || Boolean(paymentSecret)}
                     />
                   )}
                 />
@@ -553,6 +777,7 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
                       setPromoDiscount(null);
                       setValue('promoCode', '');
                     }}
+                    disabled={Boolean(paymentSecret)}
                   >
                     Clear
                   </Button>
@@ -562,17 +787,22 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
                   </Button>
                 )}
               </div>
-              {promoError && <p className="text-[11px] text-danger mt-1 font-medium">{promoError}</p>}
-              {promoDiscount && <p className="text-[11px] text-success mt-1 font-medium flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Promo applied successfully!</p>}
+              {promoError && <p className="text-[11px] font-medium text-danger">{promoError}</p>}
+              {promoDiscount && (
+                <p className="flex items-center gap-1 text-[11px] font-medium text-success">
+                  <CheckCircle2 className="h-3 w-3" /> Promo applied
+                </p>
+              )}
               {walletBalance > 0 && (
-                <label className="mt-3 flex items-center gap-2 text-xs text-ink cursor-pointer">
+                <label className="mt-2 flex items-center gap-2 text-xs text-ink">
                   <input
                     type="checkbox"
                     checked={applyWallet}
                     onChange={(e) => setApplyWallet(e.target.checked)}
                     className="h-4 w-4 rounded border-hairline"
+                    disabled={Boolean(paymentSecret)}
                   />
-                  Apply wallet credit (£{(walletBalance / 100).toFixed(2)} available)
+                  Apply wallet (£{(walletBalance / 100).toFixed(2)})
                 </label>
               )}
             </div>
@@ -580,47 +810,38 @@ export function BookFlow({ service, addresses: initialAddresses, walletBalance =
         </aside>
       </div>
 
-      {/* Sticky Bottom CTA for Mobile Checkout */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white/95 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur lg:hidden flex flex-col gap-2">
-        <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-4">
-          <div>
-            <div className="text-[10px] text-muted uppercase tracking-wider font-mono-utility">Total (Inc. VAT)</div>
-            <div className="text-xl font-extrabold leading-tight text-ink">{pence(q.total_pence)}</div>
-          </div>
-          
-          {selectedPaymentMethod === 'card' && paymentSecret ? (
-            <Button
-              type="button"
-              onClick={confirmPayment}
-              disabled={payBusy}
-              className="px-6"
-            >
-              {payBusy ? 'Processing…' : 'Pay Card'}
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              onClick={() => {
-                // If on mobile, submit by programmatically triggering submit on checkout form
-                handleSubmit(onCheckoutSubmit)();
-              }}
-              disabled={submitting || !selectedAddressId}
-              className="px-6"
-            >
-              {submitting ? 'Booking…' : 'Place Booking'}
-            </Button>
-          )}
-        </div>
-      </div>
+      {/* Mobile sticky: Back / Next / Confirm */}
+      <StickyActionBar>
+        {step !== 'address' && !paymentSecret ? (
+          <Button type="button" variant="outline" onClick={goBack} className="min-h-12 shrink-0 px-3">
+            <ChevronLeft className="h-4 w-4" />
+            <span className="sr-only sm:not-sr-only sm:ml-1">Back</span>
+          </Button>
+        ) : (
+          <div className="min-w-[2.75rem]" />
+        )}
+
+        <StickyActionMeta label="Total (inc. VAT)" value={pence(q.total_pence)} />
+
+        {step !== 'confirm' ? (
+          <Button type="button" onClick={goNext} className="min-h-12 px-5">
+            Next
+          </Button>
+        ) : selectedPaymentMethod === 'card' && paymentSecret ? (
+          <Button type="button" onClick={confirmPayment} disabled={payBusy} className="min-h-12 px-5">
+            {payBusy ? 'Processing…' : 'Pay card'}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            onClick={() => handleSubmit(onCheckoutSubmit)()}
+            disabled={submitting || !selectedAddressId}
+            className="min-h-12 px-5"
+          >
+            {submitting ? 'Booking…' : 'Confirm'}
+          </Button>
+        )}
+      </StickyActionBar>
     </div>
   );
-}
-
-function defaultSlot() {
-  const d = new Date(Date.now() + 60 * 60 * 1000);
-  d.setMinutes(0, 0, 0);
-  return d.toISOString().slice(0, 16);
-}
-function isoNow() {
-  return new Date().toISOString().slice(0, 16);
 }

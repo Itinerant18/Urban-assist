@@ -5,6 +5,7 @@ import { Star, ShieldCheck, CheckCircle2, Clock, Minus, Plus } from 'lucide-reac
 import { pence } from '@urban-assist/lib';
 import { Button, Card } from '@urban-assist/ui';
 import { useCart } from '../../components/cart-context';
+import { StickyActionBar, StickyActionMeta } from '../sticky-action-bar';
 
 interface ServiceItem {
   id: string;
@@ -274,23 +275,16 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
         {reviewsCard}
       </div>
 
-      {/* STICKY BOTTOM CART SUMMARY CTA (Floats on mobile) */}
       {cart && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white/95 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
-          <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-ink text-sm">1 Item</span>
-              <span className="text-muted">|</span>
-              <span className="font-extrabold text-ink text-base">{pence(cart.pricePence)}</span>
-            </div>
-            <Link
-              href="/cart"
-              className="rounded-xl bg-accent px-8 py-3 text-[14px] font-bold text-white transition hover:bg-accent-hover"
-            >
-              VIEW CART
-            </Link>
-          </div>
-        </div>
+        <StickyActionBar>
+          <StickyActionMeta label="1 item" value={pence(cart.pricePence)} />
+          <Link
+            href="/cart"
+            className="min-h-12 rounded-xl bg-accent px-8 py-3 text-center text-[14px] font-bold text-white transition hover:bg-accent-hover"
+          >
+            View cart
+          </Link>
+        </StickyActionBar>
       )}
     </div>
   );

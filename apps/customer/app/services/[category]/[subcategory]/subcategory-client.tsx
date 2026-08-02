@@ -156,7 +156,7 @@ export function SubcategoryClient({
         </div>
       </div>
 
-      <main className="mx-auto max-w-page px-4 pb-20 pt-6 lg:px-6">
+      <main className="mx-auto max-w-page px-4 pb-28 pt-6 lg:px-6">
         {/* ── BREADCRUMB & BACK LINK ────────────────────────────── */}
         <div className="flex items-center gap-2 text-xs text-muted mb-3 font-medium flex-wrap">
           <Link href="/" className="hover:text-ink transition">Home</Link>

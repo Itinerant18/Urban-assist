@@ -1,6 +1,6 @@
 import type { NavItem } from '@urban-assist/ui';
 import { AppShell } from '@urban-assist/ui';
-import { Home, CalendarClock, UserRound, Heart, Gift } from 'lucide-react';
+import { Home, CalendarClock, UserRound, MessageSquare, Gift } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { getSupabaseServer } from '@urban-assist/db/server';
@@ -8,11 +8,11 @@ import { NotificationBell } from './notification-bell';
 import { PushRegistrar } from './push-registrar';
 
 const nav: NavItem[] = [
-  { href: '/browse', label: 'Home', icon: <Home className="h-4 w-4" /> },
-  { href: '/bookings', label: 'Bookings', icon: <CalendarClock className="h-4 w-4" /> },
-  { href: '/saved', label: 'Saved', icon: <Heart className="h-4 w-4" /> },
-  { href: '/referrals', label: 'Referrals', icon: <Gift className="h-4 w-4" /> },
-  { href: '/account', label: 'Menu', icon: <UserRound className="h-4 w-4" /> },
+  { href: '/browse', label: 'Home', icon: <Home className="h-5 w-5" /> },
+  { href: '/bookings', label: 'Bookings', icon: <CalendarClock className="h-5 w-5" /> },
+  { href: '/messages', label: 'Chat', icon: <MessageSquare className="h-5 w-5" /> },
+  { href: '/referrals', label: 'Refer', icon: <Gift className="h-5 w-5" /> },
+  { href: '/account', label: 'Account', icon: <UserRound className="h-5 w-5" /> },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

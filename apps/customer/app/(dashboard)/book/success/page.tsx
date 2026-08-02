@@ -2,9 +2,11 @@ import * as React from 'react';
 import Link from 'next/link';
 import { redirect, notFound } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { Card, Button, Badge } from '@urban-assist/ui';
+import { Card, Button } from '@urban-assist/ui';
 import { pence } from '@urban-assist/lib';
 import { CheckCircle2, Calendar, MapPin, CreditCard, Receipt } from 'lucide-react';
+import { StatusPill } from '../../../../components/status-pill';
+import { StickyActionBar } from '../../../../components/sticky-action-bar';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +21,6 @@ export default async function BookingSuccessPage({ searchParams }: { searchParam
     redirect('/login');
   }
 
-  // Fetch the booking detail
   const { data: booking } = await db
     .from('bookings')
     .select('*, category:service_categories(name), address:addresses(*)')
@@ -31,37 +32,33 @@ export default async function BookingSuccessPage({ searchParams }: { searchParam
     notFound();
   }
 
+  const payLabel =
+    booking.payment_method === 'card' ? 'Paid by card (or pending card confirmation)' : 'Pay after service (cash)';
+
   return (
     <div className="space-y-6 py-6 pb-24 lg:pb-6 max-w-xl mx-auto text-center">
-      {/* Success Icon */}
       <div className="flex justify-center">
         <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-success/10 border border-success/20">
-          <CheckCircle2 className="h-10 w-10 text-success animate-pulse" />
+          <CheckCircle2 className="h-10 w-10 text-success" />
         </div>
       </div>
 
-      {/* Headings */}
       <div className="space-y-2">
         <h1 className="font-display text-2xl font-bold text-ink">
-          Booking Confirmed, {user.user_metadata?.full_name ?? 'Client'}!
+          Booking received
         </h1>
-        {/* Desktop Description */}
-        <p className="hidden lg:block text-sm text-muted">
-          Your provider is reviewing your request.
-        </p>
-        {/* Mobile Description */}
-        <p className="lg:hidden text-sm text-muted">
-          We've emailed your receipt.
+        <p className="text-sm text-muted">
+          We&apos;re matching a verified professional for your slot. Track status and chat once
+          someone is assigned.
         </p>
       </div>
 
-      {/* Booking Details Card */}
       <Card className="border border-hairline bg-white p-5 rounded-xl shadow-card text-left space-y-4">
         <div className="flex items-center justify-between border-b border-hairline pb-3">
           <span className="font-mono-utility text-xs text-muted uppercase tracking-wider">
             Order ID: #{booking.short_code}
           </span>
-          <Badge tone="success">Confirmed</Badge>
+          <StatusPill status={booking.status} />
         </div>
 
         <ul className="space-y-3.5 text-sm">
@@ -106,32 +103,30 @@ export default async function BookingSuccessPage({ searchParams }: { searchParam
             <CreditCard className="h-4.5 w-4.5 text-muted mt-0.5" />
             <div>
               <span className="text-muted block text-xs">Payment</span>
-              <span className="font-bold text-ink">
-                {booking.payment_method === 'card' ? 'Card' : 'Cash'}
-              </span>
+              <span className="font-bold text-ink">{payLabel}</span>
             </div>
           </li>
         </ul>
       </Card>
 
-      {/* DESKTOP ACTIONS */}
       <div className="hidden lg:flex gap-3 justify-center pt-2">
         <Link href={`/bookings/${booking.id}`}>
-          <Button className="px-8">MANAGE BOOKING</Button>
+          <Button className="px-8">Track booking</Button>
         </Link>
         <Link href="/">
           <Button variant="outline" className="px-8">
-            RETURN TO HOME
+            Back to home
           </Button>
         </Link>
       </div>
 
-      {/* MOBILE STICKY BOTTOM CTA */}
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-white/95 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
-        <Link href="/bookings" className="block w-full">
-          <Button size="block">VIEW MY BOOKINGS</Button>
+      <StickyActionBar zClassName="z-50">
+        <Link href={`/bookings/${booking.id}`} className="block w-full">
+          <Button size="block" className="min-h-12">
+            Track booking
+          </Button>
         </Link>
-      </div>
+      </StickyActionBar>
     </div>
   );
 }

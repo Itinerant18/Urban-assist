@@ -1,0 +1,120 @@
+/**
+ * Path helpers for the global mobile Book CTA.
+ * Pure so route edge cases (e.g. /book vs /bookings) stay unit-tested.
+ */
+
+/** Routes that already own an immersive sticky CTA (wizard / rate / detail actions). */
+export function ownsOwnSticky(pathname: string | null): boolean {
+  if (!pathname) return false;
+  if (pathname.startsWith('/login')) return true;
+  // Book wizard only — must not match /bookings (prefix collision).
+  if (pathname === '/book' || pathname.startsWith('/book/')) return true;
+  if (/^\/bookings\/[^/]+\/rate\/?$/.test(pathname)) return true;
+  // Booking detail: Rate / Confirm cash sticky
+  if (/^\/bookings\/[^/]+\/?$/.test(pathname)) return true;
+  // Provider profile may show cart sticky
+  if (pathname.startsWith('/providers')) return true;
+  return false;
+}
+
+/**
+ * Bottom tab bar present (guest home or logged-in AppShell).
+ * Marketing /services/* uses Header+Footer only — no tabs.
+ */
+export function hasBottomTabs(pathname: string | null): boolean {
+  if (!pathname) return false;
+  if (ownsOwnSticky(pathname)) return false;
+  if (pathname.startsWith('/services')) return false;
+  if (pathname.startsWith('/privacy') || pathname.startsWith('/terms')) return false;
+  if (pathname.startsWith('/coming-soon')) return false;
+  return true;
+}
+
+export function resolveCta(pathname: string | null): {
+  label: string;
+  subtitle?: string;
+  href: string;
+  ctaLabel: string;
+} {
+  const path = pathname ?? '/';
+
+  if (path.startsWith('/services/')) {
+    const parts = path.split('/').filter(Boolean);
+    if (parts.length >= 4) {
+      return {
+        label: 'Ready',
+        subtitle: 'Book this service',
+        href: `/browse?category=${encodeURIComponent(parts[1]!)}&q=${encodeURIComponent(parts[3]!.replace(/-/g, ' '))}`,
+        ctaLabel: 'Book now',
+      };
+    }
+    if (parts.length >= 3) {
+      return {
+        label: 'Ready',
+        subtitle: 'Choose a pro',
+        href: `/browse?category=${encodeURIComponent(parts[1]!)}&q=${encodeURIComponent(parts[2]!.replace(/-/g, ' '))}`,
+        ctaLabel: 'Book now',
+      };
+    }
+    if (parts.length >= 2) {
+      return {
+        label: 'Ready',
+        subtitle: 'Find a professional',
+        href: `/browse?category=${encodeURIComponent(parts[1]!)}`,
+        ctaLabel: 'Browse & book',
+      };
+    }
+  }
+
+  if (path === '/services') {
+    return {
+      label: 'Services',
+      subtitle: 'Find a pro near you',
+      href: '/browse',
+      ctaLabel: 'Browse & book',
+    };
+  }
+
+  if (path.startsWith('/bookings')) {
+    return {
+      label: 'Need help again?',
+      subtitle: 'Book another visit',
+      href: '/browse',
+      ctaLabel: 'Book a service',
+    };
+  }
+
+  if (path.startsWith('/saved') || path.startsWith('/referrals')) {
+    return {
+      label: 'Urban Assist',
+      subtitle: 'Trusted home help',
+      href: '/browse',
+      ctaLabel: 'Book now',
+    };
+  }
+
+  if (path.startsWith('/messages') || path.startsWith('/notifications') || path.startsWith('/help')) {
+    return {
+      label: 'Need a pro?',
+      subtitle: 'Browse services',
+      href: '/browse',
+      ctaLabel: 'Book now',
+    };
+  }
+
+  if (path.startsWith('/account')) {
+    return {
+      label: 'Home help',
+      subtitle: 'Book your next visit',
+      href: '/browse',
+      ctaLabel: 'Book now',
+    };
+  }
+
+  return {
+    label: 'Urban Assist',
+    subtitle: 'Book trusted home help',
+    href: path.startsWith('/browse') ? '/services' : '/browse',
+    ctaLabel: 'Book now',
+  };
+}
