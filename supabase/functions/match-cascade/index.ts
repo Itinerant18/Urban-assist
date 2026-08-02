@@ -7,7 +7,17 @@
 // Triggered by pg_cron every minute:
 //   select public.invoke_scheduled_edge_function('/match-cascade?mode=tick');
 //
-// Deploy: supabase functions deploy match-cascade --no-verify-jwt
+// ⚠ DO NOT DEPLOY THIS ALONE. It calls the provider app over HTTP, so it only works
+// once that app is deployed and reachable from Supabase's network. As of 2026-08-02
+// none of the Next.js apps are hosted and every NEXT_PUBLIC_APP_URL is localhost, so
+// deploying this would replace a working self-contained v9 with one that 500s on
+// every minute's cron tick.
+//
+// Deploy sequence, both together:
+//   1. deploy the provider app, note its public origin
+//   2. supabase secrets set PROVIDER_APP_URL=https://<origin> --project-ref <ref>
+//   3. supabase functions deploy match-cascade --no-verify-jwt
+//   4. confirm the next tick logs {"considered":N,...} rather than a 500
 //
 // ---------------------------------------------------------------------------
 // This function used to carry its own full copy of the matching engine: candidate
