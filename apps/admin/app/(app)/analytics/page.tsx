@@ -6,6 +6,7 @@ import {
   buildDailyBookingTrend,
   trendTotals,
 } from '../../../lib/admin-analytics-trends';
+import { buildBookingBreakdown, type BreakdownRow } from '../../../lib/admin-analytics-breakdowns';
 import { BentoGrid, BentoTile, StatTile, PageHeader, SectionHeader, BentoEmpty } from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +33,36 @@ type Analytics = {
   providers_approved: number;
   avg_provider_rating: number | null;
 };
+
+function BreakdownTile({ title, rows }: { title: string; rows: BreakdownRow[] }) {
+  return (
+    <BentoTile static className="col-span-2 md:col-span-3 lg:col-span-6 !justify-start">
+      <p className="mb-3 text-xs text-muted">{title}</p>
+      {rows.length === 0 ? (
+        <BentoEmpty message="No bookings in this window." className="py-4" />
+      ) : (
+        <ul className="space-y-2.5">
+          {rows.map((row) => (
+            <li key={row.label}>
+              <div className="flex items-baseline justify-between gap-3 text-xs">
+                <span className="truncate font-medium text-ink">{row.label}</span>
+                <span className="shrink-0 font-mono text-muted">
+                  {row.bookings} · {gbp(row.completedGmvPence)}
+                </span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-hairline/60">
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{ width: `${Math.max(2, Math.round(row.share * 100))}%` }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </BentoTile>
+  );
+}
 
 function TrendBars({
   values,
@@ -65,16 +96,25 @@ export default async function AnalyticsPage() {
   since.setUTCHours(0, 0, 0, 0);
 
   const trendCap = 10000;
-  const [{ data }, preference, { data: trendRows, count: trendCount }] = await Promise.all([
-    adminDb.rpc('get_admin_analytics'),
-    getPreferenceMetrics(adminDb).catch(() => null),
-    adminDb
-      .from('bookings')
-      .select('created_at, status, total_pence', { count: 'exact' })
-      .gte('created_at', since.toISOString())
-      .order('created_at', { ascending: true })
-      .limit(trendCap),
-  ]);
+  const since30d = new Date();
+  since30d.setUTCDate(since30d.getUTCDate() - 29);
+  since30d.setUTCHours(0, 0, 0, 0);
+  const [{ data }, preference, { data: trendRows, count: trendCount }, { data: breakdownRows }] =
+    await Promise.all([
+      adminDb.rpc('get_admin_analytics'),
+      getPreferenceMetrics(adminDb).catch(() => null),
+      adminDb
+        .from('bookings')
+        .select('created_at, status, total_pence', { count: 'exact' })
+        .gte('created_at', since.toISOString())
+        .order('created_at', { ascending: true })
+        .limit(trendCap),
+      adminDb
+        .from('bookings')
+        .select('status, total_pence, address:addresses(city), category:service_categories(name)')
+        .gte('created_at', since30d.toISOString())
+        .limit(trendCap),
+    ]);
   const a = (data ?? {}) as Partial<Analytics>;
   // A silent cap reads as "that's all the bookings" — say so when it isn't.
   const trendTruncated = (trendCount ?? 0) > trendCap;
@@ -83,6 +123,19 @@ export default async function AnalyticsPage() {
     trendDays,
   );
   const totals = trendTotals(daily);
+
+  const breakdownSource = (breakdownRows ?? []) as Array<{
+    status: string;
+    total_pence: number | null;
+    address: { city: string | null } | null;
+    category: { name: string | null } | null;
+  }>;
+  const byCity = buildBookingBreakdown(
+    breakdownSource.map((r) => ({ label: r.address?.city ?? null, status: r.status, total_pence: r.total_pence })),
+  );
+  const byCategory = buildBookingBreakdown(
+    breakdownSource.map((r) => ({ label: r.category?.name ?? null, status: r.status, total_pence: r.total_pence })),
+  );
 
   const completionRate = a.total_bookings
     ? Math.round(((a.completed ?? 0) / a.total_bookings) * 100)
@@ -144,6 +197,12 @@ export default async function AnalyticsPage() {
             </>
           )}
         </BentoTile>
+      </BentoGrid>
+
+      <SectionHeader title="Breakdowns · last 30 days" className="mb-3" />
+      <BentoGrid className="mb-6">
+        <BreakdownTile title="Bookings by city — count · completed GMV" rows={byCity} />
+        <BreakdownTile title="Bookings by category — count · completed GMV" rows={byCategory} />
       </BentoGrid>
 
       <SectionHeader title="Revenue" className="mb-3" />
