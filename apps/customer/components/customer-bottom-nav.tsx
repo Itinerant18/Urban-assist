@@ -2,16 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, CalendarClock, Grid3X3, MessageSquare, User, ShoppingCart } from 'lucide-react';
+import { Home, CalendarClock, Grid3X3, MessageSquare, User, Heart } from 'lucide-react';
 import { cn } from '@urban-assist/ui';
 
-export type GuestTab = 'home' | 'bookings' | 'browse' | 'cart' | 'account';
+export type GuestTab = 'home' | 'bookings' | 'browse' | 'saved' | 'account';
 
 const GUEST_TABS: { id: GuestTab; href: string; label: string; icon: typeof Home }[] = [
   { id: 'home', href: '/', label: 'Home', icon: Home },
   { id: 'browse', href: '/services', label: 'Browse', icon: Grid3X3 },
   { id: 'bookings', href: '/bookings', label: 'Bookings', icon: CalendarClock },
-  { id: 'cart', href: '/cart', label: 'Cart', icon: ShoppingCart },
+  { id: 'saved', href: '/saved', label: 'Saved', icon: Heart },
   { id: 'account', href: '/account', label: 'Account', icon: User },
 ];
 
@@ -20,7 +20,7 @@ export function GuestBottomNav({ active }: { active?: GuestTab }) {
   const pathname = usePathname();
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
       aria-label="Primary"
     >
       <ul className="mx-auto flex max-w-xl items-stretch justify-around">
@@ -35,18 +35,18 @@ export function GuestBottomNav({ active }: { active?: GuestTab }) {
               <Link
                 href={item.href}
                 className={cn(
-                  'tap flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-semibold tracking-wide',
-                  isActive ? 'text-accent' : 'text-muted',
+                  'tap relative flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 py-1.5 text-[11px] font-semibold',
+                  isActive ? 'text-ink' : 'text-muted',
                 )}
                 aria-current={isActive ? 'page' : undefined}
               >
                 <span
                   className={cn(
-                    'grid h-6 w-6 place-items-center rounded-lg',
-                    isActive && 'bg-accent/10',
+                    'grid h-6 w-8 place-items-center rounded-full',
+                    isActive && 'bg-accent/10 text-accent',
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-5 w-5" aria-hidden="true" />
                 </span>
                 {item.label}
               </Link>

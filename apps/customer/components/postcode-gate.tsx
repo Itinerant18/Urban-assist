@@ -64,25 +64,35 @@ export function PostcodeGate({
 
   if (variant === 'compact') {
     return (
-      <form onSubmit={handleSubmit} className={`relative ${className}`}>
-        <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-        <input
-          type="text"
-          value={postcode}
-          onChange={(e) => { setPostcode(e.target.value.toUpperCase()); setError(null); }}
-          placeholder={placeholder}
-          className="w-full rounded-xl border-0 bg-white py-2.5 pl-10 pr-12 text-[13px] text-ink placeholder:text-muted focus:outline-none"
-          style={{ minHeight: 40 }}
-        />
-        <button
-          type="submit"
-          disabled={busy || !postcode.trim()}
-          className="absolute right-2 top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-lg bg-accent text-white disabled:opacity-50"
-        >
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
-        </button>
+      <form onSubmit={handleSubmit} className={className} noValidate>
+        <label htmlFor="mobile-postcode" className="sr-only">Your postcode</label>
+        <div className="relative">
+          <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+          <input
+            id="mobile-postcode"
+            type="text"
+            inputMode="text"
+            autoComplete="postal-code"
+            value={postcode}
+            onChange={(e) => { setPostcode(e.target.value.toUpperCase()); setError(null); }}
+            placeholder={placeholder}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? 'mobile-postcode-error' : undefined}
+            className="min-h-12 w-full rounded-xl border border-transparent bg-white py-3 pl-10 pr-14 text-[16px] font-semibold uppercase tracking-[0.03em] text-ink placeholder:normal-case placeholder:tracking-normal placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+          />
+          <button
+            type="submit"
+            disabled={busy || !postcode.trim()}
+            className="absolute right-0.5 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-[10px] bg-accent text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label={busy ? 'Checking postcode' : 'Check postcode'}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ArrowRight className="h-4 w-4" aria-hidden="true" />}
+          </button>
+        </div>
         {error && (
-          <p className="absolute -bottom-5 left-0 text-[10px] text-danger">{error}</p>
+          <p id="mobile-postcode-error" className="mt-2 rounded-lg bg-white px-3 py-2 text-[12px] font-semibold text-danger" role="alert">
+            {error}
+          </p>
         )}
       </form>
     );

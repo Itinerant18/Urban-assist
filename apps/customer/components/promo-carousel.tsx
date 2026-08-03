@@ -19,7 +19,7 @@ export function PromoCarousel({ promoCode }: PromoCarouselProps) {
     <section className="bg-white py-10">
       <div className="mx-auto max-w-page px-6">
         <div
-          className="relative flex items-center justify-between overflow-hidden rounded-2xl px-10 py-8"
+          className="relative flex items-center justify-between overflow-hidden rounded-2xl px-16 py-8"
           style={{ background: '#E4D4C4' }}
         >
           <button

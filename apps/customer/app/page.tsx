@@ -5,7 +5,6 @@ import { PromoCarousel } from '../components/promo-carousel';
 import { FeaturedServices } from '../components/featured-services';
 import { WhyUs } from '../components/why-us';
 import { Testimonials } from '../components/testimonials';
-import { AppCTA } from '../components/app-cta';
 import { Footer } from '../components/footer';
 import { MobileHome } from '../components/mobile-home';
 import { getHomepageData } from '../lib/homepage-data';
@@ -30,7 +29,6 @@ export default async function LandingPage() {
           <FeaturedServices trending={data.trending} />
           <WhyUs />
           <Testimonials reviews={data.reviews} />
-          <AppCTA />
         </main>
         <Footer />
       </div>

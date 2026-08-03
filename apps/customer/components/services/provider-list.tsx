@@ -29,6 +29,8 @@ export function ProviderList({ providers }: { providers: ProviderService[] }) {
       <ul className="mt-3 space-y-3">
         {providers.map((p) => {
           const isAdded = cart?.id === p.id;
+          const hasRating =
+            Number(p.provider?.rating_avg ?? 0) > 0 && Number(p.provider?.rating_count ?? 0) > 0;
           return (
             <li key={p.id}>
               <div
@@ -46,14 +48,19 @@ export function ProviderList({ providers }: { providers: ProviderService[] }) {
 
                 {/* Details */}
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[14px] font-bold text-ink">{p.title}</div>
+                  <div className="truncate text-[14px] font-bold text-ink">
+                    {p.provider?.full_name ?? 'Local professional'}
+                  </div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[12px] text-muted">
-                    <span>{p.provider?.full_name}</span>
-                    <span className="flex items-center gap-0.5">
-                      <Star className="h-3 w-3 fill-amber text-amber" />
-                      {Number(p.provider?.rating_avg ?? 0).toFixed(1)}
-                      {p.provider?.rating_count ? ` (${p.provider.rating_count})` : ''}
-                    </span>
+                    <span>{p.title}</span>
+                    {hasRating ? (
+                      <span className="flex items-center gap-0.5">
+                        <Star className="h-3 w-3 fill-amber text-amber" />
+                        {Number(p.provider.rating_avg).toFixed(1)} ({p.provider.rating_count})
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-success">New</span>
+                    )}
                     <span>· {p.duration_mins} min</span>
                   </div>
                 </div>

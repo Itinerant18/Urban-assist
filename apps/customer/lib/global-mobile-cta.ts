@@ -6,6 +6,8 @@
 /** Routes that already own an immersive sticky CTA (wizard / rate / detail actions). */
 export function ownsOwnSticky(pathname: string | null): boolean {
   if (!pathname) return false;
+  // Public home already owns the primary discovery CTA and bottom navigation.
+  if (pathname === '/') return true;
   if (pathname.startsWith('/login')) return true;
   // Book wizard only — must not match /bookings (prefix collision).
   if (pathname === '/book' || pathname.startsWith('/book/')) return true;

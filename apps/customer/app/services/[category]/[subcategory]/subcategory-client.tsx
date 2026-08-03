@@ -367,7 +367,7 @@ export function SubcategoryClient({
                           View details
                         </Link>
                         <Link
-                          href={detailUrl}
+                          href={`/browse?category=${category.slug}&q=${encodeURIComponent(service.name)}`}
                           className="rounded-xl bg-accent px-3 py-2 text-center text-[12px] font-bold text-white shadow-sm transition hover:bg-accent-hover"
                         >
                           Book now →

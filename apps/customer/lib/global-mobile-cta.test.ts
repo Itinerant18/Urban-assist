@@ -23,8 +23,8 @@ describe('ownsOwnSticky', () => {
     expect(ownsOwnSticky('/providers/p1')).toBe(true);
   });
 
-  it('shows on home, browse, account', () => {
-    expect(ownsOwnSticky('/')).toBe(false);
+  it('lets home own discovery actions and shows on browse and account', () => {
+    expect(ownsOwnSticky('/')).toBe(true);
     expect(ownsOwnSticky('/browse')).toBe(false);
     expect(ownsOwnSticky('/account')).toBe(false);
   });

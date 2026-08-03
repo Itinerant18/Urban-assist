@@ -33,7 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .eq('profile_id', user.id)
       .is('read_at', null),
   ]);
-  if (profile?.role !== 'customer') redirect('/login?error=wrong_app');
+  if (profile?.role !== 'customer') redirect('/api/auth/wrong-app');
 
   return (
     <AppShell 

@@ -16,6 +16,21 @@ function copySessionCookies(source: NextResponse, target: NextResponse) {
   return target;
 }
 
+export function getProtectedRedirectParams(
+  pathname: string,
+  searchParams: URLSearchParams,
+): { requestedPath: string; flightMarker: string | null } {
+  const requestedSearch = new URLSearchParams(searchParams);
+  const flightMarker = requestedSearch.get('_rsc');
+  requestedSearch.delete('_rsc');
+  const query = requestedSearch.toString();
+
+  return {
+    requestedPath: query ? `${pathname}?${query}` : pathname,
+    flightMarker,
+  };
+}
+
 export async function updateSupabaseSession(
   request: NextRequest,
   options: SessionMiddlewareOptions,
@@ -54,10 +69,14 @@ export async function updateSupabaseSession(
 
   if (!user && options.isProtectedRoute) {
     const loginUrl = request.nextUrl.clone();
-    const requestedPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+    const { requestedPath, flightMarker } = getProtectedRedirectParams(
+      request.nextUrl.pathname,
+      request.nextUrl.searchParams,
+    );
     loginUrl.pathname = options.loginPath ?? '/login';
     loginUrl.search = '';
     loginUrl.searchParams.set('redirect', requestedPath);
+    if (flightMarker) loginUrl.searchParams.set('_rsc', flightMarker);
     return copySessionCookies(response, NextResponse.redirect(loginUrl));
   }
 

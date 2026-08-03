@@ -104,7 +104,7 @@ export function CatalogClient({ categories = SERVICE_CATEGORIES }: CatalogClient
           <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pr-2 space-y-4">
             <h3 className="text-xs font-bold text-muted font-mono-utility tracking-wider uppercase">Categories</h3>
             <ul className="space-y-1">
-              {serviceCategories.map((cat) => {
+              {filteredCategories.map((cat) => {
                 const isActive = activeCategory === cat.id;
                 const IconComponent = categoryIcons[cat.icon];
                 return (
@@ -129,7 +129,7 @@ export function CatalogClient({ categories = SERVICE_CATEGORIES }: CatalogClient
 
         {/* STICKY HORIZONTAL PILL MENU (Mobile) */}
         <div className="lg:hidden sticky top-[56px] z-20 bg-bg/95 backdrop-blur-md border-b border-hairline py-3 -mx-4 px-4 overflow-x-auto whitespace-nowrap scrollbar-none flex gap-2">
-          {serviceCategories.map((cat) => {
+          {filteredCategories.map((cat) => {
             const isActive = activeCategory === cat.id;
             const IconComponent = categoryIcons[cat.icon];
             return (

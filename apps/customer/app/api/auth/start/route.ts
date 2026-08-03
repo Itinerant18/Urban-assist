@@ -1,10 +1,11 @@
 // Start OTP — rate-limited via Upstash if configured.
 import type { NextRequest} from 'next/server';
 import { NextResponse } from 'next/server';
-import { getSupabaseServer } from '@urban-assist/db/server';
+import { createServiceRole, getSupabaseServer } from '@urban-assist/db/server';
 import { otpRateLimit } from '@urban-assist/integrations/redis';
 import { inPhoneE164, normaliseMobile, ukPhoneE164 } from '@urban-assist/utils';
 import { z } from 'zod';
+import { isCustomerRoleAllowed } from '../../../../lib/auth-login';
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? 'anon';
@@ -49,6 +50,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Role lives against auth.users.phone (digits-only), not profiles.phone —
+  // profile phones drift in format AND value, so an .eq() there misses accounts.
+  const admin = createServiceRole();
+  const { data: existingRole, error: profileLookupError } = await (admin as any).rpc(
+    'role_for_phone',
+    { p_phone: phone! },
+  );
+
+  if (profileLookupError) {
+    return NextResponse.json({ error: 'auth_check_failed' }, { status: 503 });
+  }
+
+  if (!isCustomerRoleAllowed(existingRole)) {
+    return NextResponse.json({ error: 'wrong_app' }, { status: 403 });
+  }
+
   const db = getSupabaseServer();
   const { error } = await db.auth.signInWithOtp({
     phone: phone!,
@@ -58,6 +75,6 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: 'otp_send_failed' }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

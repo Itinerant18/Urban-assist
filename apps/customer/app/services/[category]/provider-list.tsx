@@ -338,7 +338,7 @@ export function ProviderList({ initialServices, categorySlug }: ProviderListProp
                         </p>
                       </div>
                       <div className="flex gap-2">
-                        <Link href={`/services/${categorySlug}/${s.id}`}>
+                        <Link href={`/book/${s.id}`}>
                           <Button size="sm" variant="outline">
                             VIEW
                           </Button>

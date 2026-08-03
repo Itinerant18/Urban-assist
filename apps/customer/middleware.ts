@@ -20,7 +20,6 @@ const PROTECTED_PREFIXES = [
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isProtectedRoute =
-    pathname === '/' ||
     PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
   return updateSupabaseSession(request, { isProtectedRoute });

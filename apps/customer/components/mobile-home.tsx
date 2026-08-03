@@ -1,344 +1,210 @@
 'use client';
-import { MapPin, ChevronDown, Grid3X3, Star, ArrowRight, Gift, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
-import Link from 'next/link';
-import type { HomepageData, HomepageCategory, HomepageService, HomepageReview } from '../lib/homepage-data';
-import { Logo } from '@urban-assist/ui';
-import { getCategoryIcon } from '../lib/homepage-data';
-import { pence } from '@urban-assist/lib';
-import { PostcodeGate } from './postcode-gate';
-import { GuestBottomNav, PwaInstallCue } from './customer-bottom-nav';
 
-/* ── Props ──────────────────────────────────────────────── */
+import {
+  ArrowRight,
+  BadgePoundSterling,
+  CalendarCheck2,
+  ChevronDown,
+  ChevronRight,
+  Grid3X3,
+  MapPin,
+  Quote,
+  ShieldCheck,
+  Star,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+import { Logo } from '@urban-assist/ui';
+import { pence } from '@urban-assist/lib';
+import type {
+  HomepageCategory,
+  HomepageData,
+  HomepageReview,
+  HomepageService,
+} from '../lib/homepage-data';
+import { getCategoryIcon } from '../lib/homepage-data';
+import { PostcodeGate } from './postcode-gate';
+import { GuestBottomNav } from './customer-bottom-nav';
 
 interface MobileHomeProps {
   data: HomepageData;
 }
 
-/* ── Mobile Header ─────────────────────────────────────── */
-
 function MobileHeader() {
   return (
-    <header className="lg:hidden" style={{ background: '#1F3A4D' }}>
-      <div className="px-4 pb-4 pt-3">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10">
-            <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-          </span>
-          <div className="flex items-center gap-1 text-white">
-            <MapPin className="h-3.5 w-3.5 text-amber" />
-            <span className="text-[12px] font-semibold">Current Location</span>
-            <ChevronDown className="h-3 w-3 text-white/60" />
-          </div>
-        </div>
-        <p className="mb-3 text-[11px] text-white/60">Select Delivery/Service Address...</p>
-        <PostcodeGate variant="compact" placeholder="Enter your postcode…" />
+    <header className="bg-ink text-white lg:hidden">
+      <div className="flex items-center justify-between px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+        <Link href="/" className="tap flex items-center gap-2.5 rounded-lg" aria-label="Urban Assist home">
+          <Logo inverted />
+          <span className="text-[15px] font-extrabold tracking-[-0.01em]">Urban Assist</span>
+        </Link>
+        <Link
+          href="/login"
+          className="tap inline-flex items-center rounded-full border border-white/25 px-4 text-[13px] font-semibold text-white transition-colors hover:bg-white/10"
+        >
+          Sign in
+        </Link>
       </div>
     </header>
   );
 }
 
-/* ── Mobile Hero ────────────────────────────────────────── */
-
-function MobileHero({ promoCode }: { promoCode: HomepageData['promoCode'] }) {
+function MobileIntro({ promoCode }: { promoCode: HomepageData['promoCode'] }) {
   return (
-    <section className="lg:hidden bg-white px-4 pb-2 pt-4">
-      <div className="rounded-2xl overflow-hidden" style={{ background: '#F5F1EB' }}>
-        <div className="flex flex-col p-5">
-          <span className="inline-block self-start rounded-full bg-accent/15 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.04em] text-accent">
-            Limited offer
-          </span>
-          <h2 className="mt-2 text-[20px] font-extrabold leading-tight text-ink">
-            Up to 50% Off<br />On First Booking!
-          </h2>
-          {promoCode && (
-            <p className="mt-1 text-[12px] text-muted">
-              Use code <strong className="text-accent">{promoCode.code}</strong>
+    <section className="bg-ink px-4 pb-7 text-white lg:hidden">
+      <div className="max-w-md">
+        <p className="flex items-center gap-1.5 text-[13px] font-semibold text-footer-muted">
+          <MapPin className="h-4 w-4 text-amber" aria-hidden="true" />
+          London &amp; the South East
+        </p>
+        <h1 className="mt-4 max-w-[18rem] text-[30px] font-extrabold leading-[1.08] tracking-[-0.03em] text-white text-balance">
+          What needs sorting at home?
+        </h1>
+        <p className="mt-3 max-w-sm text-[15px] leading-6 text-[#D7E0E5] text-pretty">
+          Fixed prices, vetted professionals and a time that works for you.
+        </p>
+        <PostcodeGate
+          variant="compact"
+          className="mt-5"
+          placeholder="e.g. SW1A 1AA"
+        />
+        <p className="mt-2 text-[12px] leading-5 text-footer-muted">
+          Enter your postcode to see services and availability nearby.
+        </p>
+
+        {promoCode && (
+          <div className="mt-4 flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5">
+            <BadgePoundSterling className="h-5 w-5 shrink-0 text-amber" aria-hidden="true" />
+            <p className="text-[12px] leading-5 text-white">
+              First booking offer: use <strong className="font-extrabold">{promoCode.code}</strong> at checkout.
             </p>
-          )}
-          <div className="mt-3 h-32 w-full rounded-xl bg-hairline/40" />
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
-/* ── Quick Service Grid (Bento Grid 2-column) ──────────── */
-
-function QuickServiceGrid({ categories }: { categories: HomepageCategory[] }) {
-  const badgeColors: Record<string, { bg: string; label: string }> = {
-    sparkles: { bg: '#6B8F6B', label: 'Top Rated' },
-    wrench: { bg: '#C1622E', label: 'Popular' },
-    zap: { bg: '#D9A441', label: 'Popular' },
-    settings: { bg: '#C1622E', label: 'Trending' },
-    leaf: { bg: '#6B8F6B', label: 'Trending' },
-    hammer: { bg: '#1F3A4D', label: 'Popular' },
-    paintbrush: { bg: '#1F3A4D', label: 'Popular' },
-    lock: { bg: '#1F3A4D', label: 'New' },
-  };
-
-  const getStripeStyle = (type: 'A' | 'B') => {
-    if (type === 'B') {
-      return {
-        background: 'repeating-linear-gradient(135deg, #E9F0E9, #E9F0E9 10px, #DEE9DE 10px, #DEE9DE 20px)',
-      };
-    }
-    return {
-      background: 'repeating-linear-gradient(135deg, #EDE6D8, #EDE6D8 10px, #E4DBC9 10px, #E4DBC9 20px)',
-    };
-  };
-
-  const cleaning = categories.find((c) => c.slug.includes('cleaning') || c.id === 'cleaning') || categories[0];
-  const plumbing = categories.find((c) => c.slug.includes('plumbing') || c.id === 'plumbing') || categories[1];
-  const electrical = categories.find((c) => c.slug.includes('electrical') || c.id === 'electrical') || categories[2];
-  const heating = categories.find((c) => c.slug.includes('heating') || c.id === 'heating') || categories[3];
-  const handyman = categories.find((c) => c.slug.includes('handyman') || c.id === 'handyman') || categories[4];
-  const painting = categories.find((c) => c.slug.includes('painting') || c.id === 'painting') || categories[5];
-  const gardening = categories.find((c) => c.slug.includes('gardening') || c.id === 'gardening') || categories[6];
-
-  if (!cleaning || !plumbing) {
-    return null;
-  }
-
-  const tiles = [
-    {
-      id: cleaning.id,
-      type: 'feature' as const,
-      category: cleaning,
-      slug: cleaning.slug,
-      name: cleaning.name,
-      icon: cleaning.icon,
-      stripeType: 'B' as const,
-      caption: 'Cleaning',
-      badge: { bg: '#6B8F6B', label: 'Top Rated' },
-      spanClass: 'col-span-2',
-    },
-    {
-      id: plumbing.id,
-      type: 'standard' as const,
-      category: plumbing,
-      slug: plumbing.slug,
-      name: plumbing.name,
-      icon: plumbing.icon,
-      stripeType: 'A' as const,
-      caption: 'Plumbing',
-      badge: badgeColors[plumbing.icon],
-      spanClass: 'col-span-1',
-    },
-    {
-      id: electrical.id,
-      type: 'standard' as const,
-      category: electrical,
-      slug: electrical.slug,
-      name: electrical.name,
-      icon: electrical.icon,
-      stripeType: 'A' as const,
-      caption: 'Electrical',
-      badge: badgeColors[electrical.icon],
-      spanClass: 'col-span-1',
-    },
-    {
-      id: heating.id,
-      type: 'standard' as const,
-      category: heating,
-      slug: heating.slug,
-      name: heating.name,
-      icon: heating.icon,
-      stripeType: 'A' as const,
-      caption: 'Heating',
-      badge: badgeColors[heating.icon],
-      spanClass: 'col-span-1',
-    },
-    {
-      id: handyman.id,
-      type: 'standard' as const,
-      category: handyman,
-      slug: handyman.slug,
-      name: handyman.name,
-      icon: handyman.icon,
-      stripeType: 'A' as const,
-      caption: 'Handyman',
-      badge: badgeColors[handyman.icon],
-      spanClass: 'col-span-1',
-    },
-    {
-      id: painting.id,
-      type: 'standard' as const,
-      category: painting,
-      slug: painting.slug,
-      name: painting.name,
-      icon: painting.icon,
-      stripeType: 'A' as const,
-      caption: 'Painting',
-      badge: badgeColors[painting.icon],
-      spanClass: 'col-span-1',
-    },
-    {
-      id: 'all-services',
-      type: 'all-services' as const,
-      slug: '',
-      name: 'All Services',
-      icon: 'grid',
-      stripeType: 'A' as const,
-      caption: 'Browse All',
-      badge: { bg: '#1F3A4D', label: 'Browse' },
-      spanClass: 'col-span-1',
-    },
-    {
-      id: gardening.id,
-      type: 'wide' as const,
-      category: gardening,
-      slug: gardening.slug,
-      name: gardening.name,
-      icon: gardening.icon,
-      stripeType: 'B' as const,
-      caption: 'Gardening',
-      badge: badgeColors[gardening.icon],
-      spanClass: 'col-span-2',
-    },
+function TrustStrip() {
+  const promises = [
+    { label: 'Vetted pros', icon: ShieldCheck },
+    { label: 'Fixed prices', icon: BadgePoundSterling },
+    { label: 'Easy booking', icon: CalendarCheck2 },
   ];
 
-  const usedIds = new Set([cleaning.id, plumbing.id, electrical.id, heating.id, handyman.id, painting.id, gardening.id]);
-  const extraCategories = categories.filter(c => !usedIds.has(c.id)).map(c => ({
-      id: c.id,
-      type: 'standard' as const,
-      category: c,
-      slug: c.slug,
-      name: c.name,
-      icon: c.icon,
-      stripeType: 'A' as const,
-      caption: c.name.split(' ')[0],
-      badge: badgeColors[c.icon] || { bg: c.color ?? '#1F3A4D', label: 'Service' },
-      spanClass: 'col-span-1',
-  }));
+  return (
+    <section className="border-b border-hairline bg-white px-4 py-3 lg:hidden" aria-label="Urban Assist promise">
+      <ul className="grid grid-cols-3 gap-2">
+        {promises.map(({ label, icon: Icon }) => (
+          <li key={label} className="flex min-w-0 items-center justify-center gap-1.5 text-center">
+            <Icon className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+            <span className="text-[11px] font-bold leading-4 text-ink">{label}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
-  tiles.push(...extraCategories);
+function ServiceCategories({ categories }: { categories: HomepageCategory[] }) {
+  const visibleCategories = categories.slice(0, 7);
 
+  if (visibleCategories.length === 0) return null;
 
   return (
-    <section className="lg:hidden bg-bg px-4 py-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-[16px] font-extrabold text-ink">Explore our services</h3>
-        <Link href="/services" className="text-[12px] font-semibold text-accent hover:text-accent-hover flex items-center gap-0.5">
-          View all <ArrowRight className="h-3.5 w-3.5" />
+    <section className="bg-bg px-4 py-7 lg:hidden" aria-labelledby="mobile-categories-title">
+      <div className="mb-4 flex items-end justify-between gap-4">
+        <div>
+          <h2 id="mobile-categories-title" className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">
+            Services for your home
+          </h2>
+          <p className="mt-1 text-[13px] leading-5 text-muted">Start with the job you need done.</p>
+        </div>
+        <Link
+          href="/services"
+          className="tap inline-flex shrink-0 items-center gap-1 rounded-lg text-[13px] font-bold text-accent-hover hover:text-ink"
+        >
+          View all <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3.5">
-        {tiles.map((tile) => {
-          const Icon = tile.icon === 'grid' ? Grid3X3 : getCategoryIcon(tile.icon);
-          const href = tile.type === 'all-services' ? '/services' : `/services/${tile.slug}`;
-
-          if (tile.type === 'feature' || tile.type === 'wide') {
-            return (
-              <Link
-                key={tile.id}
-                href={href}
-                className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-row h-24 ${tile.spanClass}`}
-                style={{ borderColor: '#ECE6D9' }}
-              >
-                <div className="p-3 flex-1 flex flex-col justify-between min-w-0">
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      {tile.badge && (
-                        <span
-                          className="rounded px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.04em] text-white"
-                          style={{ background: tile.badge.bg }}
-                        >
-                          {tile.badge.label}
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="text-[13px] font-bold leading-tight text-ink group-hover:text-accent transition-colors truncate">
-                      {tile.name}
-                    </h4>
-                  </div>
-                  {tile.category && (
-                    <span className="text-[11px] font-medium text-success block">
-                      From {pence(tile.category.minPricePence)}
-                    </span>
-                  )}
-                </div>
-                <div className="relative w-1/3 flex items-center justify-center overflow-hidden border-l border-hairline shrink-0" style={getStripeStyle(tile.stripeType)}>
-                  <span className="font-mono text-[9px] text-[#8A8574] select-none text-center px-1">
-                    {tile.caption}
-                  </span>
-                  <span className="absolute bottom-2 right-2 h-6 w-6 grid place-items-center rounded bg-white shadow-sm border border-input-border">
-                    <Icon className="h-3.5 w-3.5 text-ink" />
-                  </span>
-                </div>
-              </Link>
-            );
-          }
-
-          if (tile.type === 'all-services') {
-            return (
-              <Link
-                key={tile.id}
-                href={href}
-                className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col justify-between h-28 ${tile.spanClass}`}
-                style={{ borderColor: '#ECE6D9' }}
-              >
-                <div className="relative h-14 flex items-center justify-center overflow-hidden" style={getStripeStyle(tile.stripeType)}>
-                  <span className="font-mono text-[9px] text-[#8A8574] select-none text-center px-1">
-                    {tile.caption}
-                  </span>
-                  <span
-                    className="absolute top-2 left-2 rounded px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.04em] text-white"
-                    style={{ background: tile.badge.bg }}
-                  >
-                    {tile.badge.label}
-                  </span>
-                </div>
-                <div className="p-2 pt-1 flex flex-col justify-between flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <h4 className="text-[11px] font-bold leading-tight text-ink group-hover:text-accent transition-colors truncate">
-                      {tile.name}
-                    </h4>
-                    <span className="flex-shrink-0 grid h-6 w-6 place-items-center rounded bg-ink/5">
-                      <Grid3X3 className="h-3 w-3 text-ink" />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            );
-          }
-
+      <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+        {visibleCategories.map((category) => {
+          const Icon = getCategoryIcon(category.icon);
           return (
             <Link
-              key={tile.id}
-              href={href}
-              className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col justify-between h-28 ${tile.spanClass}`}
-              style={{ borderColor: '#ECE6D9' }}
+              key={category.id}
+              href={`/services/${category.slug}`}
+              className="group flex min-h-[84px] min-w-0 flex-col items-center justify-start gap-2 rounded-xl px-1 py-2 text-center transition-colors hover:bg-white focus-visible:bg-white"
             >
-              <div className="relative h-14 flex items-center justify-center overflow-hidden" style={getStripeStyle(tile.stripeType)}>
-                <span className="font-mono text-[9px] text-[#8A8574] select-none text-center px-1">
-                  {tile.caption}
-                </span>
-                {tile.badge && (
-                  <span
-                    className="absolute top-2 left-2 rounded px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.04em] text-white"
-                    style={{ background: tile.badge.bg }}
-                  >
-                    {tile.badge.label}
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-white text-ink ring-1 ring-input-border transition-colors group-hover:text-accent group-hover:ring-accent/40">
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span className="line-clamp-2 text-[11px] font-bold leading-[1.25] text-charcoal">
+                {category.name}
+              </span>
+            </Link>
+          );
+        })}
+        <Link
+          href="/services"
+          className="group flex min-h-[84px] min-w-0 flex-col items-center justify-start gap-2 rounded-xl px-1 py-2 text-center transition-colors hover:bg-white focus-visible:bg-white"
+        >
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-ink text-white">
+            <Grid3X3 className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <span className="text-[11px] font-bold leading-[1.25] text-charcoal">All services</span>
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function PopularServices({ items }: { items: HomepageService[] }) {
+  if (items.length === 0) return null;
+
+  return (
+    <section className="bg-white px-4 py-7 lg:hidden" aria-labelledby="popular-services-title">
+      <div className="mb-4 flex items-end justify-between gap-4">
+        <div>
+          <h2 id="popular-services-title" className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">
+            Most booked
+          </h2>
+          <p className="mt-1 text-[13px] leading-5 text-muted">Clear starting prices, before you commit.</p>
+        </div>
+        <Link href="/services" className="tap inline-flex shrink-0 items-center text-[13px] font-bold text-accent-hover hover:text-ink">
+          See all
+        </Link>
+      </div>
+
+      <div className="divide-y divide-hairline border-y border-hairline">
+        {items.slice(0, 4).map((item) => {
+          const Icon = getCategoryIcon(item.icon);
+          return (
+            <Link
+              key={item.id}
+              href={`/services/${item.categorySlug}`}
+              className="group flex min-h-[84px] items-center gap-3 py-3"
+            >
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-bg text-ink transition-colors group-hover:text-accent">
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-2 text-[14px] font-bold leading-5 text-charcoal">{item.title}</span>
+                <span className="mt-0.5 block text-[12px] text-muted">{item.categoryName}</span>
+                {item.rating && (
+                  <span className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-muted">
+                    <Star className="h-3.5 w-3.5 fill-amber text-amber" aria-hidden="true" />
+                    {item.rating.toFixed(1)}
+                    {item.reviewCount ? <span>({item.reviewCount})</span> : null}
                   </span>
                 )}
-              </div>
-              <div className="p-2 pt-1 flex flex-col justify-between flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-1">
-                  <h4 className="text-[11px] font-bold leading-tight text-ink group-hover:text-accent transition-colors truncate">
-                    {tile.name}
-                  </h4>
-                  <span className="flex-shrink-0 grid h-6 w-6 place-items-center rounded bg-ink/5">
-                    <Icon className="h-3 w-3 text-ink" />
-                  </span>
-                </div>
-                {tile.category && (
-                  <span className="text-[10px] font-medium text-success block">
-                    From {pence(tile.category.minPricePence)}
-                  </span>
-                )}
-              </div>
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block text-[11px] font-medium text-muted">From</span>
+                <span className="block text-[14px] font-extrabold text-ink">{pence(item.pricePence)}</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
           );
         })}
@@ -347,227 +213,132 @@ function QuickServiceGrid({ categories }: { categories: HomepageCategory[] }) {
   );
 }
 
-/* ── Horizontal Scroll Section ──────────────────────────── */
-
-function HorizScroll({ title, items, showPrice, showRating }: {
-  title: string;
-  items: HomepageService[];
-  showPrice?: boolean;
-  showRating?: boolean;
-}) {
-  if (items.length === 0) return null;
+function HowItWorks() {
+  const steps = [
+    { title: 'Choose a service', detail: 'See the price before booking.' },
+    { title: 'Pick a time', detail: 'Choose a visit window that suits you.' },
+    { title: 'We match your pro', detail: 'A vetted professional is assigned.' },
+  ];
 
   return (
-    <section className="lg:hidden bg-white pb-2 pt-4">
-      <div className="mb-3 flex items-center justify-between px-4">
-        <h3 className="text-[16px] font-extrabold text-ink">{title}</h3>
-        <a href="/services" className="flex items-center gap-0.5 text-[12px] font-semibold text-accent">
-          See all <ArrowRight className="h-3.5 w-3.5" />
-        </a>
-      </div>
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2" style={{ scrollbarWidth: 'none' }}>
-        {items.map((item) => (
-          <Link key={item.id} href="/services" className="w-36 shrink-0 snap-start">
-            <div className="h-24 w-full rounded-xl bg-hairline/40" />
-            <div className="mt-2">
-              <span className="text-[12px] font-bold text-ink">{item.title}</span>
-              {item.categoryName && <p className="text-[10px] text-muted">{item.categoryName}</p>}
-              {showRating && item.rating && (
-                <div className="mt-0.5 flex items-center gap-1">
-                  <Star className="h-3 w-3 fill-amber text-amber" />
-                  <span className="text-[10px] font-semibold text-muted">{item.rating}</span>
-                  {item.reviewCount && <span className="text-[9px] text-muted">({item.reviewCount})</span>}
-                </div>
-              )}
-              {showPrice && <span className="text-[13px] font-extrabold text-ink">{pence(item.pricePence)}</span>}
+    <section className="bg-bg px-4 py-7 lg:hidden" aria-labelledby="how-it-works-title">
+      <h2 id="how-it-works-title" className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">
+        Book without the phone-tag
+      </h2>
+      <ol className="mt-5 space-y-4">
+        {steps.map((step, index) => (
+          <li key={step.title} className="flex gap-3">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink text-[12px] font-extrabold text-white">
+              {index + 1}
+            </span>
+            <div className="pt-0.5">
+              <h3 className="text-[14px] font-bold text-charcoal">{step.title}</h3>
+              <p className="mt-0.5 text-[13px] leading-5 text-muted">{step.detail}</p>
             </div>
-          </Link>
+          </li>
         ))}
+      </ol>
+      <Link
+        href="/services"
+        className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent-hover px-5 py-3 text-[14px] font-bold text-white transition-colors hover:bg-ink"
+      >
+        Browse services <ArrowRight className="h-4 w-4" aria-hidden="true" />
+      </Link>
+    </section>
+  );
+}
+
+function CustomerProof({ reviews }: { reviews: HomepageReview[] }) {
+  const review = reviews[0];
+  if (!review) return null;
+
+  return (
+    <section className="bg-white px-4 py-7 lg:hidden" aria-labelledby="customer-proof-title">
+      <div className="rounded-2xl bg-ink px-5 py-6 text-white">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="customer-proof-title" className="text-[18px] font-extrabold">Trusted in real homes</h2>
+          <Quote className="h-6 w-6 text-amber" aria-hidden="true" />
+        </div>
+        <div className="mt-4 flex items-center gap-1 text-amber" role="img" aria-label={`${review.rating} out of 5 stars`}>
+          {Array.from({ length: 5 }, (_, index) => (
+            <Star
+              key={index}
+              className={`h-4 w-4 ${index < review.rating ? 'fill-amber' : ''}`}
+              aria-hidden="true"
+            />
+          ))}
+        </div>
+        <blockquote className="mt-3 text-[14px] leading-6 text-white text-pretty">
+          “{review.comment}”
+        </blockquote>
+        <p className="mt-4 text-[12px] font-semibold text-footer-muted">
+          {review.authorName} · {review.location}
+        </p>
       </div>
     </section>
   );
 }
-
-/* ── In The Spotlight ───────────────────────────────────── */
-
-function Spotlight() {
-  return (
-    <section className="lg:hidden bg-white px-4 py-4">
-      <h3 className="mb-3 text-[16px] font-extrabold text-ink">In the Spotlight</h3>
-      <div className="rounded-2xl overflow-hidden" style={{ background: '#E4D4C4' }}>
-        <div className="p-5">
-          <span className="inline-block rounded-full bg-white/30 px-3 py-1 text-[9px] font-extrabold uppercase tracking-[0.04em] text-ink">
-            Flat discount
-          </span>
-          <h4 className="mt-2 text-[18px] font-extrabold text-ink">Upgrade to Luxe for 15% more</h4>
-          <div className="my-3 h-28 w-full rounded-xl bg-hairline/50" />
-          <a href="/coming-soon" className="inline-block rounded-lg bg-accent px-5 py-2.5 text-[13px] font-bold text-white">
-            Book Now
-          </a>
-        </div>
-        <div className="flex justify-center gap-2 pb-4">
-          <span className="h-2 w-2 rounded-full bg-accent" />
-          <span className="h-2 w-2 rounded-full bg-white/40" />
-          <span className="h-2 w-2 rounded-full bg-white/40" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Stacked Promo Cards ────────────────────────────────── */
-
-function StackedPromos() {
-  return (
-    <section className="lg:hidden bg-white space-y-3 px-4 py-2 pb-4">
-      {[
-        { title: 'Get squeaky clean bathrooms', label: null, cta: 'Learn More', bg: '#E8F0E8' },
-        { title: 'Salon Finish at home', label: 'Trending', cta: 'Book Salon', bg: '#EEEAFF' },
-        { title: 'Designed to be bold. Built to protect.', label: 'Launch', cta: 'Buy Now', bg: '#F5F1EB' },
-      ].map((card) => (
-        <div key={card.title} className="relative rounded-2xl overflow-hidden" style={{ background: card.bg }}>
-          <div className="p-5">
-            {card.label && (
-              <span className="inline-block rounded-full bg-accent/15 px-3 py-1 text-[9px] font-extrabold uppercase tracking-[0.04em] text-accent">
-                {card.label}
-              </span>
-            )}
-            <h4 className="mt-2 text-[16px] font-extrabold text-ink max-w-[70%]">{card.title}</h4>
-            <div className="mt-2 h-20 w-full rounded-xl bg-hairline/40" />
-            <a href="/coming-soon" className="mt-3 inline-block rounded-lg bg-accent px-4 py-2 text-[12px] font-bold text-white">
-              {card.cta}
-            </a>
-          </div>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-/* ── Categorized Lists ──────────────────────────────────── */
-
-function CategorizedLists({ trending }: { trending: HomepageService[] }) {
-  if (trending.length === 0) return null;
-
-  const groups: Record<string, HomepageService[]> = {};
-  for (const s of trending) {
-    if (!groups[s.categoryName]) groups[s.categoryName] = [];
-    groups[s.categoryName].push(s);
-  }
-
-  const entries = Object.entries(groups).slice(0, 2);
-
-  return (
-    <section className="lg:hidden bg-white space-y-6 px-4 py-4">
-      {entries.length === 0 ? null : entries.map(([catTitle, items]) => (
-        <div key={catTitle}>
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-[16px] font-extrabold text-ink">{catTitle}</h3>
-            <a href="/services" className="flex items-center gap-0.5 text-[12px] font-semibold text-accent">
-              See all <ArrowRight className="h-3.5 w-3.5" />
-            </a>
-          </div>
-          <div className="space-y-3">
-            {items.map((item) => (
-              <Link key={item.id} href="/services" className="flex items-center gap-3">
-                <div className="h-16 w-16 shrink-0 rounded-xl bg-hairline/40" />
-                <div>
-                  <span className="text-[13px] font-bold text-ink">{item.title}</span>
-                  <p className="text-[13px] font-extrabold text-ink">{pence(item.pricePence)}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-/* ── Referral Card ──────────────────────────────────────── */
-
-function ReferralCard() {
-  return (
-    <section className="lg:hidden bg-white px-4 py-3">
-      <div className="rounded-2xl border border-hairline bg-white p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="text-[15px] font-extrabold text-ink">Great service deserves to be shared</h3>
-            <p className="mt-1 text-[12px] text-muted">Invite your friends to try Urban Assist!</p>
-            <a href="/coming-soon" className="mt-3 inline-block rounded-lg bg-accent px-4 py-2 text-[12px] font-bold text-white">
-              Invite Now
-            </a>
-          </div>
-          <div className="ml-4 flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-accent/10">
-            <Gift className="h-8 w-8 text-accent" />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Testimonials (mobile) ──────────────────────────────── */
-
-function MobileTestimonials({ reviews }: { reviews: HomepageReview[] }) {
-  if (reviews.length === 0) return null;
-  const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
-
-  return (
-    <section className="lg:hidden bg-white px-4 py-4">
-      <h3 className="mb-3 text-[16px] font-extrabold text-ink">What customers say</h3>
-      <div className="space-y-3">
-        {reviews.slice(0, 2).map((r) => (
-          <div key={r.id} className="rounded-xl border border-hairline p-4">
-            <div className="text-[14px] tracking-[2px]" style={{ color: '#D9A441' }}>
-              {stars(r.rating)}
-            </div>
-            <p className="mt-2 text-[12px] leading-relaxed text-ink">{r.comment}</p>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-[13px] font-bold text-ink">{r.authorName}</span>
-              <span className="text-[10px] text-muted">{r.location}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ── Mobile Footer ──────────────────────────────────────── */
 
 function MobileFooter() {
   const [open, setOpen] = useState<string | null>(null);
-  const sections = {
-    'Quick Links': ['About Us', 'Careers', 'Privacy Policy', 'Impact'],
-    'For Customers': ['All Services', 'Categories Near Me', 'Contact Support'],
-    'For Professionals': ['Register as a Partner', 'Download Partner App'],
-  };
+  const sections = [
+    {
+      heading: 'Urban Assist',
+      links: [
+        { label: 'About us', href: '/about' },
+        { label: 'Help centre', href: '/help' },
+      ],
+    },
+    {
+      heading: 'For customers',
+      links: [
+        { label: 'All services', href: '/services' },
+        { label: 'My bookings', href: '/bookings' },
+      ],
+    },
+    {
+      heading: 'Legal',
+      links: [
+        { label: 'Privacy policy', href: '/privacy' },
+        { label: 'Terms of service', href: '/terms' },
+      ],
+    },
+  ];
 
   return (
-    <footer className="lg:hidden pb-40" style={{ background: '#1F3A4D' }}>
-      <div className="px-4 py-8">
-        <div className="mb-6 flex items-center gap-2.5">
+    <footer className="bg-ink pb-[calc(5.25rem+env(safe-area-inset-bottom))] text-white lg:hidden">
+      <div className="px-4 py-7">
+        <div className="mb-5 flex items-center gap-2.5">
           <Logo inverted />
-          <span className="text-[15px] font-extrabold text-[#F5F1EB]">Urban Assist</span>
+          <div>
+            <p className="text-[15px] font-extrabold">Urban Assist</p>
+            <p className="text-[11px] text-footer-muted">Trusted help for your home.</p>
+          </div>
         </div>
 
-        {Object.entries(sections).map(([heading, links]) => {
+        {sections.map(({ heading, links }) => {
           const isOpen = open === heading;
           return (
-            <div key={heading} className="border-b border-white/10">
+            <div key={heading} className="border-t border-white/15">
               <button
-                className="flex w-full items-center justify-between py-3 text-[13px] font-bold text-[#F5F1EB]"
+                type="button"
+                className="tap flex w-full items-center justify-between py-3 text-left text-[13px] font-bold"
                 onClick={() => setOpen(isOpen ? null : heading)}
+                aria-expanded={isOpen}
               >
                 {heading}
-                <ChevronUp className={`h-4 w-4 text-white/60 transition ${isOpen ? '' : 'rotate-180'}`} />
+                <ChevronDown
+                  className={`h-4 w-4 text-footer-muted transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                  aria-hidden="true"
+                />
               </button>
               {isOpen && (
-                <ul className="space-y-2 pb-3">
+                <ul className="space-y-1 pb-3">
                   {links.map((link) => (
-                    <li key={link}>
-                      <a href="/coming-soon" className="text-[12px] text-[#9FB1BC]">{link}</a>
+                    <li key={link.href}>
+                      <Link href={link.href} className="tap inline-flex items-center text-[12px] text-footer-muted hover:text-white">
+                        {link.label}
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -576,52 +347,31 @@ function MobileFooter() {
           );
         })}
 
-        <div className="mt-6 flex gap-4">
-          {['f', 't', 'i', 'in'].map((s) => (
-            <a key={s} href="/coming-soon" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[11px] font-bold text-white/70">
-              {s}
-            </a>
-          ))}
-        </div>
-
-        <div className="mt-4 flex gap-3">
-          <a href="/coming-soon" className="flex-1 rounded-xl bg-white/10 px-4 py-2.5 text-center text-[12px] font-bold text-white backdrop-blur">
-            App Store
-          </a>
-          <a href="/coming-soon" className="flex-1 rounded-xl bg-white/10 px-4 py-2.5 text-center text-[12px] font-bold text-white backdrop-blur">
-            Google Play
-          </a>
-        </div>
-
-        <p className="mt-6 text-[10px] text-[#7E93A0] text-center">
-          &copy; 2026 Urban Assist Private Limited.
+        <p className="mt-5 border-t border-white/15 pt-5 text-[11px] leading-5 text-footer-muted">
+          © 2026 Urban Assist Services Ltd. Registered in England &amp; Wales.
         </p>
       </div>
     </footer>
   );
 }
 
-/* ── Exported MobileHome ────────────────────────────────── */
-
 export function MobileHome({ data }: MobileHomeProps) {
-  const { categories, reviews, trending, mostBooked, promoCode } = data;
+  const { categories, reviews, mostBooked, trending, promoCode } = data;
+  const popular = mostBooked.length > 0 ? mostBooked : trending;
 
   return (
-    <>
+    <div className="min-h-dvh bg-bg lg:hidden">
       <MobileHeader />
-      <MobileHero promoCode={promoCode} />
-      <QuickServiceGrid categories={categories} />
-      <HorizScroll title="Trending Near You" items={trending.slice(0, 4)} showRating />
-      <Spotlight />
-      <HorizScroll title="New and Noteworthy" items={trending.slice(2, 6)} showPrice />
-      <HorizScroll title="Most Booked Services" items={mostBooked.slice(0, 3)} showPrice showRating />
-      <StackedPromos />
-      <CategorizedLists trending={trending} />
-      <MobileTestimonials reviews={reviews} />
-      <ReferralCard />
+      <main>
+        <MobileIntro promoCode={promoCode} />
+        <TrustStrip />
+        <ServiceCategories categories={categories} />
+        <PopularServices items={popular} />
+        <HowItWorks />
+        <CustomerProof reviews={reviews} />
+      </main>
       <MobileFooter />
-      <PwaInstallCue />
       <GuestBottomNav active="home" />
-    </>
+    </div>
   );
 }

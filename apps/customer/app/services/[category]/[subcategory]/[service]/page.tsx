@@ -18,13 +18,19 @@ async function fetchProviders(categorySlug: string, serviceName: string) {
     const { data: cat } = await db.from('service_categories').select('id').eq('slug', categorySlug).single();
     let query = db
       .from('provider_services')
-      .select('id, title, price_pence, duration_mins, provider:profiles!inner(full_name, avatar_url, rating_avg, rating_count, kyc_status)')
+      .select('id, title, price_pence, duration_mins, provider:profiles!inner(id, full_name, avatar_url, rating_avg, rating_count, kyc_status)')
       .eq('is_active', true)
       .limit(10);
     if (cat) query = query.eq('category_id', cat.id);
     const { data } = await query;
     const tokens = serviceName.toLowerCase().split(/\s+/).filter((t) => t.length > 3);
-    return (data ?? []).filter((s) => tokens.some((t) => s.title.toLowerCase().includes(t)));
+    return (data ?? [])
+      .filter((s) => tokens.some((t) => s.title.toLowerCase().includes(t)))
+      .map((s) => ({
+        ...s,
+        provider: Array.isArray(s.provider) ? s.provider[0] : s.provider,
+      }))
+      .filter((s) => Boolean(s.provider));
   } catch {
     return [];
   }
@@ -140,7 +146,7 @@ export default async function ServiceDetailPage({
                   </Link>
                 </div>
               ) : (
-                <ProviderList providers={providers as any} />
+                <ProviderList providers={providers} />
               )}
             </section>
 

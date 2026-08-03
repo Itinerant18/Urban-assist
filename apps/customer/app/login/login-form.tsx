@@ -4,6 +4,10 @@ import { Button, Field, Input, Card } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { normaliseMobile } from '@urban-assist/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  PROFESSIONAL_ACCOUNT_MESSAGE,
+  getCustomerSignInError,
+} from '../../lib/auth-login';
 
 type Country = {
   code: 'GB' | 'IN';
@@ -86,6 +90,8 @@ export function LoginForm() {
       return;
     }
 
+    if (wrongApp) router.replace('/login');
+
     setLoading(true);
     try {
       const e164 = getFullE164();
@@ -99,13 +105,19 @@ export function LoginForm() {
         }),
       });
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error ?? 'Could not send verification code');
+        const body = await res.json().catch(() => ({}));
+        const reason = typeof body.error === 'string' ? body.error : '';
+        setError(getCustomerSignInError(reason, res.status));
+        if (reason === 'wrong_app') {
+          setPhase('enter');
+          setOtp('');
+        }
+        return;
       }
       setPhase('otp');
       setCooldown(30);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getCustomerSignInError(err instanceof Error ? err.message : err));
     } finally {
       setLoading(false);
     }
@@ -126,8 +138,8 @@ export function LoginForm() {
       if (error) throw error;
 
       router.replace(redirectTo);
-    } catch (err: any) {
-      setError(err.message ?? 'Invalid verification code');
+    } catch (err: unknown) {
+      setError(getCustomerSignInError(err instanceof Error ? err.message : err));
     } finally {
       setLoading(false);
     }
@@ -139,8 +151,7 @@ export function LoginForm() {
     <div className="space-y-6">
       {wrongApp && (
         <div className="rounded-xl border border-danger/30 bg-danger/5 p-3 text-xs font-semibold text-danger">
-          This account is registered as a professional. Use the provider app, or sign in with a
-          different number.
+          {PROFESSIONAL_ACCOUNT_MESSAGE}
         </div>
       )}
       <Card className="space-y-4 shadow-card border border-hairline bg-white p-5 rounded-xl">
