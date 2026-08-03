@@ -47,10 +47,26 @@ export async function POST(req: Request) {
     const providerIds = [...new Set((completed ?? []).map((booking) => booking.provider_id))].filter(
       (providerId): providerId is string => Boolean(providerId),
     );
-    const processed = [];
+    const processed: Array<
+      Awaited<ReturnType<typeof releaseProviderEarnings>> & {
+        provider_id: string;
+        error?: string;
+      }
+    > = [];
     for (const providerId of providerIds) {
-      const result = await releaseProviderEarnings(db, providerId);
-      processed.push({ provider_id: providerId, ...result });
+      try {
+        const result = await releaseProviderEarnings(db, providerId);
+        processed.push({ provider_id: providerId, ...result });
+      } catch (providerError) {
+        processed.push({
+          provider_id: providerId,
+          released: 0,
+          processing: 0,
+          alreadyPaid: 0,
+          failed: 0,
+          error: providerError instanceof Error ? providerError.message : 'release_failed',
+        });
+      }
     }
 
     await (db as any).rpc('append_admin_action_log', {
@@ -66,7 +82,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, processed });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'internal_server_error';
-    const status = message === 'unauthorized' ? 401 : message === 'forbidden' ? 403 : 500;
+    const status =
+      message === 'unauthorized' || message === 'mfa_required'
+        ? 401
+        : message === 'forbidden'
+          ? 403
+          : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

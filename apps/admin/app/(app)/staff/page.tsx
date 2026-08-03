@@ -5,19 +5,19 @@ import { getSupabaseBrowser } from '@urban-assist/db/browser';
 import { Settings2, ShieldCheck, UserPlus, X } from 'lucide-react';
 import { Button, Field as FormField, Input, Skeleton } from '@urban-assist/ui';
 
-const ROLE_OPTIONS = [
-  { code: 'super_admin', label: 'Super admin', description: 'Full platform and access management.' },
-  { code: 'ops_admin', label: 'Operations', description: 'Bookings, assignment, vetting, and exceptions.' },
-  { code: 'finance_admin', label: 'Finance', description: 'Payments, commissions, refunds, and payouts.' },
-  { code: 'support_agent', label: 'Support', description: 'Disputes and customer communications.' },
-  { code: 'analyst', label: 'Analyst', description: 'Read-only dashboards and audit access.' },
-] as const;
+import {
+  PERMISSION_LABELS,
+  ROLE_OPTIONS,
+  permissionsFromRoles,
+  type PermissionKey,
+  type RoleCode,
+} from '@/lib/admin-policy';
 
-type RoleCode = (typeof ROLE_OPTIONS)[number]['code'];
 type StaffMember = {
   profile_id: string;
   profile?: { full_name?: string | null; email?: string | null } | null;
   roles: RoleCode[];
+  workload?: { open_tickets: number; actions_7d: number };
 };
 
 export default function StaffRolesPage() {
@@ -157,6 +157,7 @@ export default function StaffRolesPage() {
             <tr className="border-b border-hairline bg-hairline/25 text-xs uppercase text-muted">
               <th className="px-5 py-3 font-semibold">Admin</th>
               <th className="px-5 py-3 font-semibold">Roles</th>
+              <th className="px-5 py-3 font-semibold">Workload</th>
               <th className="px-5 py-3 text-right font-semibold">Action</th>
             </tr>
           </thead>
@@ -176,6 +177,14 @@ export default function StaffRolesPage() {
                     ))}
                   </div>
                 </td>
+                <td className="px-5 py-4">
+                  <div className="text-xs text-ink">
+                    <span className={member.workload?.open_tickets ? 'font-semibold' : 'text-muted'}>
+                      {member.workload?.open_tickets ?? 0} open ticket{(member.workload?.open_tickets ?? 0) === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-muted">{member.workload?.actions_7d ?? 0} actions · 7d</div>
+                </td>
                 <td className="px-5 py-4 text-right">
                   <Button variant="outline" size="sm" onClick={() => setEditingStaff(member)}>
                     <Settings2 className="h-3.5 w-3.5" /> Manage
@@ -186,6 +195,41 @@ export default function StaffRolesPage() {
           </tbody>
         </table>
       </div>
+
+      <section className="overflow-x-auto rounded-xl border border-hairline bg-white shadow-sm">
+        <div className="border-b border-hairline px-5 py-4">
+          <h2 className="font-display text-lg font-bold text-ink">Access policy</h2>
+          <p className="mt-0.5 text-xs text-muted">
+            What each role can manage. Policies are fixed platform-side; grant access by assigning roles above.
+          </p>
+        </div>
+        <table className="w-full min-w-[720px] border-collapse text-left">
+          <thead>
+            <tr className="border-b border-hairline bg-hairline/25 text-xs uppercase text-muted">
+              <th className="px-5 py-3 font-semibold">Area</th>
+              {ROLE_OPTIONS.map((role) => (
+                <th key={role.code} className="px-3 py-3 text-center font-semibold">{role.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-hairline">
+            {(Object.keys(PERMISSION_LABELS) as PermissionKey[]).map((perm) => (
+              <tr key={perm} className="text-sm">
+                <td className="px-5 py-3 font-medium text-ink">{PERMISSION_LABELS[perm]}</td>
+                {ROLE_OPTIONS.map((role) => (
+                  <td key={role.code} className="px-3 py-3 text-center">
+                    {permissionsFromRoles([role.code])[perm] ? (
+                      <span className="font-semibold text-success" aria-label={`${role.label} can access ${PERMISSION_LABELS[perm]}`}>✓</span>
+                    ) : (
+                      <span className="text-muted/50" aria-label={`${role.label} cannot access ${PERMISSION_LABELS[perm]}`}>—</span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
 
       {showInviteModal && (
         <Modal title="Invite admin" subtitle="Create an account and assign its initial roles." onClose={() => setShowInviteModal(false)}>

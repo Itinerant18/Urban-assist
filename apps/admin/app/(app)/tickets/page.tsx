@@ -15,7 +15,7 @@ export default async function SupportTicketsPage() {
   const db = getSupabaseServer();
   const { data: tickets } = await db
     .from('support_tickets')
-    .select('id, category, description, status, created_at')
+    .select('id, category, description, status, created_at, assignee:profiles!support_tickets_assigned_to_fkey(full_name)')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -48,6 +48,8 @@ export default async function SupportTicketsPage() {
                 </p>
                 <p className="text-xs text-muted font-mono mt-0.5">
                   {new Date(t.created_at).toLocaleDateString('en-GB')}
+                  {' · '}
+                  {(t as any).assignee?.full_name ?? 'Unassigned'}
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">

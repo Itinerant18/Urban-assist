@@ -1,5 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+export type BookingFilterPreset =
+  | 'needs_match'
+  | 'preference_pending'
+  | 'today'
+  | 'disputed';
+
 export interface AdminBookingFilters {
   status?: string;
   from?: string;
@@ -11,16 +17,79 @@ export interface AdminBookingFilters {
   unassigned: boolean;
   /** Bookings where the customer set preferred_provider_id. */
   withPreference: boolean;
+  /** Active one-click ops preset (for chip highlight). */
+  preset: BookingFilterPreset | null;
 }
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+/** YYYY-MM-DD in Europe/London (UK ops day). */
+export function todayLondonIso(now = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(now);
+}
+
+export const BOOKING_FILTER_PRESETS: {
+  id: BookingFilterPreset;
+  label: string;
+}[] = [
+  { id: 'needs_match', label: 'Needs match' },
+  { id: 'preference_pending', label: 'Preference pending' },
+  { id: 'today', label: 'Today' },
+  { id: 'disputed', label: 'Disputed' },
+];
+
+export function bookingPresetHref(preset: BookingFilterPreset): string {
+  return `/bookings?preset=${preset}`;
+}
+
+/**
+ * Expand a named ops preset into concrete filters.
+ * Explicit query params still win when both are present (preset applied first).
+ */
+export function applyBookingPreset(
+  preset: string | undefined,
+  base: Omit<AdminBookingFilters, 'preset'>,
+  today = todayLondonIso(),
+): AdminBookingFilters {
+  const id =
+    preset === 'needs_match' ||
+    preset === 'preference_pending' ||
+    preset === 'today' ||
+    preset === 'disputed'
+      ? preset
+      : null;
+
+  if (!id) return { ...base, preset: null };
+
+  switch (id) {
+    case 'needs_match':
+      return { ...base, unassigned: true, withPreference: false, status: undefined, preset: id };
+    case 'preference_pending':
+      return { ...base, unassigned: true, withPreference: true, status: undefined, preset: id };
+    case 'today':
+      return { ...base, from: today, to: today, preset: id };
+    case 'disputed':
+      return {
+        ...base,
+        status: 'disputed',
+        unassigned: false,
+        withPreference: false,
+        preset: id,
+      };
+    default: {
+      const _exhaustive: never = id;
+      return _exhaustive;
+    }
+  }
+}
+
 export function readBookingFilters(
   input: Record<string, string | string[] | undefined>,
+  today = todayLondonIso(),
 ): AdminBookingFilters {
-  return {
+  const base: Omit<AdminBookingFilters, 'preset'> = {
     status: first(input.status) || undefined,
     from: first(input.from) || undefined,
     to: first(input.to) || undefined,
@@ -30,6 +99,21 @@ export function readBookingFilters(
     customer: first(input.customer) || undefined,
     unassigned: first(input.unassigned) === '1' || first(input.scope) === 'unassigned',
     withPreference: first(input.preferred) === '1',
+  };
+
+  // Preset expands defaults; explicit flags/dates in the URL override after.
+  const fromPreset = applyBookingPreset(first(input.preset), base, today);
+  return {
+    ...fromPreset,
+    status: first(input.status) || fromPreset.status,
+    from: first(input.from) || fromPreset.from,
+    to: first(input.to) || fromPreset.to,
+    unassigned:
+      first(input.unassigned) === '1' ||
+      first(input.scope) === 'unassigned' ||
+      fromPreset.unassigned,
+    withPreference: first(input.preferred) === '1' || fromPreset.withPreference,
+    preset: fromPreset.preset,
   };
 }
 

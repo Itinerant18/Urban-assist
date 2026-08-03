@@ -63,6 +63,9 @@ export interface ServiceItem {
   imageUrl?: string;
   isPopular?: boolean;
   tags?: string[];
+  /** Customer-facing bullets; empty when unset. */
+  inclusions?: string[];
+  exclusions?: string[];
 }
 
 export interface Subcategory {

@@ -1,6 +1,7 @@
 export { stripe, createBookingIntent, refundPaymentIntent, createTipIntent } from './client';
 export type { CreateBookingIntentParams } from './client';
 export {
+  assertConnectPayoutReady,
   createPayoutOnboardingLink,
   createDashboardLoginLink,
   releaseProviderEarnings,

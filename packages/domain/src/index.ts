@@ -1,5 +1,10 @@
-export { quote } from './pricing';
-export type { PriceQuote, Promo } from './pricing';
+export {
+  quote,
+  resolveServicePrice,
+  applyPricingModifiers,
+  hourInLondon,
+} from './pricing';
+export type { PriceQuote, Promo, PricingModifierRule } from './pricing';
 
 export { findCandidates, sendNextOffer, respondToOffer, expireOfferIfStale } from './matching';
 
@@ -12,6 +17,7 @@ export { exportUserData, deleteUserAccount } from './account';
 
 export {
   createBooking,
+  computeNetServicePrice,
   confirmCashPayment,
   retryMatching,
   cancelBooking,
@@ -62,5 +68,5 @@ export {
   listBookings, getBooking, updateBookingStatus,
   listProviders, getProvider,
   listPendingKyc, getProviderKyc,
-  listTickets, getTicket, updateTicketStatus,
+  listTickets, getTicket, updateTicketStatus, assignTicket,
 } from './admin';

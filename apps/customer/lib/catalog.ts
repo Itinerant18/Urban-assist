@@ -51,6 +51,8 @@ export const getCatalogTree = cache(async (): Promise<Category[]> => {
           maxPricePence: k.max_price_pence ?? c.max_price_pence ?? 0,
           durationMins: k.duration_mins ?? 60,
           isPopular: Boolean(k.is_popular),
+          inclusions: Array.isArray(k.inclusions) ? k.inclusions.filter(Boolean) : [],
+          exclusions: Array.isArray(k.exclusions) ? k.exclusions.filter(Boolean) : [],
         }));
 
         return {

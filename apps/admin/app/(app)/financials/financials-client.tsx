@@ -15,6 +15,7 @@ import {
   CircleDollarSign,
   Clock3,
   Landmark,
+  Link2,
   RefreshCw,
   ReceiptText,
   ShieldAlert,
@@ -27,11 +28,17 @@ interface FinancialsProps {
 }
 
 interface BatchReleaseResponse {
-  processed: Array<ProviderPayoutReleaseResult & { provider_id: string }>;
+  processed: Array<ProviderPayoutReleaseResult & { provider_id: string; error?: string }>;
 }
 
 function releaseSummary(result: ProviderPayoutReleaseResult) {
-  return `${result.released} released, ${result.processing} processing, ${result.alreadyPaid} already paid`;
+  const parts = [
+    `${result.released} released`,
+    `${result.processing} processing`,
+    `${result.alreadyPaid} already paid`,
+  ];
+  if (result.failed > 0) parts.push(`${result.failed} failed`);
+  return parts.join(', ');
 }
 
 function StatusBadge({ provider }: { provider: ProviderPayoutSummary }) {
@@ -50,12 +57,17 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
   const router = useRouter();
   const { metrics, providers } = dashboard;
   const [loadingId, setLoadingId] = React.useState<string | null>(null);
+  const [connectLoadingId, setConnectLoadingId] = React.useState<string | null>(null);
   const [batchLoading, setBatchLoading] = React.useState(false);
   const [message, setMessage] = React.useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const releasableProviders = providers.filter(
     (provider) => provider.releasable_pence > 0 && provider.stripe_account_id,
   );
+  const blockedProviders = providers.filter(
+    (provider) => provider.releasable_pence > 0 && !provider.stripe_account_id,
+  );
+  const blockedPence = blockedProviders.reduce((sum, p) => sum + p.releasable_pence, 0);
 
   async function handlePay(providerId: string) {
     setLoadingId(providerId);
@@ -69,7 +81,8 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
       const data = (await response.json()) as ProviderPayoutReleaseResult & { error?: string };
       if (!response.ok) throw new Error(data.error ?? 'Payout release failed');
 
-      setMessage({ text: `Release complete: ${releaseSummary(data)}.`, type: 'success' });
+      const type = data.failed > 0 ? 'error' : 'success';
+      setMessage({ text: `Release complete: ${releaseSummary(data)}.`, type });
       router.refresh();
     } catch (error) {
       setMessage({
@@ -98,12 +111,17 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
           released: summary.released + provider.released,
           processing: summary.processing + provider.processing,
           alreadyPaid: summary.alreadyPaid + provider.alreadyPaid,
+          failed: summary.failed + provider.failed,
         }),
-        { released: 0, processing: 0, alreadyPaid: 0 },
+        { released: 0, processing: 0, alreadyPaid: 0, failed: 0 },
       );
+      const connectErrors = (data.processed ?? []).filter((p) => p.error).length;
+      const type = total.failed > 0 || connectErrors > 0 ? 'error' : 'success';
       setMessage({
-        text: `Batch checked ${data.processed?.length ?? 0} providers: ${releaseSummary(total)}.`,
-        type: 'success',
+        text: `Batch checked ${data.processed?.length ?? 0} providers: ${releaseSummary(total)}${
+          connectErrors > 0 ? ` (${connectErrors} Connect blocked)` : ''
+        }.`,
+        type,
       });
       router.refresh();
     } catch (error) {
@@ -113,6 +131,33 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
       });
     } finally {
       setBatchLoading(false);
+    }
+  }
+
+  async function handleConnectLink(providerId: string) {
+    setConnectLoadingId(providerId);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/financials/connect-link', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ providerId }),
+      });
+      const data = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !data.url) throw new Error(data.error ?? 'Could not create Connect link');
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+      setMessage({
+        text: 'Stripe Connect onboarding opened in a new tab. Send this to the provider if needed.',
+        type: 'success',
+      });
+      router.refresh();
+    } catch (error) {
+      setMessage({
+        text: error instanceof Error ? error.message : 'Connect link failed',
+        type: 'error',
+      });
+    } finally {
+      setConnectLoadingId(null);
     }
   }
 
@@ -190,6 +235,22 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
         </div>
       )}
 
+      {blockedProviders.length > 0 && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber/40 bg-amber/10 p-4 text-sm text-ink">
+          <Link2 className="mt-0.5 h-5 w-5 shrink-0 text-amber" aria-hidden="true" />
+          <div>
+            <p className="font-semibold">
+              {blockedProviders.length} provider{blockedProviders.length === 1 ? '' : 's'} blocked
+              without Connect ({formatPence(blockedPence)} held)
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Open a Stripe onboarding link from the row action so they can finish Express setup before
+              release.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metricCards.map(({ label, value, detail, icon: Icon, iconClass }) => (
           <div key={label} className="card flex min-w-0 items-start gap-4 p-5 shadow-card">
@@ -232,7 +293,7 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
           >
             {batchLoading
               ? 'Processing releases...'
-              : `Release all ready (${formatPence(metrics.releasable_pence)})`}
+              : `Release all ready (${formatPence(metrics.releasable_pence - blockedPence)})`}
           </Button>
         </div>
 
@@ -290,18 +351,34 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
                         )}
                       </td>
                       <td className="px-5 py-3 text-right">
-                        <Button
-                          onClick={() => handlePay(provider.provider_id)}
-                          disabled={
-                            loadingId !== null ||
-                            batchLoading ||
-                            !provider.stripe_account_id ||
-                            provider.releasable_pence === 0
-                          }
-                          size="sm"
-                        >
-                          {loadingId === provider.provider_id ? 'Releasing...' : 'Release'}
-                        </Button>
+                        <div className="flex flex-col items-end gap-1.5">
+                          {!provider.stripe_account_id ? (
+                            <Button
+                              onClick={() => handleConnectLink(provider.provider_id)}
+                              disabled={connectLoadingId !== null || batchLoading}
+                              size="sm"
+                              variant="outline"
+                            >
+                              {connectLoadingId === provider.provider_id ? 'Opening...' : 'Open Connect'}
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => handlePay(provider.provider_id)}
+                              disabled={
+                                loadingId !== null ||
+                                batchLoading ||
+                                provider.releasable_pence === 0
+                              }
+                              size="sm"
+                            >
+                              {loadingId === provider.provider_id
+                                ? 'Releasing...'
+                                : provider.failed_pence > 0
+                                  ? 'Retry release'
+                                  : 'Release'}
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -344,18 +421,34 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
                   {provider.last_failure_reason && (
                     <p className="text-xs text-danger">Last failure: {provider.last_failure_reason}</p>
                   )}
-                  <Button
-                    onClick={() => handlePay(provider.provider_id)}
-                    disabled={
-                      loadingId !== null ||
-                      batchLoading ||
-                      !provider.stripe_account_id ||
-                      provider.releasable_pence === 0
-                    }
-                    size="block"
-                  >
-                    {loadingId === provider.provider_id ? 'Releasing...' : 'Release provider funds'}
-                  </Button>
+                  {!provider.stripe_account_id ? (
+                    <Button
+                      onClick={() => handleConnectLink(provider.provider_id)}
+                      disabled={connectLoadingId !== null || batchLoading}
+                      size="block"
+                      variant="outline"
+                    >
+                      {connectLoadingId === provider.provider_id
+                        ? 'Opening Connect...'
+                        : 'Open Stripe Connect onboarding'}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => handlePay(provider.provider_id)}
+                      disabled={
+                        loadingId !== null ||
+                        batchLoading ||
+                        provider.releasable_pence === 0
+                      }
+                      size="block"
+                    >
+                      {loadingId === provider.provider_id
+                        ? 'Releasing...'
+                        : provider.failed_pence > 0
+                          ? 'Retry provider funds'
+                          : 'Release provider funds'}
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

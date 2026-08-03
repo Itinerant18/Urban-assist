@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
+import { permissionsFromRoles } from '@/lib/admin-policy';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,24 +69,6 @@ function rolesFromInput(roles: unknown, permissions: any): string[] {
   return mapped.length ? mapped : ['analyst'];
 }
 
-function permissionsFromRoles(roles: string[]) {
-  const superAdmin = roles.includes('super_admin');
-  const ops = superAdmin || roles.includes('ops_admin');
-  const finance = superAdmin || roles.includes('finance_admin');
-  const support = superAdmin || roles.includes('support_agent');
-  return {
-    can_manage_bookings: ops,
-    can_manage_providers: ops,
-    can_manage_users: support,
-    can_manage_kyc: ops,
-    can_manage_tickets: support,
-    can_manage_payments: finance,
-    can_manage_promo_codes: finance,
-    can_view_audit_log: true,
-    can_manage_admins: superAdmin,
-  };
-}
-
 export async function GET() {
   try {
     const { isSuper } = await checkSuperAdmin();
@@ -111,10 +94,35 @@ export async function GET() {
       existing.roles.push(membership.admin_roles.code);
       staff.set(membership.user_id, existing);
     }
+
+    // Workload: live assigned tickets + how active they've been this week.
+    const ids = Array.from(staff.keys());
+    const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+    const [assigned, actions] = await Promise.all([
+      db
+        .from('support_tickets')
+        .select('assigned_to')
+        .in('assigned_to', ids)
+        .in('status', ['open', 'in_review']),
+      db.from('audit_log').select('actor_id').in('actor_id', ids).gte('created_at', since),
+    ]);
+    const openTickets = new Map<string, number>();
+    for (const row of assigned.data ?? []) {
+      if (row.assigned_to) openTickets.set(row.assigned_to, (openTickets.get(row.assigned_to) ?? 0) + 1);
+    }
+    const recentActions = new Map<string, number>();
+    for (const row of actions.data ?? []) {
+      if (row.actor_id) recentActions.set(row.actor_id, (recentActions.get(row.actor_id) ?? 0) + 1);
+    }
+
     return NextResponse.json(
       Array.from(staff.values()).map((entry) => ({
         ...entry,
         ...permissionsFromRoles(entry.roles),
+        workload: {
+          open_tickets: openTickets.get(entry.profile_id) ?? 0,
+          actions_7d: recentActions.get(entry.profile_id) ?? 0,
+        },
       })),
     );
   } catch (e: any) {

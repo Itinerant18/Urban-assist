@@ -1,5 +1,6 @@
 export {
   createBooking,
+  computeNetServicePrice,
   confirmCashPayment,
   retryMatching,
   cancelBooking,

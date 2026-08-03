@@ -80,3 +80,4 @@ check*.js
 .env*
 !.env.example
 !.env.local.example
+supabase/.branches/

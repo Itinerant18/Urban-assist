@@ -166,3 +166,27 @@ export async function updateTicketStatus(
   const { error } = await admin.from('support_tickets').update(patch).eq('id', ticketId);
   if (error) throw error;
 }
+
+export async function assignTicket(
+  db: SupabaseClient,
+  admin: SupabaseClient,
+  ticketId: string,
+  assignedTo: string | null,
+) {
+  await requirePermission(db, 'can_manage_tickets');
+  const { data: { user } } = await db.auth.getUser();
+  const { error } = await admin
+    .from('support_tickets')
+    .update({ assigned_to: assignedTo })
+    .eq('id', ticketId);
+  if (error) throw error;
+  // No row-change trigger on support_tickets; log explicitly so the ticket
+  // timeline (which reads audit_log by entity_id) shows the handover.
+  await admin.from('audit_log').insert({
+    actor_id: user?.id ?? null,
+    action: assignedTo ? 'ticket.assigned' : 'ticket.unassigned',
+    entity_type: 'support_ticket',
+    entity_id: ticketId,
+    new_data: { assigned_to: assignedTo },
+  });
+}

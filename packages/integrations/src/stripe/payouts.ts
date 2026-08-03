@@ -78,6 +78,17 @@ export async function createPayoutOnboardingLink(
   };
 }
 
+/** Throws if the Express account cannot receive transfers yet. */
+export async function assertConnectPayoutReady(stripeAccountId: string): Promise<void> {
+  const account = await stripe().accounts.retrieve(stripeAccountId);
+  if (!account.details_submitted) {
+    throw new Error('Connect onboarding incomplete — provider must finish Stripe setup');
+  }
+  if (!account.payouts_enabled) {
+    throw new Error('Connect payouts not enabled on this account yet');
+  }
+}
+
 interface BookingPayoutClaim {
   payout_id: string;
   provider_id: string;
@@ -90,6 +101,18 @@ export async function releaseProviderEarnings(
   db: SupabaseClient,
   providerId: string,
 ): Promise<ProviderPayoutReleaseResult> {
+  const { data: profile, error: profileError } = await db
+    .from('profiles')
+    .select('stripe_account_id')
+    .eq('id', providerId)
+    .single();
+  if (profileError) throw profileError;
+  if (!profile?.stripe_account_id) {
+    return { released: 0, processing: 0, alreadyPaid: 0, failed: 0 };
+  }
+
+  await assertConnectPayoutReady(profile.stripe_account_id);
+
   const { data: bookings, error } = await db
     .from('bookings')
     .select('id')
@@ -101,6 +124,7 @@ export async function releaseProviderEarnings(
   let released = 0;
   let processing = 0;
   let alreadyPaid = 0;
+  let failed = 0;
 
   for (const booking of bookings ?? []) {
     const { data, error: claimError } = await db.rpc('claim_booking_payout', {
@@ -164,9 +188,9 @@ export async function releaseProviderEarnings(
         })
         .eq('id', claim.payout_id)
         .eq('status', 'pending');
-      throw releaseError;
+      failed += 1;
     }
   }
 
-  return { released, processing, alreadyPaid };
+  return { released, processing, alreadyPaid, failed };
 }

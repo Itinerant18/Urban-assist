@@ -1,4 +1,4 @@
-import { getSupabaseServer } from '@urban-assist/db/server';
+import { createServiceRole, getSupabaseServer } from '@urban-assist/db/server';
 import {
   Briefcase,
   Users,
@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ChevronRight,
   Activity,
+  GraduationCap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { redis } from '@urban-assist/integrations/redis';
@@ -16,12 +17,14 @@ import {
   BentoTile,
   StatTile,
   StatusChip,
+  statusToneFrom,
   TableTile,
   PageHeader,
   SectionHeader,
   BentoEmpty,
 } from '@/components/bento';
-import { buildLiquidityData } from '@/lib/dashboard-metrics';
+import { buildBookingStatusBreakdown, buildLiquidityData, buildNamedCountBreakdown } from '@/lib/dashboard-metrics';
+import { countTrainingIncompleteProviders, listTrainingQualityAlertsForDashboard } from '@/lib/admin-training';
 
 function SparkBars({
   values,
@@ -46,9 +49,12 @@ function SparkBars({
 
 export default async function AdminDashboardPage() {
   const db = getSupabaseServer();
+  const adminDb = createServiceRole() as any;
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setHours(23, 59, 59, 999);
 
   // Fetch cached stats from Redis (for sub-50ms operations dashboard loading)
   let cachedStats: any = null;
@@ -72,6 +78,9 @@ export default async function AdminDashboardPage() {
     bookingsCreatedTodayRes,
     exceptionsRes,
     recentStatusRes,
+    todayStatusRes,
+    trainingIncompleteCount,
+    trainingAlerts,
   ] = await Promise.all([
     db.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending_match'),
     db.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'provider').eq('is_online', true),
@@ -106,6 +115,21 @@ export default async function AdminDashboardPage() {
       .select('id, short_code, status, updated_at')
       .order('updated_at', { ascending: false })
       .limit(8),
+    adminDb
+      .from('bookings')
+      .select(
+        `
+        status,
+        category_id,
+        category:service_categories!bookings_category_id_fkey(id, name),
+        address:addresses!bookings_address_id_fkey(city, postcode)
+      `,
+      )
+      .gte('scheduled_at', todayStart.toISOString())
+      .lte('scheduled_at', todayEnd.toISOString())
+      .limit(500),
+    countTrainingIncompleteProviders(adminDb),
+    listTrainingQualityAlertsForDashboard(adminDb),
   ]);
 
   const urgentTickets: any[] = urgentRes.data ?? [];
@@ -121,6 +145,40 @@ export default async function AdminDashboardPage() {
   const kycPending = kycRes.count ?? 0;
   const pendingBookings = bookingsRes.count ?? 0;
   const providersOnline = providersRes.count ?? 0;
+
+  type TodayBookingRow = {
+    status: string;
+    category_id: string | null;
+    category: { id: string; name: string } | { id: string; name: string }[] | null;
+    address:
+      | { city: string | null; postcode: string | null }
+      | { city: string | null; postcode: string | null }[]
+      | null;
+  };
+  const todayBookings = (todayStatusRes.data ?? []) as TodayBookingRow[];
+  const statusBreakdown = buildBookingStatusBreakdown(todayBookings);
+  const categoryLabels = todayBookings.map((b) => {
+    const category = Array.isArray(b.category) ? b.category[0] : b.category;
+    return category?.name ?? null;
+  });
+  const categoryIds = todayBookings.map((b) => {
+    const category = Array.isArray(b.category) ? b.category[0] : b.category;
+    return category?.id ?? b.category_id;
+  });
+  const cityLabels = todayBookings.map((b) => {
+    const address = Array.isArray(b.address) ? b.address[0] : b.address;
+    return address?.city ?? null;
+  });
+  const categoryBreakdown = buildNamedCountBreakdown(categoryLabels, {
+    limit: 6,
+    emptyLabel: 'Uncategorised',
+    ids: categoryIds,
+  });
+  const cityBreakdown = buildNamedCountBreakdown(cityLabels, {
+    limit: 6,
+    emptyLabel: 'Unknown city',
+  });
+  const dayIso = todayStart.toISOString().slice(0, 10);
 
   const liquidityData = trustedCache
     ? cachedStats.liquidityData
@@ -206,6 +264,118 @@ export default async function AdminDashboardPage() {
           deltaTone={pendingBookings > 0 ? 'danger' : 'muted'}
           className="col-span-1 md:col-span-3 lg:col-span-3"
         />
+        <Link
+          href="/training?threshold=incomplete"
+          className="col-span-2 md:col-span-3 lg:col-span-3 block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <StatTile
+            label="Training incomplete"
+            value={trainingIncompleteCount}
+            icon={GraduationCap}
+            sub="Gated categories · open compliance"
+            deltaTone={trainingIncompleteCount > 0 ? 'danger' : 'muted'}
+            className="h-full"
+          />
+        </Link>
+      </BentoGrid>
+
+      <BentoTile static className="mb-6 !justify-start">
+        <SectionHeader
+          title="Today by status"
+          trailing={
+            <Link href="/scheduling" className="text-accent hover:underline">
+              Day grid
+            </Link>
+          }
+        />
+        <div className="mt-3 flex flex-wrap gap-2">
+          {statusBreakdown.map((item) => (
+            <Link
+              key={item.status}
+              href={`/bookings?status=${encodeURIComponent(item.status)}&from=${dayIso}&to=${dayIso}`}
+              className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-hairline bg-bg/50 px-3 py-2 text-xs transition-colors hover:bg-bg"
+            >
+              <StatusChip tone={statusToneFrom(item.status)}>{item.label}</StatusChip>
+              <span className="font-mono font-semibold text-ink">{item.count}</span>
+            </Link>
+          ))}
+        </div>
+      </BentoTile>
+
+      <BentoGrid className="mb-6">
+        <BentoTile static className="col-span-2 md:col-span-3 lg:col-span-6 !justify-start">
+          <SectionHeader
+            title="Today by category"
+            trailing={
+              <span className="font-mono text-[11px] text-muted">{todayBookings.length} jobs</span>
+            }
+          />
+          {categoryBreakdown.length === 0 ? (
+            <BentoEmpty message="No scheduled bookings today." className="py-6" />
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {categoryBreakdown.map((row) => (
+                <li key={row.label}>
+                  <Link
+                    href={
+                      row.id
+                        ? `/bookings?category=${encodeURIComponent(row.id)}&from=${dayIso}&to=${dayIso}`
+                        : `/bookings?from=${dayIso}&to=${dayIso}`
+                    }
+                    className="block rounded-lg transition-colors hover:bg-bg/60"
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                      <span className="truncate font-medium text-ink">{row.label}</span>
+                      <span className="font-mono font-semibold text-ink">{row.count}</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-hairline" aria-hidden>
+                      <div
+                        className="h-full rounded-full bg-accent"
+                        style={{ width: `${Math.max(6, Math.round(row.share * 100))}%` }}
+                      />
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </BentoTile>
+
+        <BentoTile static className="col-span-2 md:col-span-3 lg:col-span-6 !justify-start">
+          <SectionHeader
+            title="Today by city"
+            trailing={
+              <Link href="/customers" className="text-accent hover:underline">
+                Customers
+              </Link>
+            }
+          />
+          {cityBreakdown.length === 0 ? (
+            <BentoEmpty message="No scheduled bookings today." className="py-6" />
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {cityBreakdown.map((row) => (
+                <li key={row.label}>
+                  <Link
+                    href={`/customers?city=${encodeURIComponent(row.label === 'Unknown city' ? '' : row.label)}`}
+                    className="block rounded-lg transition-colors hover:bg-bg/60"
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                      <span className="truncate font-medium text-ink">{row.label}</span>
+                      <span className="font-mono font-semibold text-ink">{row.count}</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-hairline" aria-hidden>
+                      <div
+                        className="h-full rounded-full bg-ink/70"
+                        style={{ width: `${Math.max(6, Math.round(row.share * 100))}%` }}
+                      />
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </BentoTile>
       </BentoGrid>
 
       <BentoGrid>
@@ -219,10 +389,28 @@ export default async function AdminDashboardPage() {
               </Link>
             }
           />
-          {exceptions.length === 0 && urgentTickets.length === 0 ? (
+          {exceptions.length === 0 && urgentTickets.length === 0 && trainingAlerts.length === 0 ? (
             <BentoEmpty icon={Activity} message="No exceptions right now." />
           ) : (
             <ul className="divide-y divide-hairline -mx-5">
+              {trainingAlerts.map((alert) => (
+                <li key={alert.id}>
+                  <Link
+                    href={alert.href}
+                    className="flex items-center gap-3 px-5 py-3 min-h-[44px] hover:bg-bg/60 transition-colors"
+                  >
+                    <GraduationCap className="h-4 w-4 text-accent shrink-0" aria-hidden />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-ink truncate">{alert.title}</p>
+                      <p className="text-[11px] text-muted truncate">{alert.detail}</p>
+                    </div>
+                    <StatusChip tone={alert.severity === 'danger' ? 'danger' : 'pending'}>
+                      {alert.count}
+                    </StatusChip>
+                    <ChevronRight className="h-4 w-4 text-muted shrink-0" aria-hidden />
+                  </Link>
+                </li>
+              ))}
               {urgentTickets.map((t) => (
                 <li key={`t-${t.id}`}>
                   <Link

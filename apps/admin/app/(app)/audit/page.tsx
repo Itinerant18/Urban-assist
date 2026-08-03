@@ -66,6 +66,14 @@ export default async function AuditLogPage({
             Filter
           </Button>
         </form>
+        <div className="mt-3 flex justify-end">
+          <a
+            href={'/api/audit/export?' + nextParams.toString()}
+            className="tap inline-flex items-center rounded-xl border border-hairline bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-bg transition-colors"
+          >
+            Export CSV
+          </a>
+        </div>
       </BentoTile>
 
       {!rows || rows.length === 0 ? (

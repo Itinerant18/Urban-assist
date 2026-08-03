@@ -23,11 +23,18 @@ export interface CreateBookingIntentParams {
 }
 
 /** Refund of a payment intent (full or partial). */
-export async function refundPaymentIntent(paymentIntentId: string, amountPence?: number) {
-  return stripe().refunds.create({
-    payment_intent: paymentIntentId,
-    ...(amountPence !== undefined ? { amount: amountPence } : {}),
-  });
+export async function refundPaymentIntent(
+  paymentIntentId: string,
+  amountPence?: number,
+  idempotencyKey?: string,
+) {
+  return stripe().refunds.create(
+    {
+      payment_intent: paymentIntentId,
+      ...(amountPence !== undefined ? { amount: amountPence } : {}),
+    },
+    idempotencyKey ? { idempotencyKey } : undefined,
+  );
 }
 
 export async function createBookingIntent(params: CreateBookingIntentParams) {

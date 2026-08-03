@@ -142,6 +142,35 @@ export function BookFlow({
     }
   };
 
+  // Server-computed net price (region/time pricing modifiers). Falls back to the
+  // base price until the fetch lands — the server recomputes at booking create,
+  // so this is display truth, not charge truth.
+  const [netPence, setNetPence] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    if (!selectedAddressId || !selectedDate) return;
+    const scheduledIso = new Date(selectedDate).toISOString();
+    let active = true;
+    fetch('/api/quote', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        provider_service_id: service.id,
+        address_id: selectedAddressId,
+        scheduled_at: scheduledIso,
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (active) setNetPence(typeof data?.net_pence === 'number' ? data.net_pence : null);
+      })
+      .catch(() => {
+        if (active) setNetPence(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [service.id, selectedAddressId, selectedDate]);
+
   const q = React.useMemo(() => {
     const promoObj = promoDiscount
       ? {
@@ -150,8 +179,8 @@ export function BookFlow({
           discount_value: promoDiscount.value,
         }
       : null;
-    return quote(service.price_pence, promoObj);
-  }, [service.price_pence, promoDiscount]);
+    return quote(netPence ?? service.price_pence, promoObj);
+  }, [netPence, service.price_pence, promoDiscount]);
 
   React.useEffect(() => {
     if (!paymentSecret) return;

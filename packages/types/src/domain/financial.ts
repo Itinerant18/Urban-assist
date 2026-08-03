@@ -37,4 +37,5 @@ export interface ProviderPayoutReleaseResult {
   released: number;
   processing: number;
   alreadyPaid: number;
+  failed: number;
 }

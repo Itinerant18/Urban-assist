@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createServiceRole, getSupabaseServer } from '@urban-assist/db/server';
 import { LogOut } from 'lucide-react';
 import { DesktopNav, MobileNav } from './nav-links';
@@ -81,6 +82,12 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
             <p className="truncate text-xs font-medium text-ink">{identityName}</p>
             <p className="truncate text-[11px] text-muted">{identityEmail}</p>
             <p className="truncate text-[10px] capitalize text-muted">{identityRole}</p>
+            <Link
+              href="/settings/account"
+              className="mt-2 inline-block text-[11px] font-medium text-accent hover:underline"
+            >
+              Account & password
+            </Link>
           </div>
           <form action="/api/auth/logout" method="POST">
             <button

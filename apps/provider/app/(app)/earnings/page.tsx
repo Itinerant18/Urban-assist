@@ -84,15 +84,16 @@ export default function EarningsPage() {
     loadData();
   }, []);
 
-  const cardEarnings = transactions
-    .filter((t) => t.type === 'booking' && t.method === 'card')
-    .reduce((s, t) => s + t.amount_pence, 0);
-
-  const totalPaidOut = transactions
-    .filter((t) => t.type === 'payout' && t.status === 'paid')
-    .reduce((s, t) => s + t.amount_pence, 0);
-
-  const balancePending = Math.max(0, cardEarnings - totalPaidOut);
+  // Commission-net balance from the server — gross-minus-net was overstating it.
+  const [balancePending, setBalancePending] = React.useState(0);
+  React.useEffect(() => {
+    fetch('/api/earnings/balance', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (typeof data?.balance_pence === 'number') setBalancePending(data.balance_pence);
+      })
+      .catch(() => {});
+  }, []);
 
   async function requestInstantPayout() {
     if (balancePending <= 0) return;

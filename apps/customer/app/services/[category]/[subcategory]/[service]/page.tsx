@@ -104,6 +104,31 @@ export default async function ServiceDetailPage({
               </div>
             </div>
 
+            {(service.inclusions?.length || service.exclusions?.length) ? (
+              <section className="mt-8 grid gap-6 sm:grid-cols-2">
+                {service.inclusions && service.inclusions.length > 0 ? (
+                  <div>
+                    <h2 className="text-[15px] font-extrabold text-ink">What&apos;s included</h2>
+                    <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] text-ink">
+                      {service.inclusions.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {service.exclusions && service.exclusions.length > 0 ? (
+                  <div>
+                    <h2 className="text-[15px] font-extrabold text-ink">What&apos;s not included</h2>
+                    <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] text-muted">
+                      {service.exclusions.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
             {/* Providers */}
             <section className="mt-10">
               <h2 className="text-[18px] font-extrabold text-ink">Available professionals</h2>

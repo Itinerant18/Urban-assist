@@ -1078,6 +1078,53 @@ export type Database = {
           },
         ]
       }
+      pricing_modifiers: {
+        Row: {
+          adjustment_percent: number
+          category_id: string | null
+          created_at: string
+          end_hour: number | null
+          id: string
+          is_active: boolean
+          label: string
+          postcode_prefix: string | null
+          start_hour: number | null
+          updated_at: string
+        }
+        Insert: {
+          adjustment_percent: number
+          category_id?: string | null
+          created_at?: string
+          end_hour?: number | null
+          id?: string
+          is_active?: boolean
+          label: string
+          postcode_prefix?: string | null
+          start_hour?: number | null
+          updated_at?: string
+        }
+        Update: {
+          adjustment_percent?: number
+          category_id?: string | null
+          created_at?: string
+          end_hour?: number | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          postcode_prefix?: string | null
+          start_hour?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_modifiers_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           acceptance_rate: number
@@ -1776,7 +1823,9 @@ export type Database = {
         Row: {
           description: string | null
           duration_mins: number | null
+          exclusions: string[]
           id: string
+          inclusions: string[]
           is_active: boolean
           is_popular: boolean
           max_price_pence: number
@@ -1789,7 +1838,9 @@ export type Database = {
         Insert: {
           description?: string | null
           duration_mins?: number | null
+          exclusions?: string[]
           id?: string
+          inclusions?: string[]
           is_active?: boolean
           is_popular?: boolean
           max_price_pence?: number
@@ -1802,7 +1853,9 @@ export type Database = {
         Update: {
           description?: string | null
           duration_mins?: number | null
+          exclusions?: string[]
           id?: string
+          inclusions?: string[]
           is_active?: boolean
           is_popular?: boolean
           max_price_pence?: number
@@ -1886,6 +1939,7 @@ export type Database = {
       }
       support_tickets: {
         Row: {
+          assigned_to: string | null
           booking_id: string | null
           category: string
           created_at: string
@@ -1897,6 +1951,7 @@ export type Database = {
           status: Database["public"]["Enums"]["ticket_status"]
         }
         Insert: {
+          assigned_to?: string | null
           booking_id?: string | null
           category: string
           created_at?: string
@@ -1908,6 +1963,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["ticket_status"]
         }
         Update: {
+          assigned_to?: string | null
           booking_id?: string | null
           category?: string
           created_at?: string
@@ -1919,6 +1975,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["ticket_status"]
         }
         Relationships: [
+          {
+            foreignKeyName: "support_tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "support_tickets_booking_id_fkey"
             columns: ["booking_id"]
@@ -2311,6 +2374,17 @@ export type Database = {
         Returns: Json
       }
       admin_has_permission: { Args: { permission: string }; Returns: boolean }
+      admin_set_customer_blocked: {
+        Args: {
+          p_actor_user_id: string
+          p_customer_id: string
+          p_ip_address?: unknown
+          p_is_blocked: boolean
+          p_reason: string
+          p_user_agent?: string
+        }
+        Returns: boolean
+      }
       admin_set_provider_blocked: {
         Args: {
           p_actor_user_id: string

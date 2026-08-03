@@ -42,7 +42,7 @@ urban-assist/
 ## Apps
 
 | App | Port | Who uses it | Purpose |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `apps/customer` | **3000** | Customers | Discover services, book, track, pay, review |
 | `apps/provider` | **3001** | Professionals | Onboarding, job offers, schedule, earnings |
 | `apps/admin` | **3002** | Operations team | KYC review, booking oversight, support tickets |
@@ -108,7 +108,7 @@ To log in or test the **Customer** and **Provider** apps without generating real
 ## Available Scripts
 
 | Script | What it does |
-|---|---|
+| --- | --- |
 | `pnpm dev:customer` | Start customer app in dev mode (port 3000) |
 | `pnpm dev:provider` | Start provider app in dev mode (port 3001) |
 | `pnpm dev:admin` | Start admin panel in dev mode (port 3002) |
@@ -156,7 +156,7 @@ To log in or test the **Customer** and **Provider** apps without generating real
 ## Key Technical Decisions
 
 | Technology | Decision | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | **Frontend** | Next.js 14 (App Router) | SSR for SEO, shared components, built-in API routes as BFF |
 | **Primary DB** | Supabase (PostgreSQL) | Relational integrity, built-in Auth, Row Level Security |
 | **Real-time** | Supabase Realtime | Live booking status without Firebase dependency for MVP |

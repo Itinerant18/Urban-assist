@@ -17,6 +17,8 @@ import {
   ShieldCheck,
   UserRound,
   GraduationCap,
+  KeyRound,
+  Settings,
 } from 'lucide-react';
 import { PageHeader, TableTile } from '@/components/bento';
 
@@ -37,6 +39,8 @@ const links = [
   { href: '/tickets', label: 'Tickets', icon: TicketCheck },
   { href: '/search', label: 'Search', icon: Search },
   { href: '/audit', label: 'Audit Logs', icon: ScrollText },
+  { href: '/settings/account', label: 'Account & password', icon: KeyRound },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function MorePage() {

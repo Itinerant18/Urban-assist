@@ -1,25 +1,10 @@
 import { createServiceRole, getSupabaseServer } from '@urban-assist/db/server';
+import { ROLES_BY_PERMISSION, type PermissionKey } from './admin-policy';
 
 export async function requireAdminPermission(permission: string) {
-  const rolesByPermission: Record<string, string[]> = {
-    can_manage_admins: ['super_admin'],
-    can_manage_bookings: ['super_admin', 'ops_admin'],
-    can_manage_kyc: ['super_admin', 'ops_admin'],
-    can_manage_payments: ['super_admin', 'finance_admin'],
-    can_manage_promo_codes: ['super_admin', 'finance_admin'],
-    can_manage_providers: ['super_admin', 'ops_admin'],
-    can_manage_tickets: ['super_admin', 'support_agent'],
-    can_manage_users: ['super_admin', 'support_agent'],
-    can_view_audit_log: [
-      'super_admin',
-      'ops_admin',
-      'finance_admin',
-      'support_agent',
-      'analyst',
-    ],
-  };
-
-  return requireAdminRole(rolesByPermission[permission] ?? [permission]);
+  // Single policy source: lib/admin-policy.ts. A second hardcoded map here
+  // drifted from it silently — permission checks and the /staff matrix must agree.
+  return requireAdminRole(ROLES_BY_PERMISSION[permission as PermissionKey] ?? [permission]);
 }
 
 export async function requireAdminRole(allowedRoles?: readonly string[]) {

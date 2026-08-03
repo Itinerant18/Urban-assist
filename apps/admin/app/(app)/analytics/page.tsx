@@ -2,7 +2,11 @@ import { BarChart3, PoundSterling, TrendingUp, Users, Star, HeartHandshake } fro
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
 import { getPreferenceMetrics } from '../../../lib/admin-bookings';
-import { BentoGrid, StatTile, PageHeader, SectionHeader } from '@/components/bento';
+import {
+  buildDailyBookingTrend,
+  trendTotals,
+} from '../../../lib/admin-analytics-trends';
+import { BentoGrid, BentoTile, StatTile, PageHeader, SectionHeader, BentoEmpty } from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,13 +33,56 @@ type Analytics = {
   avg_provider_rating: number | null;
 };
 
+function TrendBars({
+  values,
+  tone = 'accent',
+}: {
+  values: number[];
+  tone?: 'accent' | 'ink';
+}) {
+  const max = Math.max(...values, 1);
+  const fill = tone === 'accent' ? 'bg-accent' : 'bg-ink/70';
+  return (
+    <div className="flex h-24 items-end gap-1" role="img" aria-label="Trend bars">
+      {values.map((v, i) => (
+        <div
+          key={i}
+          className={`min-w-0 flex-1 rounded-sm ${fill}`}
+          style={{ height: `${Math.max(4, Math.round((v / max) * 100))}%` }}
+          title={String(v)}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default async function AnalyticsPage() {
   const { db } = await requireAdminPermission('can_view_audit_log');
-  const [{ data }, preference] = await Promise.all([
-    (db as any).rpc('get_admin_analytics'),
-    getPreferenceMetrics(db as any).catch(() => null),
+  const adminDb = db as any;
+  const trendDays = 14;
+  const since = new Date();
+  since.setUTCDate(since.getUTCDate() - (trendDays - 1));
+  since.setUTCHours(0, 0, 0, 0);
+
+  const trendCap = 10000;
+  const [{ data }, preference, { data: trendRows, count: trendCount }] = await Promise.all([
+    adminDb.rpc('get_admin_analytics'),
+    getPreferenceMetrics(adminDb).catch(() => null),
+    adminDb
+      .from('bookings')
+      .select('created_at, status, total_pence', { count: 'exact' })
+      .gte('created_at', since.toISOString())
+      .order('created_at', { ascending: true })
+      .limit(trendCap),
   ]);
   const a = (data ?? {}) as Partial<Analytics>;
+  // A silent cap reads as "that's all the bookings" — say so when it isn't.
+  const trendTruncated = (trendCount ?? 0) > trendCap;
+  const daily = buildDailyBookingTrend(
+    (trendRows ?? []) as Array<{ created_at: string; status: string; total_pence: number | null }>,
+    trendDays,
+  );
+  const totals = trendTotals(daily);
 
   const completionRate = a.total_bookings
     ? Math.round(((a.completed ?? 0) / a.total_bookings) * 100)
@@ -45,9 +92,59 @@ export default async function AnalyticsPage() {
     <div>
       <PageHeader
         title="Analytics"
-        subtitle="Marketplace KPIs across all bookings."
+        subtitle="Marketplace KPIs and recent trends."
         action={<BarChart3 className="h-5 w-5 text-muted" aria-hidden />}
       />
+
+      <SectionHeader title={`Last ${trendDays} days`} className="mb-3" />
+      <BentoGrid className="mb-6">
+        <BentoTile static className="col-span-2 md:col-span-3 lg:col-span-6 !justify-start">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs text-muted">Bookings created / day</p>
+              <p className="mt-1 font-mono text-lg font-bold text-ink">{totals.bookings}</p>
+              <p className="text-[11px] text-muted">
+                {totals.completed} completed · {totals.cancelled} cancelled or unmatched
+                {trendTruncated ? ` · showing first ${trendCap.toLocaleString('en-GB')} of ${trendCount?.toLocaleString('en-GB')}` : ''}
+              </p>
+            </div>
+            <TrendingUp className="h-4 w-4 text-muted" aria-hidden />
+          </div>
+          {totals.bookings === 0 ? (
+            <BentoEmpty message="No bookings in this window." className="py-4" />
+          ) : (
+            <>
+              <TrendBars values={daily.map((d) => d.bookings)} />
+              <div className="mt-2 flex justify-between font-mono text-[10px] text-muted">
+                <span>{daily[0]?.label}</span>
+                <span>{daily[daily.length - 1]?.label}</span>
+              </div>
+            </>
+          )}
+        </BentoTile>
+
+        <BentoTile static className="col-span-2 md:col-span-3 lg:col-span-6 !justify-start">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs text-muted">Completed GMV / day</p>
+              <p className="mt-1 font-mono text-lg font-bold text-ink">{gbp(totals.gmvPence)}</p>
+              <p className="text-[11px] text-muted">By booking date — Revenue tiles below use completion date</p>
+            </div>
+            <PoundSterling className="h-4 w-4 text-muted" aria-hidden />
+          </div>
+          {totals.gmvPence === 0 ? (
+            <BentoEmpty message="No completed GMV in this window." className="py-4" />
+          ) : (
+            <>
+              <TrendBars values={daily.map((d) => d.gmvPence)} tone="ink" />
+              <div className="mt-2 flex justify-between font-mono text-[10px] text-muted">
+                <span>{daily[0]?.label}</span>
+                <span>{daily[daily.length - 1]?.label}</span>
+              </div>
+            </>
+          )}
+        </BentoTile>
+      </BentoGrid>
 
       <SectionHeader title="Revenue" className="mb-3" />
       <BentoGrid className="mb-6">

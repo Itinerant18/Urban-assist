@@ -4,7 +4,12 @@ import { AssignmentPanel } from './assignment-panel';
 
 import Link from 'next/link';
 import { Button, Input, Select } from '@urban-assist/ui';
-import { listAdminBookings, readBookingFilters } from '../../../lib/admin-bookings';
+import {
+  BOOKING_FILTER_PRESETS,
+  bookingPresetHref,
+  listAdminBookings,
+  readBookingFilters,
+} from '../../../lib/admin-bookings';
 import {
   PageHeader,
   BentoTile,
@@ -43,19 +48,19 @@ export default async function BookingsPage({
         action={
           <div className="flex flex-wrap gap-2">
             <Link
-              className="rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-ink hover:bg-bg transition-colors"
+              className="rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-ink transition-colors hover:bg-bg"
               href={filters.unassigned ? '/bookings' : '/bookings?unassigned=1'}
             >
               {filters.unassigned ? 'All bookings' : 'Unassigned queue'}
             </Link>
             <Link
-              className="rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-ink hover:bg-bg transition-colors"
+              className="rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-ink transition-colors hover:bg-bg"
               href={filters.withPreference ? '/bookings' : '/bookings?preferred=1'}
             >
               {filters.withPreference ? 'Clear preference filter' : 'With preference'}
             </Link>
             <Link
-              className="rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-ink hover:bg-bg transition-colors"
+              className="rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-ink transition-colors hover:bg-bg"
               href={'/api/bookings/export?' + exportParams.toString()}
             >
               Export CSV
@@ -64,8 +69,31 @@ export default async function BookingsPage({
         }
       />
 
+      <BentoTile static className="mb-4 !justify-start">
+        <p className="mb-2 text-[11px] uppercase tracking-wider text-muted">Ops presets</p>
+        <div className="flex flex-wrap gap-2">
+          {BOOKING_FILTER_PRESETS.map((preset) => {
+            const active = filters.preset === preset.id;
+            return (
+              <Link
+                key={preset.id}
+                href={active ? '/bookings' : bookingPresetHref(preset.id)}
+                className={`inline-flex min-h-[40px] items-center rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
+                  active
+                    ? 'border-ink bg-ink text-bg'
+                    : 'border-hairline bg-white text-ink hover:bg-bg'
+                }`}
+              >
+                {preset.label}
+              </Link>
+            );
+          })}
+        </div>
+      </BentoTile>
+
       <BentoTile static className="mb-6 !justify-start">
         <form className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" method="GET">
+          {filters.preset ? <input type="hidden" name="preset" value={filters.preset} /> : null}
           <label className="text-xs text-muted">
             Status
             <Select className="mt-1" name="status" defaultValue={filters.status ?? ''}>
@@ -144,7 +172,7 @@ export default async function BookingsPage({
               Apply filters
             </Button>
             <Link
-              className="rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-ink hover:bg-bg transition-colors"
+              className="rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-ink transition-colors hover:bg-bg"
               href="/bookings"
             >
               Reset

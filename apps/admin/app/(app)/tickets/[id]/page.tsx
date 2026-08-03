@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getSupabaseServer } from '@urban-assist/db/server';
+import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
 import { ChevronLeft } from 'lucide-react';
 import { TicketClient } from './ticket-client';
 
@@ -24,6 +24,11 @@ export default async function SupportTicketDetailPage({ params }: { params: { id
   // 2. Fetch booking details if attached
   let booking = null;
   let provider = null;
+  let payment: {
+    amount_pence: number;
+    status: string;
+    method: string;
+  } | null = null;
   if (ticket.booking_id) {
     const { data: b } = await db
       .from('bookings')
@@ -40,7 +45,30 @@ export default async function SupportTicketDetailPage({ params }: { params: { id
         .single();
       provider = p;
     }
+
+    const { data: pay } = await db
+      .from('payments')
+      .select('amount_pence, status, method')
+      .eq('booking_id', ticket.booking_id)
+      .in('status', ['succeeded', 'authorized', 'refunded'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    payment = pay;
   }
+
+  // Staff options for assignment — admin_user_roles is service-role readable only.
+  const { data: staffRows } = await createServiceRole()
+    .from('admin_user_roles')
+    .select('user_id, profile:profiles!admin_user_roles_user_id_fkey(full_name, email)');
+  const staffOptions = Array.from(
+    new Map(
+      (staffRows ?? []).map((row: any) => [
+        row.user_id,
+        { id: row.user_id as string, name: (row.profile?.full_name || row.profile?.email || 'Unnamed admin') as string },
+      ]),
+    ).values(),
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
   // 3. Fetch Left Sidebar: support tickets list queue
   const { data: queue } = await db
@@ -74,10 +102,14 @@ export default async function SupportTicketDetailPage({ params }: { params: { id
   }
 
   // Fetch from analytics_events
+  // payload->>ticket_id catches admin-authored events (internal notes carry the
+  // admin's profile_id, which the old profile-only filter silently excluded).
   const { data: analyticsEvents } = await db
     .from('analytics_events')
     .select('*, profile:profiles(full_name)')
-    .or(`profile_id.eq.${ticket.raised_by}${provider ? `,profile_id.eq.${provider.id}` : ''}`)
+    .or(
+      `payload->>ticket_id.eq.${params.id},profile_id.eq.${ticket.raised_by}${provider ? `,profile_id.eq.${provider.id}` : ''}`,
+    )
     .order('created_at', { ascending: true });
 
   if (analyticsEvents) {
@@ -150,7 +182,9 @@ export default async function SupportTicketDetailPage({ params }: { params: { id
             ticket={ticket}
             booking={booking}
             provider={provider}
+            payment={payment}
             timeline={timeline}
+            staffOptions={staffOptions}
           />
         </main>
       </div>

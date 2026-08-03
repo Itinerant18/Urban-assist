@@ -4,7 +4,13 @@ import { LayoutGrid, ChevronRight, Plus } from 'lucide-react';
 import { Button, Input } from '@urban-assist/ui';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
-import { PageHeader, TableTile, SectionHeader, BentoEmpty } from '@/components/bento';
+import {
+  PageHeader,
+  TableTile,
+  SectionHeader,
+  BentoEmpty,
+  StatusChip,
+} from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,15 +49,26 @@ async function createSubcategory(formData: FormData) {
 
 export default async function ServicesPage() {
   const { db } = await requireAdminPermission('can_manage_bookings');
-  const [{ data: categories }, { data: subs }, { data: skus }] = await Promise.all([
-    (db as any).from('service_categories').select('id, name').order('sort_order').order('name'),
-    (db as any)
-      .from('service_subcategories')
-      .select('id, category_id, name, slug')
-      .order('sort_order')
-      .order('name'),
-    (db as any).from('service_skus').select('id, subcategory_id'),
-  ]);
+  const [{ data: categories }, { data: subs }, { data: skus }, { data: gatingRows }] =
+    await Promise.all([
+      (db as any).from('service_categories').select('id, name').order('sort_order').order('name'),
+      (db as any)
+        .from('service_subcategories')
+        .select('id, category_id, name, slug')
+        .order('sort_order')
+        .order('name'),
+      (db as any).from('service_skus').select('id, subcategory_id'),
+      (db as any)
+        .from('training_items')
+        .select('category_id')
+        .eq('gates_category', true)
+        .eq('is_active', true)
+        .not('category_id', 'is', null),
+    ]);
+
+  const gatedCategories = new Set(
+    ((gatingRows ?? []) as { category_id: string }[]).map((row) => row.category_id),
+  );
 
   const subsByCategory = new Map<string, any[]>();
   for (const s of subs ?? []) {
@@ -73,9 +90,21 @@ export default async function ServicesPage() {
       <div className="flex flex-col gap-6">
         {(categories ?? []).map((cat: any) => {
           const catSubs = subsByCategory.get(cat.id) ?? [];
+          const isGated = gatedCategories.has(cat.id);
           return (
             <section key={cat.id}>
-              <SectionHeader title={cat.name} />
+              <SectionHeader
+                title={cat.name}
+                trailing={
+                  isGated ? (
+                    <Link href={`/training?category=${encodeURIComponent(cat.id)}`}>
+                      <StatusChip tone="pending">Training gated</StatusChip>
+                    </Link>
+                  ) : (
+                    <StatusChip tone="success">Open category</StatusChip>
+                  )
+                }
+              />
               <TableTile>
                 {catSubs.length === 0 && (
                   <BentoEmpty message="No subcategories yet." className="py-6" />
@@ -84,13 +113,13 @@ export default async function ServicesPage() {
                   <Link
                     key={sub.id}
                     href={`/services/${sub.id}`}
-                    className="flex items-center justify-between gap-3 px-5 py-3 min-h-[44px] hover:bg-bg/60 transition-colors"
+                    className="flex min-h-[44px] items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-bg/60"
                   >
                     <div className="min-w-0">
                       <p className="text-sm text-ink">{sub.name}</p>
-                      <p className="text-[11px] text-muted font-mono">{sub.slug}</p>
+                      <p className="font-mono text-[11px] text-muted">{sub.slug}</p>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex shrink-0 items-center gap-3">
                       <span className="text-xs text-muted">
                         {skuCount.get(sub.id) ?? 0} services
                       </span>

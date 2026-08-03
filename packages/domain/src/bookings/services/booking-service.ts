@@ -1,5 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { quote, resolveServicePrice } from '@urban-assist/domain/pricing';
+import {
+  applyPricingModifiers,
+  hourInLondon,
+  quote,
+  resolveServicePrice,
+  type PricingModifierRule,
+} from '@urban-assist/domain/pricing';
 import { sendNextOffer } from '@urban-assist/domain/matching';
 import { track } from '@urban-assist/domain/analytics';
 import { createBookingIntent, refundPaymentIntent } from '@urban-assist/integrations/stripe';
@@ -23,11 +29,19 @@ export interface CreateBookingResult {
   payment: { method: string; clientSecret: string | null };
 }
 
-export async function createBooking(
-  db: SupabaseClient,
+/**
+ * Base + modifier-adjusted price for a provider service at a given address/time.
+ * Single source for createBooking AND the customer-facing quote endpoint — the
+ * displayed number and the charged number must come from the same math.
+ */
+export async function computeNetServicePrice(
   admin: SupabaseClient,
-  input: CreateBookingInput,
-): Promise<CreateBookingResult> {
+  input: { providerServiceId: string; addressId: string; scheduledAt: string },
+): Promise<{
+  svc: { id: string; provider_id: string; category_id: string | null; sku_id: string | null; price_pence: number };
+  basePence: number;
+  netPence: number;
+}> {
   const { data: svc, error: svcErr } = await admin
     .from('provider_services')
     .select('id, provider_id, category_id, sku_id, price_pence')
@@ -49,7 +63,57 @@ export async function createBooking(
       .maybeSingle();
     sku = data;
   }
-  const netPence = resolveServicePrice(svc, sku);
+  const basePence = resolveServicePrice(svc, sku);
+
+  // Region / time modifiers (admin /pricing). Fail open so a modifier-table
+  // problem never blocks bookings — but never silently.
+  let netPence = basePence;
+  try {
+    const [{ data: address }, { data: modifiers }] = await Promise.all([
+      admin.from('addresses').select('postcode').eq('id', input.addressId).maybeSingle(),
+      admin
+        .from('pricing_modifiers')
+        .select(
+          'id, postcode_prefix, start_hour, end_hour, category_id, adjustment_percent, is_active',
+        )
+        .eq('is_active', true),
+    ]);
+    netPence = applyPricingModifiers(
+      basePence,
+      (modifiers ?? []) as PricingModifierRule[],
+      {
+        postcode: address?.postcode ?? null,
+        hour: hourInLondon(input.scheduledAt),
+        categoryId: svc.category_id ?? null,
+      },
+    );
+  } catch (err) {
+    console.error('[pricing] modifier lookup failed, charging base price', err);
+    netPence = basePence;
+  }
+
+  return { svc, basePence, netPence };
+}
+
+export async function createBooking(
+  db: SupabaseClient,
+  admin: SupabaseClient,
+  input: CreateBookingInput,
+): Promise<CreateBookingResult> {
+  const { data: customerProfile } = await admin
+    .from('profiles')
+    .select('is_blocked')
+    .eq('id', input.customerId)
+    .eq('role', 'customer')
+    .maybeSingle();
+  if (!customerProfile) throw new Error('customer_not_found');
+  if (customerProfile.is_blocked) throw new Error('account_suspended');
+
+  const { svc, netPence } = await computeNetServicePrice(admin, {
+    providerServiceId: input.providerServiceId,
+    addressId: input.addressId,
+    scheduledAt: input.scheduledAt,
+  });
 
   let promo: { id: string; discount_type: 'percent' | 'fixed'; discount_value: number } | null =
     null;

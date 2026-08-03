@@ -1,11 +1,18 @@
 import { revalidatePath } from 'next/cache';
-import { Tag } from 'lucide-react';
+import { Percent, PoundSterling, Tag, Ticket } from 'lucide-react';
 import { Button, Input, Select } from '@urban-assist/ui';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
 import {
+  buildPromoCampaignStats,
+  redemptionUtilization,
+  summarizePromoCampaigns,
+} from '../../../lib/admin-promo-analytics';
+import {
   PageHeader,
   BentoTile,
+  BentoGrid,
+  StatTile,
   TableTile,
   StatusChip,
   BentoEmpty,
@@ -13,6 +20,9 @@ import {
 } from '@/components/bento';
 
 export const dynamic = 'force-dynamic';
+
+const gbp = (pence: number) =>
+  new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(pence / 100);
 
 type Promo = {
   id: string;
@@ -86,15 +96,60 @@ function isActive(p: Promo) {
 
 export default async function PromotionsPage() {
   const { db } = await requireAdminPermission('can_manage_promo_codes');
-  const { data } = await (db as any)
-    .from('promo_codes')
-    .select('id, code, discount_type, discount_value, max_redemptions, redemption_count, expires_at')
-    .order('code');
+  const adminDb = db as any;
+
+  const [{ data }, { data: promoBookings }] = await Promise.all([
+    adminDb
+      .from('promo_codes')
+      .select('id, code, discount_type, discount_value, max_redemptions, redemption_count, expires_at')
+      .order('code'),
+    adminDb
+      .from('bookings')
+      .select('promo_code_id, status, total_pence, price_pence, created_at')
+      .not('promo_code_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(5000),
+  ]);
+
   const promos = (data ?? []) as Promo[];
+  const campaignStats = buildPromoCampaignStats(promos, promoBookings ?? []);
+  const statsById = new Map(campaignStats.map((s) => [s.promoId, s]));
+  const activeIds = new Set(promos.filter(isActive).map((p) => p.id));
+  const totals = summarizePromoCampaigns(campaignStats, activeIds);
 
   return (
     <div>
-      <PageHeader title="Promotions" subtitle={`${promos.length} promo codes.`} />
+      <PageHeader
+        title="Promotions"
+        subtitle={`${promos.length} codes · campaign performance from promo bookings.`}
+      />
+
+      <BentoGrid className="mb-6">
+        <StatTile
+          label="Active codes"
+          value={String(totals.activeCampaigns)}
+          sub={`${promos.length} total`}
+          icon={Tag}
+        />
+        <StatTile
+          label="Promo bookings"
+          value={String(totals.promoBookings)}
+          sub={`${totals.last14dBookings} in last 14d`}
+          icon={Ticket}
+        />
+        <StatTile
+          label="Promo GMV"
+          value={gbp(totals.gmvPence)}
+          sub={`${totals.completed} completed · ${totals.cancelled} cancelled`}
+          icon={PoundSterling}
+        />
+        <StatTile
+          label="Est. discount given"
+          value={gbp(totals.estimatedDiscountPence)}
+          sub="From rule + booking subtotal"
+          icon={Percent}
+        />
+      </BentoGrid>
 
       <BentoTile static className="mb-8 !justify-start">
         <SectionHeader title="Create promo code" />
@@ -141,20 +196,31 @@ export default async function PromotionsPage() {
         </form>
       </BentoTile>
 
+      <SectionHeader title="Campaign ledger" className="mb-3" />
       {promos.length === 0 ? (
         <TableTile>
           <BentoEmpty icon={Tag} message="No promo codes yet." />
         </TableTile>
       ) : (
         <TableTile>
+          <div className="hidden border-b border-hairline bg-bg/40 px-5 py-2 font-mono-utility text-[10px] font-bold uppercase tracking-wide text-muted sm:grid sm:grid-cols-12 sm:gap-2">
+            <span className="sm:col-span-3">Code</span>
+            <span className="sm:col-span-2 text-right">Redemptions</span>
+            <span className="sm:col-span-2 text-right">Bookings</span>
+            <span className="sm:col-span-2 text-right">GMV</span>
+            <span className="sm:col-span-2 text-right">Est. discount</span>
+            <span className="sm:col-span-1 text-right">Status</span>
+          </div>
           {promos.map((p) => {
             const active = isActive(p);
+            const stats = statsById.get(p.id);
+            const util = redemptionUtilization(p.redemption_count, p.max_redemptions);
             return (
               <div
                 key={p.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 min-h-[44px] hover:bg-bg/60 transition-colors"
+                className="flex flex-col gap-3 border-b border-hairline px-5 py-3 last:border-b-0 sm:grid sm:grid-cols-12 sm:items-center sm:gap-2 hover:bg-bg/60 transition-colors"
               >
-                <div className="min-w-0">
+                <div className="min-w-0 sm:col-span-3">
                   <p className="font-mono text-sm font-semibold text-ink">
                     {p.code}{' '}
                     <span className="text-muted font-sans font-normal">
@@ -164,13 +230,33 @@ export default async function PromotionsPage() {
                     </span>
                   </p>
                   <p className="text-[11px] text-muted mt-0.5">
-                    {p.redemption_count}
-                    {p.max_redemptions != null ? `/${p.max_redemptions}` : ''} used
+                    {stats ? `${stats.last14dBookings} bookings · last 14d` : 'No attributed bookings'}
                     {p.expires_at &&
                       ` · expires ${new Date(p.expires_at).toLocaleDateString('en-GB')}`}
                   </p>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="sm:col-span-2 sm:text-right">
+                  <p className="font-mono text-sm font-semibold text-ink">
+                    {p.redemption_count}
+                    {p.max_redemptions != null ? `/${p.max_redemptions}` : ''}
+                  </p>
+                  {util != null && (
+                    <p className="text-[10px] text-muted">{util}% of cap</p>
+                  )}
+                </div>
+                <div className="sm:col-span-2 sm:text-right">
+                  <p className="font-mono text-sm font-semibold text-ink">{stats?.bookings ?? 0}</p>
+                  <p className="text-[10px] text-muted">
+                    {stats?.completed ?? 0} done · {stats?.cancelled ?? 0} cancel
+                  </p>
+                </div>
+                <div className="sm:col-span-2 sm:text-right font-mono text-sm font-semibold text-ink">
+                  {gbp(stats?.gmvPence ?? 0)}
+                </div>
+                <div className="sm:col-span-2 sm:text-right font-mono text-sm text-ink">
+                  {gbp(stats?.estimatedDiscountPence ?? 0)}
+                </div>
+                <div className="flex items-center justify-between gap-2 sm:col-span-1 sm:justify-end">
                   <StatusChip tone={active ? 'success' : 'pending'}>
                     {active ? 'Active' : 'Inactive'}
                   </StatusChip>
@@ -178,7 +264,7 @@ export default async function PromotionsPage() {
                     <form action={deactivatePromo}>
                       <input type="hidden" name="id" value={p.id} />
                       <Button type="submit" variant="ghost" size="sm" className="text-danger hover:bg-danger/10">
-                        Deactivate
+                        Off
                       </Button>
                     </form>
                   )}
