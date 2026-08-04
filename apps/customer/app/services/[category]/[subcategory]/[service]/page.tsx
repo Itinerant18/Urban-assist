@@ -12,25 +12,37 @@ import { ProviderList } from '../../../../../components/services/provider-list';
 
 export const dynamic = 'force-dynamic';
 
-async function fetchProviders(categorySlug: string, serviceName: string) {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function fetchProviders(categorySlug: string, serviceName: string, serviceId: string) {
   try {
     const db = getSupabaseServer();
     const { data: cat } = await db.from('service_categories').select('id').eq('slug', categorySlug).single();
     let query = db
       .from('provider_services')
-      .select('id, title, price_pence, duration_mins, provider:profiles!inner(id, full_name, avatar_url, rating_avg, rating_count, kyc_status)')
+      .select('id, title, price_pence, duration_mins, sku_id, provider:profiles!inner(id, full_name, avatar_url, rating_avg, rating_count, kyc_status)')
       .eq('is_active', true)
       .limit(10);
     if (cat) query = query.eq('category_id', cat.id);
+
+    const mapProviders = (rows: any[]) =>
+      rows
+        .map((s) => ({
+          ...s,
+          provider: Array.isArray(s.provider) ? s.provider[0] : s.provider,
+        }))
+        .filter((s) => Boolean(s.provider));
+
+    // A UUID serviceId is a real service_skus.id — filter on the FK directly
+    // instead of fuzzy title tokens ("Deep Cleaning" matching any title).
+    if (UUID_RE.test(serviceId)) {
+      const { data } = await query.eq('sku_id', serviceId);
+      return mapProviders(data ?? []);
+    }
+
     const { data } = await query;
     const tokens = serviceName.toLowerCase().split(/\s+/).filter((t) => t.length > 3);
-    return (data ?? [])
-      .filter((s) => tokens.some((t) => s.title.toLowerCase().includes(t)))
-      .map((s) => ({
-        ...s,
-        provider: Array.isArray(s.provider) ? s.provider[0] : s.provider,
-      }))
-      .filter((s) => Boolean(s.provider));
+    return mapProviders((data ?? []).filter((s) => tokens.some((t) => s.title.toLowerCase().includes(t))));
   } catch {
     return [];
   }
@@ -58,7 +70,7 @@ export default async function ServiceDetailPage({
   if (!service || !category || !subcategory) notFound();
 
   const Icon = getCategoryIcon(service.icon ?? subcategory.icon);
-  const providers = await fetchProviders(params.category, service.name);
+  const providers = await fetchProviders(params.category, service.name, service.id);
   const related = subcategory.services.filter((s) => s.slug !== service.slug).slice(0, 3);
   const catColor = category.color ?? '#1F3A4D';
 

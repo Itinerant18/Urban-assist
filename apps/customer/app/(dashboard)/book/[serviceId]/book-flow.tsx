@@ -734,24 +734,38 @@ export function BookFlow({
                 </div>
 
                 {bookingError && <p className="text-center text-sm font-medium text-danger">{bookingError}</p>}
-
-                <div className="hidden lg:block">
-                  {selectedPaymentMethod === 'card' && paymentSecret ? (
-                    <Button type="button" onClick={confirmPayment} size="block" disabled={payBusy}>
-                      {payBusy ? 'Processing payment…' : `Pay ${pence(q.total_pence)}`}
-                    </Button>
-                  ) : (
-                    <Button type="submit" size="block" disabled={submitting || !selectedAddressId}>
-                      {submitting ? 'Booking…' : `Confirm booking ${pence(q.total_pence)}`}
-                    </Button>
-                  )}
-                </div>
               </section>
             )}
 
             {(stepError || (step === 'address' && errors.addressId)) && step !== 'confirm' && (
               <p className="text-center text-sm text-danger">{stepError}</p>
             )}
+
+            {/* Desktop inline: Back / Next / Confirm (mobile uses the sticky bar) */}
+            <div className="hidden items-center justify-between gap-3 lg:flex">
+              {step !== 'address' && !paymentSecret ? (
+                <Button type="button" variant="outline" onClick={goBack} className="min-h-12 shrink-0 px-4">
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="ml-1.5">Back</span>
+                </Button>
+              ) : (
+                <div className="min-w-[2.75rem]" />
+              )}
+
+              {step !== 'confirm' ? (
+                <Button type="button" onClick={goNext} className="min-h-12 px-8">
+                  Next
+                </Button>
+              ) : selectedPaymentMethod === 'card' && paymentSecret ? (
+                <Button type="button" onClick={confirmPayment} disabled={payBusy} className="min-h-12 px-8">
+                  {payBusy ? 'Processing payment…' : `Pay ${pence(q.total_pence)}`}
+                </Button>
+              ) : (
+                <Button type="submit" disabled={submitting || !selectedAddressId} className="min-h-12 px-8">
+                  {submitting ? 'Booking…' : `Confirm booking ${pence(q.total_pence)}`}
+                </Button>
+              )}
+            </div>
           </form>
         </div>
 

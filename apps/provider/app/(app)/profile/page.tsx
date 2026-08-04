@@ -87,7 +87,7 @@ export default async function PublicProfilePage() {
                 </Badge>
               )}
             </div>
-            {profile?.business_name && (
+            {profile?.business_name && profile.business_name !== profile.full_name && (
               <p className="text-sm text-muted">{profile.business_name}</p>
             )}
             <div className="flex items-center gap-2 text-sm">

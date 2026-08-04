@@ -58,7 +58,7 @@ export function BrowseClient({
   // Filtering states
   const [selectedCats, setSelectedCats] = React.useState<string[]>([]);
   const [maxPrice, setMaxPrice] = React.useState<number>(50);
-  const [minRating, setMinRating] = React.useState<number>(4);
+  const [minRating, setMinRating] = React.useState<number>(0);
   const [maxDistance, setMaxDistance] = React.useState<number>(5);
   
   // Mobile filter sheet visibility
@@ -77,7 +77,7 @@ export function BrowseClient({
       if (pricePounds > maxPrice) return false;
 
       // Rating filter
-      if (s.provider.rating_avg < minRating) return false;
+      if (Number(s.provider.rating_avg ?? 0) < minRating) return false;
 
       // Distance filter
       if (s.distanceKm != null && s.distanceKm * 0.621371 > maxDistance) return false;

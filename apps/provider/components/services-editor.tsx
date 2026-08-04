@@ -259,8 +259,6 @@ export function ServicesEditor({
           <ul className="space-y-2">
             {mine.map((m) => {
               const cat = categories.find((c) => c.id === m.category_id);
-              const sku = m.sku_id ? skus.find((k) => k.id === m.sku_id) : undefined;
-              const skuName = m.service_skus?.name ?? sku?.name;
               const isEditing = editingId === m.id;
 
               return (
@@ -305,9 +303,6 @@ export function ServicesEditor({
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium truncate">{m.title}</span>
-                            {skuName ? (
-                              <Badge tone="accent">{skuName}</Badge>
-                            ) : null}
                             <Badge tone={m.is_active ? 'success' : 'muted'}>
                               {m.is_active ? 'Active' : 'Inactive'}
                             </Badge>

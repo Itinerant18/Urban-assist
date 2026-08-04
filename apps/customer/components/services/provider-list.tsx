@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
-import { Star, Plus } from 'lucide-react';
+import { Star, Plus, Minus } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 import { useCart } from '../cart-context';
 import { Button } from '@urban-assist/ui';
@@ -74,20 +74,13 @@ export function ProviderList({ providers }: { providers: ProviderService[] }) {
                   
                   {isAdded ? (
                     <div className="flex items-center gap-2 rounded-xl bg-accent/10 px-2.5 py-1.5 text-accent font-bold text-sm">
+                      <span>Added</span>
                       <button
                         onClick={removeFromCart}
-                        className="px-1 hover:bg-accent/10 rounded transition"
-                        aria-label="Decrease quantity"
+                        className="tap rounded px-1.5 py-0.5 hover:bg-accent/10 transition"
+                        aria-label="Remove from cart"
                       >
-                        -
-                      </button>
-                      <span>1</span>
-                      <button
-                        className="px-1 opacity-50 cursor-not-allowed"
-                        aria-label="Increase quantity"
-                        disabled
-                      >
-                        +
+                        <Minus className="h-3.5 w-3.5" aria-hidden />
                       </button>
                     </div>
                   ) : (
@@ -116,9 +109,9 @@ export function ProviderList({ providers }: { providers: ProviderService[] }) {
         })}
       </ul>
 
-      {/* Sticky Bottom Cart Summary CTA (Floats over content on mobile) */}
+      {/* Sticky Bottom Cart Summary CTA (Floats over content) */}
       {cart && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white/95 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white/95 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur">
           <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="font-bold text-ink text-sm">1 Item</span>
@@ -126,7 +119,7 @@ export function ProviderList({ providers }: { providers: ProviderService[] }) {
               <span className="font-extrabold text-ink text-base">{pence(cart.pricePence)}</span>
             </div>
             <Link
-              href={`/book/${cart.id}`}
+              href="/cart"
               className="rounded-xl bg-accent px-8 py-3 text-[14px] font-bold text-white transition hover:bg-accent-hover"
             >
               VIEW CART

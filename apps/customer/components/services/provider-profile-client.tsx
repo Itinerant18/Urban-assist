@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
-import { Star, ShieldCheck, CheckCircle2, Clock, Minus, Plus } from 'lucide-react';
+import { Star, ShieldCheck, CheckCircle2, Clock, Minus } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 import { Button, Card } from '@urban-assist/ui';
 import { useCart } from '../../components/cart-context';
@@ -150,13 +150,10 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
                         {pence(s.price_pence)}
                       </span>
                       {isAdded ? (
-                        <div className="flex items-center gap-2 rounded-xl bg-accent/10 px-2.5 py-1.5 text-accent font-bold text-sm">
+                        <div className="flex items-center gap-2 rounded-xl bg-accent/10 px-3 py-1.5 text-accent font-bold text-sm">
+                          <span>Added</span>
                           <button aria-label={`Remove ${s.title} from cart`} onClick={removeFromCart} className="tap rounded px-2 hover:bg-accent/10">
                             <Minus className="h-3.5 w-3.5" aria-hidden />
-                          </button>
-                          <span>1</span>
-                          <button aria-label="Maximum quantity reached" className="tap cursor-not-allowed px-2 opacity-50" disabled>
-                            <Plus className="h-3.5 w-3.5" aria-hidden />
                           </button>
                         </div>
                       ) : (
@@ -239,12 +236,9 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
                     </span>
                     {isAdded ? (
                       <div className="flex items-center gap-2 rounded-xl bg-accent/10 px-2 py-1 text-accent font-bold text-sm">
+                        <span>Added</span>
                         <button aria-label={`Remove ${s.title} from cart`} onClick={removeFromCart} className="tap px-2">
                           <Minus className="h-3.5 w-3.5" aria-hidden />
-                        </button>
-                        <span>1</span>
-                        <button aria-label="Maximum quantity reached" className="tap cursor-not-allowed px-2 opacity-50" disabled>
-                          <Plus className="h-3.5 w-3.5" aria-hidden />
                         </button>
                       </div>
                     ) : (
@@ -276,7 +270,7 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
       </div>
 
       {cart && (
-        <StickyActionBar>
+        <StickyActionBar bottomClassName="bottom-[calc(3rem+env(safe-area-inset-bottom))]">
           <StickyActionMeta label="1 item" value={pence(cart.pricePence)} />
           <Link
             href="/cart"

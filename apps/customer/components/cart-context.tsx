@@ -12,6 +12,7 @@ export interface CartItem {
 
 interface CartContextType {
   cart: CartItem | null;
+  hydrated: boolean;
   addToCart: (item: CartItem) => void;
   removeFromCart: () => void;
 }
@@ -20,6 +21,7 @@ const CartContext = React.createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = React.useState<CartItem | null>(null);
+  const [hydrated, setHydrated] = React.useState(false);
 
   // Load from localStorage on mount
   React.useEffect(() => {
@@ -31,6 +33,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('ua_cart');
       }
     }
+    setHydrated(true);
   }, []);
 
   const addToCart = React.useCallback((item: CartItem) => {
@@ -44,7 +47,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart }}>
+    <CartContext.Provider value={{ cart, hydrated, addToCart, removeFromCart }}>
       {children}
     </CartContext.Provider>
   );

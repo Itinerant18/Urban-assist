@@ -93,6 +93,7 @@ export function AccountClient({
   // Profile Form States
   const [fullName, setFullName] = React.useState('');
   const [phone, setPhone] = React.useState('');
+  const [email, setEmail] = React.useState('');
   const [profileBusy, setProfileBusy] = React.useState(false);
   const [profileError, setProfileError] = React.useState<string | null>(null);
   const [profileOk, setProfileOk] = React.useState<string | null>(null);
@@ -134,6 +135,7 @@ export function AccountClient({
           setProfile(p);
           setFullName(p.full_name ?? '');
           setPhone(p.phone ?? '');
+          setEmail(p.email ?? authUser.email ?? '');
         }
 
         // Fetch addresses
@@ -147,18 +149,16 @@ export function AccountClient({
           .eq('customer_id', authUser.id);
         setFavorites(favs as any ?? []);
 
-        // Fetch or create referral code
-        let { data: ref } = await sb.from('referrals').select('code').eq('owner_id', authUser.id).maybeSingle();
-        if (!ref) {
-          const generatedCode = `EASE-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-          const { data: newRef } = await sb
-            .from('referrals')
-            .insert({ owner_id: authUser.id, code: generatedCode, credit_pence: 500 })
-            .select('code')
-            .single();
-          ref = newRef;
+        // Fetch or create referral code (service-role route: client inserts are blocked by RLS)
+        try {
+          const res = await fetch('/api/referrals/code', { method: 'POST' });
+          if (res.ok) {
+            const j = await res.json().catch(() => ({}));
+            setReferralCode(typeof j.code === 'string' ? j.code : null);
+          }
+        } catch (err) {
+          console.error('Failed to load referral code', err);
         }
-        setReferralCode(ref?.code ?? null);
       } catch (err) {
         console.error('Failed to load customer account details', err);
       } finally {
@@ -191,8 +191,26 @@ export function AccountClient({
         .eq('id', user.id);
 
       if (error) throw error;
+
+      // Email is service-role only (the client UPDATE grant excludes it), so it
+      // saves through its own route.
+      let savedEmail = profile?.email ?? '';
+      if (email.trim() && email.trim() !== savedEmail) {
+        const res = await fetch('/api/account/email', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email: email.trim() }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(typeof j.error === 'string' ? j.error : 'Could not save email');
+        }
+        savedEmail = (await res.json()).email ?? savedEmail;
+      }
+
+      setPhone(normalisedPhone ?? '');
       setProfileOk('Profile updated successfully.');
-      setProfile({ ...profile, full_name: fullName.trim(), phone: normalisedPhone });
+      setProfile({ ...profile, full_name: fullName.trim(), phone: normalisedPhone, email: savedEmail });
     } catch (err: any) {
       setProfileError(err.message);
     } finally {
@@ -318,7 +336,12 @@ export function AccountClient({
           </Field>
         </div>
         <Field label="Email Address">
-          <Input disabled value={user?.email} />
+          <Input
+            type="email"
+            placeholder="e.g. you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </Field>
         {profileError && <p className="text-xs text-danger font-medium">{profileError}</p>}
         {profileOk && <p className="text-xs text-success font-medium">{profileOk}</p>}

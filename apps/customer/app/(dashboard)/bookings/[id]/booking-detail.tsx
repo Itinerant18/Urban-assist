@@ -530,7 +530,7 @@ export function BookingDetail({
       </Card>
 
       {needsRate && !cashDue && (
-        <StickyActionBar zClassName="z-40">
+        <StickyActionBar zClassName="z-40" bottomClassName="bottom-[calc(3rem+env(safe-area-inset-bottom))]">
           <StickyActionMeta label="Feedback" value="Rate your service" />
           <Link href={`/bookings/${booking.id}/rate`}>
             <Button className="min-h-12 px-5">Rate</Button>
@@ -539,7 +539,7 @@ export function BookingDetail({
       )}
 
       {cashDue && (
-        <StickyActionBar zClassName="z-40">
+        <StickyActionBar zClassName="z-40" bottomClassName="bottom-[calc(3rem+env(safe-area-inset-bottom))]">
           <StickyActionMeta label="Payment" value="Cash due" />
           <Button className="min-h-12 px-5" onClick={confirmCash}>
             <Banknote className="mr-2 h-4 w-4" /> Confirm cash

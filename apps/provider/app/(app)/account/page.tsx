@@ -117,6 +117,7 @@ export default function AccountPage() {
         .eq('id', user.id);
 
       if (error) throw error;
+      setPhone(normalisedPhone ?? '');
       setProfileOk('Profile updated.');
       setProfile({ ...profile, full_name: fullName.trim(), phone: normalisedPhone });
     } catch (err: any) {

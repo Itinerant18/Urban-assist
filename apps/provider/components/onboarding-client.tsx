@@ -63,7 +63,9 @@ export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps
       const { data: { user } } = await sb.auth.getUser();
       if (!user) throw new Error('Sign in required');
 
-      const path = `${user.id}/${type}-${Date.now()}-${file.name}`;
+      const rawExt = (file.name.split('.').pop() ?? '').toLowerCase();
+      const ext = ['pdf', 'png', 'jpg', 'jpeg', 'webp'].includes(rawExt) ? rawExt : 'bin';
+      const path = `${user.id}/${type}-${Date.now()}.${ext}`;
       
       const { error: upErr } = await sb.storage.from('provider_documents').upload(path, file, {
         upsert: false,

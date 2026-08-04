@@ -8,7 +8,7 @@ import { Briefcase, CalendarDays, Wallet, FileText, UserRound, Settings } from '
 const nav: NavItem[] = [
   { href: '/', label: 'Requests', icon: <Briefcase className="h-4 w-4" /> },
   { href: '/schedule', label: 'Schedule', icon: <CalendarDays className="h-4 w-4" /> },
-  { href: '/earnings', label: 'Wallet', icon: <Wallet className="h-4 w-4" /> },
+  { href: '/earnings', label: 'Earnings', icon: <Wallet className="h-4 w-4" /> },
   { href: '/services', label: 'My Services', icon: <Settings className="h-4 w-4" /> },
   { href: '/documents', label: 'Documents', icon: <FileText className="h-4 w-4" /> },
   { href: '/account', label: 'Menu', icon: <UserRound className="h-4 w-4" /> },
@@ -41,7 +41,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .select('*', { count: 'exact', head: true })
       .eq('provider_id', user.id),
   ]);
-  if (!profile || profile.role !== 'provider') redirect('/login?error=wrong_app');
+  if (!profile) redirect('/register');
+  if (profile.role !== 'provider') redirect('/api/auth/wrong-app');
 
   // Onboarding walls — /register and /onboarding/* live outside this route
   // group, so no loop. Order: register → identity documents → services.

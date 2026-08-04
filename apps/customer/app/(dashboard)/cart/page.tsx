@@ -3,13 +3,27 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCart } from '../../../components/cart-context';
-import { Card, Button, EmptyState } from '@urban-assist/ui';
+import { Card, Button, EmptyState, Skeleton } from '@urban-assist/ui';
 import { pence } from '@urban-assist/lib';
 import { Clock, Trash2, ArrowRight } from 'lucide-react';
 
 export default function CartPage() {
-  const { cart, removeFromCart } = useCart();
+  const { cart, hydrated, removeFromCart } = useCart();
   const router = useRouter();
+
+  if (!hydrated) {
+    return (
+      <div className="space-y-4 py-6">
+        <h1 className="font-display text-xl">Cart</h1>
+        <Card className="border border-hairline bg-white p-4 rounded-xl">
+          <Skeleton className="h-5 w-1/3" />
+          <Skeleton className="mt-3 h-4 w-2/3" />
+          <Skeleton className="mt-6 h-10 w-full" />
+        </Card>
+        <Skeleton className="h-24 w-full rounded-xl" />
+      </div>
+    );
+  }
 
   if (!cart) {
     return (

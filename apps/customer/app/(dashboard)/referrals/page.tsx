@@ -14,34 +14,19 @@ export default async function ReferralDashboardPage() {
     redirect('/login');
   }
 
-  // 2. Fetch or create the user's referral code
-  let { data: refCodeObj } = await db
-    .from('referrals')
-    .select('code')
-    .eq('owner_id', authUser.id)
-    .is('redeemed_by', null) // owner code template row has redeemed_by as null
-    .maybeSingle();
-
-  if (!refCodeObj) {
-    // Generate a new code
-    const { data: profile } = await db.from('profiles').select('full_name').eq('id', authUser.id).single();
-    const cleanName = profile?.full_name?.replace(/\s/g, '').slice(0, 4).toUpperCase() || 'REF';
-    const code = `URBAN${cleanName}${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const { data: newRef } = await db
-      .from('referrals')
-      .insert({
-        owner_id: authUser.id,
-        code,
-        credit_pence: 500,
-      })
-      .select('code')
-      .single();
-    
-    refCodeObj = newRef;
+  // 2. Get-or-create the caller's persistent code via the service-role route
+  // (referrals is SELECT-only under RLS, so client/server inserts silently fail).
+  const appBase = (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+  let referralCode = '';
+  try {
+    const res = await fetch(`${appBase}/api/referrals/code`, { method: 'POST', cache: 'no-store' });
+    if (res.ok) {
+      const j = await res.json().catch(() => ({}));
+      if (typeof j.code === 'string') referralCode = j.code;
+    }
+  } catch {
+    referralCode = '';
   }
-
-  const referralCode = refCodeObj?.code || `URBAN${authUser.id.slice(0, 4).toUpperCase()}`;
 
   // 3. Fetch referral history ledger
   const { data: history } = await db

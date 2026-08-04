@@ -38,10 +38,6 @@ const COUNTRIES: Country[] = [
 
 const RESEND_SECONDS = 30;
 
-// wrong_app gets its own banner below rather than an inline error, since it is a
-// state the provider arrives in rather than a mistake they just made.
-const SIGN_IN_ERRORS: Record<string, string> = {};
-
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -62,10 +58,6 @@ export function LoginForm() {
   const entryError = params.get('error');
 
   React.useEffect(() => {
-    if (entryError && SIGN_IN_ERRORS[entryError]) setErr(SIGN_IN_ERRORS[entryError]);
-  }, [entryError]);
-
-  React.useEffect(() => {
     if (cooldown <= 0) return;
     const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
     return () => clearTimeout(t);
@@ -78,6 +70,7 @@ export function LoginForm() {
     if (!valid) return;
     setErr(null);
     setNotice(null);
+    if (entryError === 'wrong_app') router.replace('/login');
     setBusy(true);
     try {
       const res = await fetch('/api/auth/start', {
