@@ -1,4 +1,4 @@
-export { stripe, createBookingIntent, refundPaymentIntent, createTipIntent } from './client';
+export { stripe, stripeConfigured, createBookingIntent, refundPaymentIntent, createTipIntent } from './client';
 export type { CreateBookingIntentParams } from './client';
 export {
   assertConnectPayoutReady,

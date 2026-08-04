@@ -68,11 +68,14 @@ export function BookFlow({
   addresses: initialAddresses,
   walletBalance = 0,
   previousProvider = null,
+  cardEnabled = true,
 }: {
   service: Service;
   addresses: Address[];
   walletBalance?: number;
   previousProvider?: PreviousProvider | null;
+  /** False when the server has no Stripe key — card option disabled, cash default. */
+  cardEnabled?: boolean;
 }) {
   const router = useRouter();
   const [addresses, setAddresses] = React.useState<Address[]>(initialAddresses);
@@ -90,7 +93,7 @@ export function BookFlow({
     defaultValues: {
       addressId: addresses.find((a) => a.is_default)?.id || addresses[0]?.id || '',
       scheduledAt: defaultFutureSlot(),
-      paymentMethod: 'card',
+      paymentMethod: cardEnabled ? 'card' : 'cash',
       notes: '',
       promoCode: '',
       preferPrevious: Boolean(previousProvider),
@@ -630,14 +633,15 @@ export function BookFlow({
                               checked={field.value === 'card'}
                               onChange={() => field.onChange('card')}
                               className="accent-[var(--accent,#C1622E)]"
-                              disabled={Boolean(paymentSecret)}
+                              disabled={Boolean(paymentSecret) || !cardEnabled}
                             />
                             <CreditCard className="h-4 w-4 text-muted" />
                             Pay now
                           </div>
                           <span className="ml-6 text-xs text-muted">
-                            Card via Stripe — secures your booking window and reduces no-shows. Charged when you
-                            confirm.
+                            {cardEnabled
+                              ? 'Card via Stripe — secures your booking window and reduces no-shows. Charged when you confirm.'
+                              : 'Card payments are not available in this environment yet.'}
                           </span>
                         </label>
 

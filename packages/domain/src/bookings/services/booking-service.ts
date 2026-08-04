@@ -8,7 +8,7 @@ import {
 } from '@urban-assist/domain/pricing';
 import { sendNextOffer } from '@urban-assist/domain/matching';
 import { track } from '@urban-assist/domain/analytics';
-import { createBookingIntent, refundPaymentIntent } from '@urban-assist/integrations/stripe';
+import { createBookingIntent, refundPaymentIntent, stripeConfigured } from '@urban-assist/integrations/stripe';
 import { appendBookingStatus } from '@urban-assist/integrations/firebase';
 
 export interface CreateBookingInput {
@@ -100,6 +100,13 @@ export async function createBooking(
   admin: SupabaseClient,
   input: CreateBookingInput,
 ): Promise<CreateBookingResult> {
+  // Fail fast before creating anything: a card booking with no Stripe key would
+  // otherwise insert the booking, dispatch offers, and THEN die at intent
+  // creation — leaving ghost pending_match bookings with live provider offers.
+  if (input.paymentMethod === 'card' && !stripeConfigured()) {
+    throw new Error('Card payments are not available right now — choose "Pay after service".');
+  }
+
   const { data: customerProfile } = await admin
     .from('profiles')
     .select('is_blocked')
@@ -164,14 +171,6 @@ export async function createBooking(
     source: 'booking',
   });
 
-  try {
-    await sendNextOffer(admin, booking.id);
-  } catch (err) {
-    // Non-fatal for the booking, but a swallowed throw here leaves the booking
-    // with no offer and no trace — always leave a log line.
-    console.error('[matching] sendNextOffer failed for booking', booking.id, err);
-  }
-
   // Wallet spend happens last, so the failure surface after the debit is only
   // the payment step — which we compensate below. Atomic + capped at the total.
   let walletApplied = 0;
@@ -217,7 +216,9 @@ export async function createBooking(
       });
     }
   } catch (e) {
-    // Never leave the customer debited for a booking we couldn't set up to pay.
+    // Never leave the customer debited for a booking we couldn't set up to pay,
+    // and never leave the booking itself live — a lingering pending_match row
+    // reads as a real job on the admin/matching side.
     if (walletApplied > 0) {
       await admin.from('wallet_ledger').insert({
         profile_id: input.customerId,
@@ -226,7 +227,21 @@ export async function createBooking(
         booking_id: booking.id,
       });
     }
+    await admin
+      .from('bookings')
+      .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
+      .eq('id', booking.id);
     throw e;
+  }
+
+  // Offers go out only once the payment path is established — dispatching
+  // before this point pinged providers about bookings that then failed setup.
+  try {
+    await sendNextOffer(admin, booking.id);
+  } catch (err) {
+    // Non-fatal for the booking, but a swallowed throw here leaves the booking
+    // with no offer and no trace — always leave a log line.
+    console.error('[matching] sendNextOffer failed for booking', booking.id, err);
   }
 
   track(admin, input.customerId, { type: 'booking.created', payload: { booking_id: booking.id } });

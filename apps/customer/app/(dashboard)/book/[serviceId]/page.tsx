@@ -68,6 +68,7 @@ export default async function BookPage({ params }: { params: { serviceId: string
       addresses={addresses ?? []}
       walletBalance={typeof walletRes.data === 'number' ? walletRes.data : 0}
       previousProvider={previousProvider}
+      cardEnabled={Boolean(process.env.STRIPE_SECRET_KEY?.trim())}
     />
   );
 }

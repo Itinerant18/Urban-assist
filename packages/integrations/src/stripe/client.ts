@@ -2,13 +2,19 @@ import Stripe from 'stripe';
 
 let _stripe: Stripe | null = null;
 
+/** True when a usable secret key is configured (empty string counts as missing). */
+export function stripeConfigured(): boolean {
+  return Boolean(process.env.STRIPE_SECRET_KEY?.trim());
+}
+
 export function stripe(): Stripe {
   if (_stripe) return _stripe;
-  const key = process.env.STRIPE_SECRET_KEY;
+  const key = process.env.STRIPE_SECRET_KEY?.trim();
   if (!key) {
     console.warn('[homeease] STRIPE_SECRET_KEY missing — Stripe calls will fail');
   }
-  _stripe = new Stripe(key ?? 'sk_test_placeholder', {
+  // ponytail: '' previously slipped past `??` and sent an empty Bearer header
+  _stripe = new Stripe(key || 'sk_test_placeholder', {
     apiVersion: '2024-06-20',
     typescript: true,
   });
