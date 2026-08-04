@@ -1,12 +1,15 @@
 'use client';
 // Job-offer screen-locking modal (desktop) / full-screen takeover (mobile).
-// Strict 90-second window to accept before routing to the next provider.
+// Timed window to accept; a late accept is still honoured server-side while the
+// booking remains unassigned.
 
 import * as React from 'react';
 import { Button } from '@urban-assist/ui';
 import { pence, ukDateTime, miles, haversineKm } from '@urban-assist/lib';
+import { OFFER_TTL_SECONDS } from '@urban-assist/utils/constants';
 import { Clock, MapPin, ShieldAlert } from 'lucide-react';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
+import { splitCommission } from '../../lib/provider-data';
 
 function formatTimer(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -37,7 +40,13 @@ export function OfferCard({ offer, onResolved }: { offer: any; onResolved: () =>
     });
   }, []);
 
+  // An offer that is ALREADY past its deadline when opened stays actionable —
+  // auto-expiry only fires on a live countdown reaching zero, otherwise a stale
+  // offer would be killed the instant the provider finally saw it.
+  const initiallyStale = React.useRef(secsLeft === 0);
+
   React.useEffect(() => {
+    if (initiallyStale.current) return;
     const t = setInterval(() => {
       const left = Math.max(0, Math.floor((respondsBy - Date.now()) / 1000));
       setSecsLeft(left);
@@ -51,7 +60,7 @@ export function OfferCard({ offer, onResolved }: { offer: any; onResolved: () =>
     return () => clearInterval(t);
   }, [respondsBy, onResolved]);
 
-  const pct = Math.max(0, Math.min(100, (secsLeft / 90) * 100));
+  const pct = Math.max(0, Math.min(100, (secsLeft / OFFER_TTL_SECONDS) * 100));
 
   async function respond(accept: boolean) {
     setBusy(accept ? 'accept' : 'decline');
@@ -62,7 +71,15 @@ export function OfferCard({ offer, onResolved }: { offer: any; onResolved: () =>
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ accept }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed');
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error ?? 'Failed');
+      if (accept && j.result !== 'accepted') {
+        // Server declined the accept (offer taken/expired) but returned 200 —
+        // surface it instead of closing as if it succeeded.
+        setErr('This offer is no longer available.');
+        setTimeout(onResolved, 2500);
+        return;
+      }
       onResolved();
     } catch (e: any) {
       setErr(e.message);
@@ -124,7 +141,13 @@ export function OfferCard({ offer, onResolved }: { offer: any; onResolved: () =>
             </div>
             <div>
               <span className="font-mono-utility text-[10px] uppercase text-muted">Est. Earnings</span>
-              <p className="font-bold text-lg text-success">{pence(b.total_pence ?? 0)}</p>
+              <p className="font-bold text-lg text-success">
+                {pence(
+                  typeof offer.commission_bps === 'number' && b.price_pence != null
+                    ? splitCommission(b.price_pence, offer.commission_bps).net
+                    : b.total_pence ?? 0,
+                )}
+              </p>
             </div>
             <div>
               <span className="font-mono-utility text-[10px] uppercase text-muted">Date & Time</span>

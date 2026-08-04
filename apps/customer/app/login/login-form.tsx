@@ -57,7 +57,10 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const redirectTo = searchParams.get('redirect') || '/';
+  // Only same-origin paths are honoured — the param is attacker-controllable.
+  const rawRedirect = searchParams.get('redirect') || '/';
+  const redirectTo =
+    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/';
   const wrongApp = searchParams.get('error') === 'wrong_app';
 
   React.useEffect(() => {

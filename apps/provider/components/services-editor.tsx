@@ -257,6 +257,11 @@ export function ServicesEditor({
 
   return (
     <div className="space-y-4">
+      {mine.length === 0 && !adding && (
+        <p className="text-sm text-muted">
+          No services on your profile yet — add your first one below.
+        </p>
+      )}
       {mine.length > 0 && (
         <div className="space-y-2">
           <h2 className="font-mono-utility text-xs text-muted">Your services</h2>

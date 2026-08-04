@@ -358,16 +358,17 @@ export function SubcategoryClient({
                         </div>
                       </div>
 
-                      {/* Dual Action Buttons */}
+                      {/* Dual Action Buttons — primary goes to the service detail
+                          page (providers + Add to cart), search is secondary */}
                       <div className="grid grid-cols-2 gap-2">
                         <Link
-                          href={detailUrl}
+                          href={`/browse?category=${category.slug}&q=${encodeURIComponent(service.name)}`}
                           className="rounded-xl border border-hairline bg-bg px-3 py-2 text-center text-[12px] font-bold text-ink transition hover:bg-hairline hover:border-muted/30"
                         >
-                          View details
+                          Browse pros
                         </Link>
                         <Link
-                          href={`/browse?category=${category.slug}&q=${encodeURIComponent(service.name)}`}
+                          href={detailUrl}
                           className="rounded-xl bg-accent px-3 py-2 text-center text-[12px] font-bold text-white shadow-sm transition hover:bg-accent-hover"
                         >
                           Book now →

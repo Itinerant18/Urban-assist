@@ -56,10 +56,11 @@ export function BrowseClient({
   }, [customerLocation, initialServices]);
 
   // Filtering states
+  // Defaults match "Reset filters" — nothing is excluded until the user narrows.
   const [selectedCats, setSelectedCats] = React.useState<string[]>([]);
-  const [maxPrice, setMaxPrice] = React.useState<number>(50);
+  const [maxPrice, setMaxPrice] = React.useState<number>(100);
   const [minRating, setMinRating] = React.useState<number>(0);
-  const [maxDistance, setMaxDistance] = React.useState<number>(5);
+  const [maxDistance, setMaxDistance] = React.useState<number>(25);
   
   // Mobile filter sheet visibility
   const [showFiltersMobile, setShowFiltersMobile] = React.useState(false);

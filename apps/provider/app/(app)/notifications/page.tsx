@@ -15,6 +15,19 @@ type Notification = {
   created_at: string;
 };
 
+// Rows are inserted with no title (only the push dispatcher had labels), so map
+// event types to human text here. Keep in sync with notification-dispatch.
+const TYPE_LABELS: Record<string, string> = {
+  'offer.new': 'New job offer',
+  'booking.assigned': 'Provider assigned',
+  'booking.matched': 'Provider found',
+  'booking.status_changed': 'Booking updated',
+  'booking.completed': 'Job completed',
+  'message.new': 'New message',
+  'payment.released': 'Payment released',
+  'review.received': 'New review',
+};
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -41,6 +54,18 @@ export default function NotificationsPage() {
       if (disposed) return;
       setNotifications(data || []);
       setLoading(false);
+
+      // Visiting the page is reading it — clear unread so the badge stops
+      // showing stale counts on the next layout render.
+      const unreadIds = (data || [])
+        .filter((notification: Notification) => !notification.read_at)
+        .map((notification: Notification) => notification.id);
+      if (unreadIds.length > 0) {
+        void sb
+          .from('notifications')
+          .update({ read_at: new Date().toISOString() })
+          .in('id', unreadIds);
+      }
 
       channel = sb
         .channel('provider-notifications-page')
@@ -162,7 +187,7 @@ export default function NotificationsPage() {
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center justify-between">
                     <p className={`text-sm ${!notification.read_at ? 'font-medium' : ''}`}>
-                      {notification.payload?.title || notification.type}
+                      {notification.payload?.title || TYPE_LABELS[notification.type] || notification.type}
                     </p>
                     <span className="ml-2 whitespace-nowrap text-[10px] text-muted">
                       {ukDateTime(notification.created_at)}

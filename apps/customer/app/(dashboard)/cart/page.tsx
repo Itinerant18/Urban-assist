@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCart } from '../../../components/cart-context';
 import { Card, Button, EmptyState, Skeleton } from '@urban-assist/ui';
-import { pence } from '@urban-assist/lib';
+import { pence, quote } from '@urban-assist/lib';
 import { Clock, Trash2, ArrowRight } from 'lucide-react';
 
 export default function CartPage() {
@@ -69,18 +69,37 @@ export default function CartPage() {
 
         <hr className="border-hairline" />
 
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs text-muted">Total Price</div>
-            <div className="font-display text-xl font-bold text-ink">{pence(cart.pricePence)}</div>
-          </div>
-          <Button
-            onClick={() => router.push(`/book/${cart.id}`)}
-            className="flex items-center gap-2"
-          >
-            Checkout <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
+        {/* Same VAT breakdown the checkout shows — the cart used to present the
+            net figure as "Total Price". */}
+        {(() => {
+          const q = quote(cart.pricePence);
+          return (
+            <div className="space-y-1.5 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Subtotal</span>
+                <span className="font-medium text-ink">{pence(q.subtotal_pence)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted">VAT (20%)</span>
+                <span className="font-medium text-ink">{pence(q.vat_pence)}</span>
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <div>
+                  <div className="text-xs text-muted">Total (inc. VAT)</div>
+                  <div className="font-display text-xl font-bold text-ink">
+                    {pence(q.total_pence)}
+                  </div>
+                </div>
+                <Button
+                  onClick={() => router.push(`/book/${cart.id}`)}
+                  className="flex items-center gap-2"
+                >
+                  Checkout <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
       </Card>
     </div>
   );

@@ -9,31 +9,41 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  */
 
 export async function loadServiceCatalog(db: SupabaseClient, providerId: string) {
-  const [{ data: categories }, { data: subcategories }, { data: skus }, { data: mine }] =
-    await Promise.all([
-      db.from('service_categories').select('*').order('sort_order'),
-      db
-        .from('service_subcategories')
-        .select('id, category_id, slug, name')
-        .order('sort_order'),
-      db
-        .from('service_skus')
-        .select(
-          'id, subcategory_id, slug, name, min_price_pence, max_price_pence, duration_mins',
-        )
-        .eq('is_active', true)
-        .order('sort_order'),
-      db
-        .from('provider_services')
-        .select('*, service_skus(id, name)')
-        .eq('provider_id', providerId),
-    ]);
+  const [categoriesRes, subcategoriesRes, skusRes, mineRes] = await Promise.all([
+    db.from('service_categories').select('*').order('sort_order'),
+    db
+      .from('service_subcategories')
+      .select('id, category_id, slug, name')
+      .order('sort_order'),
+    db
+      .from('service_skus')
+      .select(
+        'id, subcategory_id, slug, name, min_price_pence, max_price_pence, duration_mins',
+      )
+      .eq('is_active', true)
+      .order('sort_order'),
+    db
+      .from('provider_services')
+      .select('*, service_skus(id, name)')
+      .eq('provider_id', providerId),
+  ]);
+
+  // A failed query used to be indistinguishable from an empty catalogue —
+  // always leave a trace so "my services page is empty" is diagnosable.
+  for (const [label, res] of [
+    ['service_categories', categoriesRes],
+    ['service_subcategories', subcategoriesRes],
+    ['service_skus', skusRes],
+    ['provider_services', mineRes],
+  ] as const) {
+    if (res.error) console.error(`[catalog] ${label} query failed`, res.error);
+  }
 
   return {
-    categories: categories ?? [],
-    subcategories: subcategories ?? [],
-    skus: skus ?? [],
-    mine: mine ?? [],
+    categories: categoriesRes.data ?? [],
+    subcategories: subcategoriesRes.data ?? [],
+    skus: skusRes.data ?? [],
+    mine: mineRes.data ?? [],
   };
 }
 

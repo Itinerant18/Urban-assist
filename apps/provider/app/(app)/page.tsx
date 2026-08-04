@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
-import { getSupabaseServer } from '@urban-assist/db/server';
+import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
 import { Dashboard } from './dashboard';
 import { buildWeeklyEarnings, weeklyWindow } from '../../lib/weekly-earnings';
+import { loadCommissionRates } from '../../lib/provider-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,14 +26,19 @@ export default async function Home() {
     .gte('scheduled_at', today.toISOString())
     .lt('scheduled_at', tomorrow.toISOString())
     .order('scheduled_at');
-  const { data: openOffer } = await db
+  const { data: rawOffer } = await db
     .from('booking_offers')
-    .select('id, booking_id, responds_by, booking:bookings(id,short_code,scheduled_at,total_pence,category:service_categories(name),address:addresses(line1,postcode,lat,lng))')
+    .select('id, booking_id, responds_by, booking:bookings(id,short_code,scheduled_at,total_pence,price_pence,category_id,category:service_categories(name),address:addresses(line1,postcode,lat,lng))')
     .eq('provider_id', user.id)
     .eq('status', 'pending')
     .order('offered_at', { ascending: false })
     .limit(1)
     .maybeSingle();
+  // Resolve commission server-side so the modal can show net earnings.
+  const commissionFor = rawOffer ? await loadCommissionRates(createServiceRole()) : null;
+  const openOffer = rawOffer
+    ? { ...rawOffer, commission_bps: commissionFor!((rawOffer as any).booking?.category_id) }
+    : null;
   const now = new Date();
   const { start: weekStart, end: weekEnd } = weeklyWindow(now);
   const thirtyDaysAgo = new Date(now);

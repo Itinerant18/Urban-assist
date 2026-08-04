@@ -405,7 +405,11 @@ export async function respondToOffer(
     if (offer.provider_id !== providerId) throw new Error('forbidden');
     if (offer.status !== 'pending') throw new Error('offer_no_longer_pending');
     const bookingId = offer.booking_id;
-    if (new Date(offer.responds_by) < new Date()) {
+    // A late ACCEPT is still honoured when the booking is unassigned — the
+    // assignment update below is guarded by provider_id is null, so there is no
+    // double-book risk, and rejecting it here silently stranded bookings as
+    // "unmatched" when no cascade tick was running to route a replacement.
+    if (!accept && new Date(offer.responds_by) < new Date()) {
       await db
         .from('booking_offers')
         .update({ status: 'expired', responded_at: new Date().toISOString() })
@@ -429,7 +433,7 @@ export async function respondToOffer(
         throw new Error(training.message ?? 'training_required');
       }
 
-      const { data: assigned } = await db
+      const { data: assigned, error: assignError } = await db
         .from('bookings')
         .update({ provider_id: providerId })
         .eq('id', offer.booking_id)
@@ -437,6 +441,7 @@ export async function respondToOffer(
         .is('provider_id', null)
         .select('id, customer_id, provider_id, status')
         .maybeSingle();
+      if (assignError) throw assignError;
       if (!assigned) {
         await db
           .from('booking_offers')

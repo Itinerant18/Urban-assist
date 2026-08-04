@@ -93,10 +93,12 @@ export function AccountClient({
   const [activeTab, setActiveTab] = React.useState<string>('profile');
   const [activeMobileView, setActiveMobileView] = React.useState<string | null>(null);
 
-  // Profile Form States
-  const [fullName, setFullName] = React.useState('');
-  const [phone, setPhone] = React.useState('');
-  const [email, setEmail] = React.useState('');
+  // Profile Form States — seeded from the server-rendered profile so the form
+  // never paints empty over a saved value (typing into a blank field was then
+  // clobbered/merged when the client refetch landed).
+  const [fullName, setFullName] = React.useState<string>(initialProfile?.full_name ?? '');
+  const [phone, setPhone] = React.useState<string>(initialProfile?.phone ?? '');
+  const [email, setEmail] = React.useState<string>(initialProfile?.email ?? '');
   const [profileBusy, setProfileBusy] = React.useState(false);
   const [profileError, setProfileError] = React.useState<string | null>(null);
   const [profileOk, setProfileOk] = React.useState<string | null>(null);
@@ -136,9 +138,13 @@ export function AccountClient({
         const { data: p } = await sb.from('profiles').select('*').eq('id', authUser.id).single();
         if (p) {
           setProfile(p);
-          setFullName(p.full_name ?? '');
-          setPhone(p.phone ?? '');
-          setEmail(p.email ?? authUser.email ?? '');
+          // Only seed the form fields when the server render had no profile —
+          // otherwise this refetch would overwrite in-progress edits.
+          if (!initialProfile) {
+            setFullName(p.full_name ?? '');
+            setPhone(p.phone ?? '');
+            setEmail(p.email ?? authUser.email ?? '');
+          }
         }
 
         // Fetch addresses
@@ -173,6 +179,10 @@ export function AccountClient({
 
   async function handleProfileUpdate(e: React.FormEvent) {
     e.preventDefault();
+    if (!user) {
+      setProfileError('Still loading your account — try again in a moment.');
+      return;
+    }
     setProfileError(null);
     setProfileOk(null);
     setProfileBusy(true);

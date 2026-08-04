@@ -53,8 +53,10 @@ export function LoginForm() {
   const [cooldown, setCooldown] = React.useState(0);
 
   // The layout guard redirects here with ?error=wrong_app and ?redirect=…; both were
-  // previously sent and silently ignored.
-  const redirectTo = params.get('redirect') || '/';
+  // previously sent and silently ignored. Only same-origin paths are honoured.
+  const rawRedirect = params.get('redirect') || '/';
+  const redirectTo =
+    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/';
   const entryError = params.get('error');
 
   React.useEffect(() => {
@@ -104,18 +106,29 @@ export function LoginForm() {
     setBusy(true);
     try {
       const sb = supabase();
-      const { error } = await sb.auth.verifyOtp({ phone: e164, token: otp, type: 'sms' });
+      const { data: verified, error } = await sb.auth.verifyOtp({
+        phone: e164,
+        token: otp,
+        type: 'sms',
+      });
       if (error) throw error;
-
-      const { data: { user } } = await sb.auth.getUser();
+      // verifyOtp already returns the session user — a second /auth/v1/user
+      // round-trip here could stall this handler on "Verifying…" forever.
+      const user = verified.user;
       if (!user) throw new Error('Sign-in failed — try again.');
 
-      const { data: profile } = await sb
+      const { data: profile, error: profileError } = await sb
         .from('profiles')
         .select('registration_completed')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
+      // A failed lookup is not a missing profile — don't misroute an existing
+      // provider into onboarding; the app layout re-checks registration anyway.
+      if (profileError) {
+        router.replace(redirectTo);
+        return;
+      }
       router.replace(profile?.registration_completed ? redirectTo : '/register');
     } catch (e: any) {
       setErr(e.message ?? 'Invalid code');

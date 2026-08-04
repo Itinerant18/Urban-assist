@@ -166,8 +166,10 @@ export async function createBooking(
 
   try {
     await sendNextOffer(admin, booking.id);
-  } catch {
-    /* cascade failure is non-fatal */
+  } catch (err) {
+    // Non-fatal for the booking, but a swallowed throw here leaves the booking
+    // with no offer and no trace — always leave a log line.
+    console.error('[matching] sendNextOffer failed for booking', booking.id, err);
   }
 
   // Wallet spend happens last, so the failure surface after the debit is only
