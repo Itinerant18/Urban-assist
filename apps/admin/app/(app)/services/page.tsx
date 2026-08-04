@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { LayoutGrid, ChevronRight, Plus } from 'lucide-react';
-import { Button, Input } from '@urban-assist/ui';
+import { Button, Input, ServiceImage } from '@urban-assist/ui';
 
 import { requireAdminPermission } from '../../../lib/admin-auth';
 import {
@@ -51,7 +51,7 @@ export default async function ServicesPage() {
   const { db } = await requireAdminPermission('can_manage_bookings');
   const [{ data: categories }, { data: subs }, { data: skus }, { data: gatingRows }] =
     await Promise.all([
-      (db as any).from('service_categories').select('id, name').order('sort_order').order('name'),
+      (db as any).from('service_categories').select('id, name, slug').order('sort_order').order('name'),
       (db as any)
         .from('service_subcategories')
         .select('id, category_id, name, slug')
@@ -96,13 +96,18 @@ export default async function ServicesPage() {
               <SectionHeader
                 title={cat.name}
                 trailing={
-                  isGated ? (
-                    <Link href={`/training?category=${encodeURIComponent(cat.id)}`}>
-                      <StatusChip tone="pending">Training gated</StatusChip>
-                    </Link>
-                  ) : (
-                    <StatusChip tone="success">Open category</StatusChip>
-                  )
+                  <span className="flex items-center gap-2">
+                    <span className="relative block h-7 w-7 overflow-hidden rounded-md border border-hairline">
+                      <ServiceImage slug={cat.slug ?? ''} caption="" />
+                    </span>
+                    {isGated ? (
+                      <Link href={`/training?category=${encodeURIComponent(cat.id)}`}>
+                        <StatusChip tone="pending">Training gated</StatusChip>
+                      </Link>
+                    ) : (
+                      <StatusChip tone="success">Open category</StatusChip>
+                    )}
+                  </span>
                 }
               />
               <TableTile>

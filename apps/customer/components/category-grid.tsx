@@ -1,4 +1,5 @@
 import { Grid3X3, ArrowRight } from 'lucide-react';
+import { ServiceImage } from '@urban-assist/ui';
 import type { HomepageCategory } from '../lib/homepage-data';
 import { getCategoryIcon } from '../lib/homepage-data';
 import { pence } from '@urban-assist/lib';
@@ -16,17 +17,6 @@ const badgeColors: Record<string, { bg: string; label: string }> = {
   hammer: { bg: '#1F3A4D', label: 'Popular' },
   paintbrush: { bg: '#1F3A4D', label: 'Popular' },
   lock: { bg: '#1F3A4D', label: 'New' },
-};
-
-const getStripeStyle = (type: 'A' | 'B') => {
-  if (type === 'B') {
-    return {
-      background: 'repeating-linear-gradient(135deg, #E9F0E9, #E9F0E9 10px, #DEE9DE 10px, #DEE9DE 20px)',
-    };
-  }
-  return {
-    background: 'repeating-linear-gradient(135deg, #EDE6D8, #EDE6D8 10px, #E4DBC9 10px, #E4DBC9 20px)',
-  };
 };
 
 export function CategoryGrid({ categories }: CategoryGridProps) {
@@ -125,7 +115,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
     {
       id: 'all-services',
       type: 'all-services' as const,
-      slug: '',
+      slug: 'all-services',
       name: 'All Services',
       description: 'Browse our complete catalog of professional services.',
       icon: 'grid',
@@ -192,10 +182,8 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                   className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col h-full justify-between ${tile.spanClass}`}
                   style={{ borderColor: '#ECE6D9' }}
                 >
-                  <div className="relative h-36 sm:h-52 flex items-center justify-center overflow-hidden" style={getStripeStyle(tile.stripeType)}>
-                    <span className="font-mono text-[11px] text-[#8A8574] select-none text-center px-4">
-                      {tile.caption}
-                    </span>
+                  <div className="relative h-36 sm:h-52 overflow-hidden">
+                    <ServiceImage slug={tile.slug} caption={tile.caption} stripeType={tile.stripeType} />
                     {tile.badge && (
                       <span
                         className="absolute top-4 left-4 rounded px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.04em] text-white"
@@ -279,10 +267,8 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                       </span>
                     </div>
                   </div>
-                  <div className="relative h-28 sm:h-auto sm:w-2/5 flex items-center justify-center overflow-hidden border-t sm:border-t-0 sm:border-l border-hairline shrink-0" style={getStripeStyle(tile.stripeType)}>
-                    <span className="font-mono text-[10px] text-[#8A8574] select-none text-center px-4">
-                      {tile.caption}
-                    </span>
+                  <div className="relative h-28 sm:h-auto sm:w-2/5 overflow-hidden border-t sm:border-t-0 sm:border-l border-hairline shrink-0">
+                    <ServiceImage slug={tile.slug} caption={tile.caption} stripeType={tile.stripeType} />
                     <span className="hidden sm:grid absolute bottom-4 right-4 h-8 w-8 place-items-center rounded-lg bg-white shadow-sm border border-input-border group-hover:border-accent transition">
                       <Icon className="h-4 w-4 text-ink group-hover:text-accent" />
                     </span>
@@ -299,10 +285,8 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                   className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col justify-between ${tile.spanClass}`}
                   style={{ borderColor: '#ECE6D9' }}
                 >
-                  <div className="relative h-28 sm:h-32 flex items-center justify-center overflow-hidden" style={getStripeStyle(tile.stripeType)}>
-                    <span className="font-mono text-[10px] text-[#8A8574] select-none text-center px-2">
-                      {tile.caption}
-                    </span>
+                  <div className="relative h-28 sm:h-32 overflow-hidden">
+                    <ServiceImage slug={tile.slug} caption={tile.caption} stripeType={tile.stripeType} />
                     <span
                       className="absolute top-3 left-3 rounded px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.04em] text-white"
                       style={{ background: tile.badge.bg }}
@@ -334,10 +318,8 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                 className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col justify-between ${tile.spanClass}`}
                 style={{ borderColor: '#ECE6D9' }}
               >
-                <div className="relative h-28 sm:h-32 flex items-center justify-center overflow-hidden" style={getStripeStyle(tile.stripeType)}>
-                  <span className="font-mono text-[10px] text-[#8A8574] select-none text-center px-2">
-                    {tile.caption}
-                  </span>
+                <div className="relative h-28 sm:h-32 overflow-hidden">
+                  <ServiceImage slug={tile.slug} caption={tile.caption} stripeType={tile.stripeType} />
                   {tile.badge && (
                     <span
                       className="absolute top-3 left-3 rounded px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.04em] text-white"

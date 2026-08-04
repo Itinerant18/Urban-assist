@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { Button, Card, Field, Input, Badge } from '@urban-assist/ui';
+import { Button, Card, Field, Input, Badge, ServiceImage } from '@urban-assist/ui';
 import { pence } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { Plus, Trash2, Edit2, Check, X, ToggleLeft, ToggleRight } from 'lucide-react';
@@ -300,6 +300,9 @@ export function ServicesEditor({
                       </div>
                     ) : (
                       <>
+                        <span className="relative block h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-hairline">
+                          <ServiceImage slug={cat?.slug ?? ''} caption="" />
+                        </span>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium truncate">{m.title}</span>
