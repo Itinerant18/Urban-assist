@@ -21,7 +21,7 @@ export function ServiceCard({ service, categorySlug, subcategorySlug, icon }: Se
       className="group flex flex-col rounded-lg border border-hairline bg-white transition-all hover:border-accent hover:shadow-sm hover:shadow-accent/20 overflow-hidden"
     >
       {/* Top: Square Image/Icon Area - Compact */}
-      <div className="relative aspect-square w-full flex items-center justify-center bg-gradient-to-br from-accent/10 to-accent/5 transition-all group-hover:from-accent/20 group-hover:to-accent/10">
+      <div className="relative aspect-[16/9] sm:aspect-square w-full flex items-center justify-center bg-gradient-to-br from-accent/10 to-accent/5 transition-all group-hover:from-accent/20 group-hover:to-accent/10">
         <Icon className="h-16 w-16 text-accent transition-transform group-hover:scale-105" />
       </div>
       

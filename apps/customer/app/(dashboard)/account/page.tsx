@@ -14,7 +14,7 @@ export default async function AccountPage() {
 
   const now = new Date().toISOString();
   const [profileResult, promoResult, bookingResult, walletResult] = await Promise.all([
-    db.from('profiles').select('notification_prefs').eq('id', user.id).single(),
+    db.from('profiles').select('*').eq('id', user.id).single(),
     db
       .from('promo_codes')
       .select('id,code,discount_type,discount_value,expires_at,max_redemptions,redemption_count'),
@@ -47,6 +47,7 @@ export default async function AccountPage() {
   return (
     <AccountClient
       initialNotificationPrefs={notificationPrefs(profileResult.data?.notification_prefs)}
+      profile={profileResult.data ?? null}
       promos={[...redeemed.values(), ...available]}
       walletBalancePence={walletResult.data ?? 0}
     />

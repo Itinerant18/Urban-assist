@@ -24,7 +24,7 @@ export default async function ServicesOnboarding() {
           what you offer.
         </p>
       </header>
-      <ServicesEditor {...catalog} />
+      <ServicesEditor {...catalog} onboarding />
     </div>
   );
 }

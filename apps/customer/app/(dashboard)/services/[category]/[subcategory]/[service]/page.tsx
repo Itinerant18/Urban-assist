@@ -3,12 +3,12 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Clock } from 'lucide-react';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { pence } from '@urban-assist/lib';
-import { getCategoryBySlug, getServiceBySlug } from '../../../../../lib/catalog';
-import { getCategoryIcon } from '../../../../../lib/services-data';
-import { Header } from '../../../../../components/header';
-import { Footer } from '../../../../../components/footer';
-import { ServiceCard } from '../../../../../components/services/service-card';
-import { ProviderList } from '../../../../../components/services/provider-list';
+import { getCategoryBySlug, getServiceBySlug } from '@/lib/catalog';
+import { getCategoryIcon } from '@/lib/services-data';
+import { Footer } from '@/components/footer';
+import { BrowseToolbar } from '@/components/browse-toolbar';
+import { ServiceCard } from '@/components/services/service-card';
+import { ProviderList } from '@/components/services/provider-list';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,7 +76,7 @@ export default async function ServiceDetailPage({
 
   return (
     <>
-      <Header />
+      <BrowseToolbar />
       <main className="mx-auto max-w-page px-4 pb-28 pt-6 lg:px-6 lg:pb-16">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-muted mb-3 font-medium flex-wrap">

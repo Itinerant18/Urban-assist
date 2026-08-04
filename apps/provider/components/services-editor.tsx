@@ -47,11 +47,15 @@ export function ServicesEditor({
   subcategories = [],
   skus = [],
   mine: initialMine,
+  onboarding = false,
 }: {
   categories: Category[];
   subcategories?: Subcategory[];
   skus?: SKU[];
   mine: ProviderService[];
+  /** True in the onboarding flow — shows the "Finish & open dashboard" handoff
+   * CTA. The in-app services page keeps the editor without it. */
+  onboarding?: boolean;
 }) {
   const router = useRouter();
   const [mine, setMine] = React.useState<ProviderService[]>(initialMine);
@@ -455,7 +459,7 @@ export function ServicesEditor({
         </Button>
       )}
 
-      {mine.length > 0 && !adding && (
+      {onboarding && mine.length > 0 && !adding && (
         <Button className="w-full mt-4" size="lg" onClick={() => router.push('/')}>
           Finish &amp; open dashboard
         </Button>

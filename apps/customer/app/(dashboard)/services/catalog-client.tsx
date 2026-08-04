@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { SERVICE_CATEGORIES, categoryIcons, type Category } from '../../lib/services-data';
+import { SERVICE_CATEGORIES, categoryIcons, type Category } from '@/lib/services-data';
 import { Card } from '@urban-assist/ui';
 import { Search } from 'lucide-react';
 import Link from 'next/link';

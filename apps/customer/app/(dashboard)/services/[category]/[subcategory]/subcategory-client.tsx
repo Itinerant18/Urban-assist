@@ -18,7 +18,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
-import { getCategoryIcon, type Subcategory } from '../../../../lib/services-data';
+import { getCategoryIcon, type Subcategory } from '@/lib/services-data';
 
 interface ProviderPreview {
   id: string;

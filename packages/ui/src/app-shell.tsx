@@ -29,6 +29,7 @@ export function AppShell({
   headerRight,
   children,
   hideBottomNav: hideBottomNavProp,
+  wideRoutes,
 }: {
   nav: NavItem[];
   brand: React.ReactNode;
@@ -36,9 +37,15 @@ export function AppShell({
   children: React.ReactNode;
   /** Force-hide mobile tab bar (e.g. immersive flows). */
   hideBottomNav?: boolean;
+  /** Routes (exact or prefix) whose pages own their full-width layout —
+   * content renders without the default width/padding container. */
+  wideRoutes?: string[];
 }) {
   const pathname = usePathname();
   const hideBottomNav = hideBottomNavProp ?? shouldHideBottomNav(pathname);
+  // ponytail: prefix list from the app; promote to a per-page slot if layouts diverge further
+  const bare =
+    wideRoutes?.some((r) => pathname === r || pathname?.startsWith(r + '/')) ?? false;
 
   return (
     <div className="min-h-dvh bg-bg lg:flex">
@@ -68,7 +75,13 @@ export function AppShell({
         <header className="sticky top-0 z-20 hidden h-16 items-center justify-end border-b border-hairline bg-bg/95 px-10 py-4 backdrop-blur lg:flex">
           {headerRight && <div>{headerRight}</div>}
         </header>
-        <div className="mx-auto w-full max-w-2xl px-4 py-4 sm:px-6 lg:max-w-3xl lg:px-10 lg:py-8">
+        <div
+          className={
+            bare
+              ? 'w-full'
+              : 'mx-auto w-full max-w-2xl px-4 py-4 sm:px-6 lg:max-w-3xl lg:px-10 lg:py-8'
+          }
+        >
           {children}
         </div>
       </main>

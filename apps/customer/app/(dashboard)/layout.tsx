@@ -1,29 +1,48 @@
 import type { NavItem } from '@urban-assist/ui';
 import { AppShell } from '@urban-assist/ui';
-import { Home, CalendarClock, UserRound, MessageSquare, Gift } from 'lucide-react';
+import { Home, CalendarClock, UserRound, MessageSquare, Sparkles } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { NotificationBell } from './notification-bell';
 import { PushRegistrar } from './push-registrar';
 import { CartLink } from '../../components/cart-link';
+import { LoginCard } from '../../components/login-card';
 
 const nav: NavItem[] = [
-  { href: '/browse', label: 'Home', icon: <Home className="h-5 w-5" /> },
+  { href: '/', label: 'Home', icon: <Home className="h-5 w-5" /> },
+  { href: '/services', label: 'Services', icon: <Sparkles className="h-5 w-5" /> },
   { href: '/bookings', label: 'Bookings', icon: <CalendarClock className="h-5 w-5" /> },
   { href: '/messages', label: 'Chat', icon: <MessageSquare className="h-5 w-5" /> },
-  { href: '/referrals', label: 'Refer', icon: <Gift className="h-5 w-5" /> },
   { href: '/account', label: 'Account', icon: <UserRound className="h-5 w-5" /> },
 ];
+
+// Browse pages are public and own their full-width layout; everything else is
+// auth-gated (middleware redirects before this layout runs for those routes).
+const WIDE_ROUTES = ['/', '/services'];
+const isPublicPath = (pathname: string) =>
+  pathname === '/' || pathname === '/services' || pathname.startsWith('/services/');
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const db = getSupabaseServer();
   const { data: { user } } = await db.auth.getUser();
+
+  const headersList = headers();
+  const pathname = headersList.get('x-next-pathname') || headersList.get('x-invoke-path') || '/';
+
   if (!user) {
-    // Read the current URL path so we can redirect back after login
-    const headersList = headers();
-    const pathname = headersList.get('x-next-pathname') || headersList.get('x-invoke-path') || '/';
-    redirect(`/login?redirect=${encodeURIComponent(pathname)}`);
+    if (isPublicPath(pathname)) {
+      return (
+        <AppShell nav={nav} brand="Urban Assist" wideRoutes={WIDE_ROUTES} headerRight={<CartLink />}>
+          {children}
+        </AppShell>
+      );
+    }
+    return (
+      <div className="mx-auto max-w-xl px-5 py-12">
+        <LoginCard redirectTo={pathname} />
+      </div>
+    );
   }
 
   const [{ data: profile }, { count }] = await Promise.all([
@@ -34,12 +53,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .eq('profile_id', user.id)
       .is('read_at', null),
   ]);
-  if (profile?.role !== 'customer') redirect('/api/auth/wrong-app');
+  // Non-customers may still view the public browse pages; the wrong-app
+  // bounce only applies to customer-only surfaces.
+  if (profile?.role !== 'customer' && !isPublicPath(pathname)) redirect('/api/auth/wrong-app');
 
   return (
-    <AppShell 
-      nav={nav} 
+    <AppShell
+      nav={nav}
       brand="Urban Assist"
+      wideRoutes={WIDE_ROUTES}
       headerRight={
         <>
           <CartLink />

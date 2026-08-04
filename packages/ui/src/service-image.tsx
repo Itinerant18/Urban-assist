@@ -26,15 +26,10 @@ export function ServiceImage({
   if (!slug || failed) {
     return (
       <div
-        className="absolute inset-0 flex items-center justify-center"
+        className="absolute inset-0"
         style={{ background: STRIPES[stripeType] }}
-      >
-        {caption ? (
-          <span className="select-none px-4 text-center font-mono text-[11px] text-[#8A8574]">
-            {caption}
-          </span>
-        ) : null}
-      </div>
+        aria-hidden="true"
+      />
     );
   }
 

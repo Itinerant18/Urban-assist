@@ -73,14 +73,17 @@ export function AccountClient({
   initialNotificationPrefs,
   promos,
   walletBalancePence,
+  profile: initialProfile,
 }: {
   initialNotificationPrefs: Record<string, boolean>;
   promos: AccountPromo[];
   walletBalancePence: number;
+  /** Server-rendered profile row so the skeleton never flashes after hydration. */
+  profile: any;
 }) {
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(!initialProfile);
   const [user, setUser] = React.useState<any>(null);
-  const [profile, setProfile] = React.useState<any>(null);
+  const [profile, setProfile] = React.useState<any>(initialProfile);
   const [addresses, setAddresses] = React.useState<Address[]>([]);
   const [addingAddress, setAddingAddress] = React.useState(false);
   const [favorites, setFavorites] = React.useState<Favorite[]>([]);

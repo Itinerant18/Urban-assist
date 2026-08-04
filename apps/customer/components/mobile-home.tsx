@@ -24,7 +24,6 @@ import type {
 } from '../lib/homepage-data';
 import { getCategoryIcon } from '../lib/homepage-data';
 import { PostcodeGate } from './postcode-gate';
-import { GuestBottomNav } from './customer-bottom-nav';
 
 interface MobileHomeProps {
   data: HomepageData;
@@ -371,7 +370,6 @@ export function MobileHome({ data }: MobileHomeProps) {
         <CustomerProof reviews={reviews} />
       </main>
       <MobileFooter />
-      <GuestBottomNav active="home" />
     </div>
   );
 }
