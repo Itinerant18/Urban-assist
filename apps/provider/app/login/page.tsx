@@ -1,5 +1,6 @@
 import { LoginForm } from './login-form';
 import { Suspense } from 'react';
+import { Logo } from '@urban-assist/ui';
 
 export const metadata = { title: 'Provider sign in — Urban Assist Pro' };
 
@@ -19,9 +20,7 @@ export default function Page() {
       <div className="mx-auto flex w-full max-w-md flex-col justify-center px-6 py-12 pb-28 lg:pb-12">
         <div className="mb-8">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-ink text-sm font-extrabold text-white">
-              UA
-            </span>
+            <Logo className="h-[34px] w-[34px]" />
             <span className="font-extrabold text-ink">Urban Assist</span>
           </div>
           <p className="mt-6 font-mono-utility text-muted">For providers</p>
