@@ -1,5 +1,4 @@
 import { Footer } from '@/components/footer';
-import { BrowseToolbar } from '@/components/browse-toolbar';
 import { CatalogClient } from './catalog-client';
 import { Suspense } from 'react';
 import { getCatalogTree } from '@/lib/catalog';
@@ -16,7 +15,6 @@ export default async function AllServicesPage() {
 
   return (
     <>
-      <BrowseToolbar />
       <main className="mx-auto max-w-page px-4 pb-28 pt-8 lg:px-6">
         {/* Page Header */}
         <div className="mb-10">

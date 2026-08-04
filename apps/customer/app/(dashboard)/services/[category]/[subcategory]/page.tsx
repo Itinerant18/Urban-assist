@@ -5,7 +5,6 @@ import {
     getSubcategoryBySlug,
 } from '@/lib/catalog';
 import { Footer } from '@/components/footer';
-import { BrowseToolbar } from '@/components/browse-toolbar';
 import { SubcategoryClient } from './subcategory-client';
 
 export const dynamic = 'force-dynamic';
@@ -99,7 +98,6 @@ export default async function SubcategoryPage({
 
   return (
     <>
-      <BrowseToolbar />
       <SubcategoryClient
         category={{
           id: category.id,

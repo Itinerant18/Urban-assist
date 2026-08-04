@@ -6,7 +6,6 @@ import { WhyUs } from '@/components/why-us';
 import { Testimonials } from '@/components/testimonials';
 import { Footer } from '@/components/footer';
 import { MobileHome } from '@/components/mobile-home';
-import { BrowseToolbar } from '@/components/browse-toolbar';
 import { getHomepageData } from '@/lib/homepage-data';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +20,6 @@ export default async function LandingPage() {
       </div>
 
       <div className="hidden lg:block">
-        <BrowseToolbar />
         <main>
           <Hero categories={data.categories} promoCode={data.promoCode} />
           <CategoryGrid categories={data.categories} />

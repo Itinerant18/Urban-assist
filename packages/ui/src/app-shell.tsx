@@ -30,6 +30,7 @@ export function AppShell({
   children,
   hideBottomNav: hideBottomNavProp,
   wideRoutes,
+  topNav,
 }: {
   nav: NavItem[];
   brand: React.ReactNode;
@@ -40,6 +41,9 @@ export function AppShell({
   /** Routes (exact or prefix) whose pages own their full-width layout —
    * content renders without the default width/padding container. */
   wideRoutes?: string[];
+  /** Marketplace-style top navbar. When set, it replaces the desktop sidebar
+   * and the built-in headers; the mobile bottom tab bar is kept. */
+  topNav?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const hideBottomNav = hideBottomNavProp ?? shouldHideBottomNav(pathname);
@@ -48,7 +52,7 @@ export function AppShell({
     wideRoutes?.some((r) => pathname === r || pathname?.startsWith(r + '/')) ?? false;
 
   return (
-    <div className="min-h-dvh bg-bg lg:flex">
+    <div className={cn('min-h-dvh bg-bg', !topNav && 'lg:flex')}>
       <a
         href="#main-content"
         className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:not-sr-only focus:rounded-xl focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-ink focus:shadow-card"
@@ -56,10 +60,13 @@ export function AppShell({
         Skip to main content
       </a>
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r border-hairline px-5 py-6 lg:block">
-        <div className="mb-8 font-display text-lg">{brand}</div>
-        <SidebarNav items={nav} />
-      </aside>
+      {!topNav && (
+        <aside className="hidden w-60 shrink-0 border-r border-hairline px-5 py-6 lg:block">
+          <div className="mb-8 font-display text-lg">{brand}</div>
+          <SidebarNav items={nav} />
+        </aside>
+      )}
+      {topNav}
 
       {/* Content */}
       <main
@@ -67,14 +74,18 @@ export function AppShell({
         tabIndex={-1}
         className={cn('flex-1 lg:pb-12', hideBottomNav ? 'pb-0' : 'pb-40')}
       >
-        <header className="flex items-center justify-between px-5 py-4 lg:hidden">
-          <div className="font-display text-base">{brand}</div>
-          {headerRight && <div>{headerRight}</div>}
-        </header>
-        {/* Desktop Header */}
-        <header className="sticky top-0 z-20 hidden h-16 items-center justify-end border-b border-hairline bg-bg/95 px-10 py-4 backdrop-blur lg:flex">
-          {headerRight && <div>{headerRight}</div>}
-        </header>
+        {!topNav && (
+          <>
+            <header className="flex items-center justify-between px-5 py-4 lg:hidden">
+              <div className="font-display text-base">{brand}</div>
+              {headerRight && <div>{headerRight}</div>}
+            </header>
+            {/* Desktop Header */}
+            <header className="sticky top-0 z-20 hidden h-16 items-center justify-end border-b border-hairline bg-bg/95 px-10 py-4 backdrop-blur lg:flex">
+              {headerRight && <div>{headerRight}</div>}
+            </header>
+          </>
+        )}
         <div
           className={
             bare

@@ -8,6 +8,7 @@ import { NotificationBell } from './notification-bell';
 import { PushRegistrar } from './push-registrar';
 import { CartLink } from '../../components/cart-link';
 import { LoginCard } from '../../components/login-card';
+import { SiteHeader } from '../../components/site-header';
 
 const nav: NavItem[] = [
   { href: '/', label: 'Home', icon: <Home className="h-5 w-5" /> },
@@ -33,7 +34,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) {
     if (isPublicPath(pathname)) {
       return (
-        <AppShell nav={nav} brand="Urban Assist" wideRoutes={WIDE_ROUTES} headerRight={<CartLink />}>
+        <AppShell
+          nav={nav}
+          brand="Urban Assist"
+          wideRoutes={WIDE_ROUTES}
+          topNav={<SiteHeader right={<CartLink />} />}
+        >
           {children}
         </AppShell>
       );
@@ -62,11 +68,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       nav={nav}
       brand="Urban Assist"
       wideRoutes={WIDE_ROUTES}
-      headerRight={
-        <>
-          <CartLink />
-          <NotificationBell initialUnread={count ?? 0} />
-        </>
+      topNav={
+        <SiteHeader
+          right={
+            <>
+              <CartLink />
+              <NotificationBell initialUnread={count ?? 0} />
+            </>
+          }
+        />
       }
     >
       <PushRegistrar />
