@@ -370,10 +370,21 @@ export async function sendNextOffer(db: SupabaseClient, bookingId: string) {
       OFFER_TTL_SECONDS,
     );
 
+    // Title gives the list human context; the label map is only a fallback.
+    const { data: meta } = await db
+      .from('bookings')
+      .select('price_pence, category:service_categories(name)')
+      .eq('id', bookingId)
+      .maybeSingle();
+    const categoryName = (meta as any)?.category?.name as string | undefined;
+    const title = categoryName
+      ? `New job offer — ${categoryName}, £${((meta?.price_pence ?? 0) / 100).toFixed(2)}`
+      : undefined;
+
     await db.from('notifications').insert({
       profile_id: next.provider_id,
       type: 'offer.new',
-      payload: { booking_id: bookingId, offer_id: offer.id, responds_by: respondsBy },
+      payload: { booking_id: bookingId, offer_id: offer.id, responds_by: respondsBy, title },
     });
     return offer;
   } finally {

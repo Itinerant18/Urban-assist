@@ -13,8 +13,26 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
     let channel: ReturnType<typeof sb.channel> | null = null;
     let disposed = false;
 
+    let refetchTimer: ReturnType<typeof setTimeout> | null = null;
+
     sb.auth.getUser().then(({ data }: any) => {
       if (!data.user || disposed) return;
+      const uid = data.user.id;
+
+      // UPDATE payloads don't carry old.read_at without REPLICA IDENTITY FULL,
+      // so decrementing from the event is unreliable — refetch the real count,
+      // coalesced so "mark all read" (N updates) costs one query.
+      const refetchCount = () => {
+        if (refetchTimer) clearTimeout(refetchTimer);
+        refetchTimer = setTimeout(async () => {
+          const { count } = await sb
+            .from('notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('profile_id', uid)
+            .is('read_at', null);
+          if (!disposed) setUnread(count ?? 0);
+        }, 300);
+      };
 
       channel = sb
         // Unique per mount: reusing a fixed name can return a channel still
@@ -26,7 +44,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
             event: 'INSERT',
             schema: 'public',
             table: 'notifications',
-            filter: `profile_id=eq.${data.user.id}`,
+            filter: `profile_id=eq.${uid}`,
           },
           () => setUnread((count) => count + 1),
         )
@@ -36,19 +54,16 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
             event: 'UPDATE',
             schema: 'public',
             table: 'notifications',
-            filter: `profile_id=eq.${data.user.id}`,
+            filter: `profile_id=eq.${uid}`,
           },
-          (payload: any) => {
-            if (payload.old && !payload.old.read_at && payload.new?.read_at) {
-              setUnread((count) => Math.max(0, count - 1));
-            }
-          },
+          refetchCount,
         )
         .subscribe();
     });
 
     return () => {
       disposed = true;
+      if (refetchTimer) clearTimeout(refetchTimer);
       if (channel) sb.removeChannel(channel);
     };
   }, []);

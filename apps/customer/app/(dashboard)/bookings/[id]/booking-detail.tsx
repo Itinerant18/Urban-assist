@@ -360,7 +360,7 @@ export function BookingDetail({
             </Card>
           </div>
         </div>
-      ) : (
+      ) : ['cancelled', 'disputed'].includes(booking.status) ? null : (
         <Card>
           <LiveStatusTrack stage={stage} />
         </Card>

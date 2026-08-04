@@ -88,7 +88,7 @@ export function BookFlow({
 
   const days = React.useMemo(() => listBookingDays(), []);
 
-  const { control, handleSubmit, watch, setValue, trigger, formState: { errors } } = useForm<CheckoutFormValues>({
+  const { control, handleSubmit, watch, setValue, trigger, reset, formState: { errors } } = useForm<CheckoutFormValues>({
     resolver: zodResolver(CheckoutSchema),
     defaultValues: {
       addressId: addresses.find((a) => a.is_default)?.id || addresses[0]?.id || '',
@@ -109,6 +109,32 @@ export function BookFlow({
 
   const [paymentSecret, setPaymentSecret] = React.useState<string | null>(null);
   const [createdBookingId, setCreatedBookingId] = React.useState<string | null>(null);
+
+  // A refresh used to silently reset the wizard to step 1. Persist step + fields
+  // per service in sessionStorage; cleared once the booking is created.
+  const storageKey = `ua_book_${service.id}`;
+  React.useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null');
+      if (!saved?.values) return;
+      if (!cardEnabled) saved.values.paymentMethod = 'cash';
+      reset(saved.values);
+      if (saved.step === 'schedule' || saved.step === 'confirm') setStep(saved.step);
+    } catch {
+      /* corrupted saved state — start fresh */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const formSnapshot = JSON.stringify(watch());
+  React.useEffect(() => {
+    if (paymentSecret) return; // booking already created — nothing left to restore
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify({ step, values: JSON.parse(formSnapshot) }));
+    } catch {
+      /* storage full/unavailable — persistence is best-effort */
+    }
+  }, [step, formSnapshot, storageKey, paymentSecret]);
   const [payError, setPayError] = React.useState<string | null>(null);
   const [payBusy, setPayBusy] = React.useState(false);
   const [stripeElements, setStripeElements] = React.useState<any>(null);
@@ -272,6 +298,9 @@ export function BookFlow({
         throw new Error(typeof j.error === 'string' ? j.error : 'Could not create booking');
       }
       const data = await res.json();
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch {}
       if (values.paymentMethod === 'card' && data.payment?.client_secret) {
         setPaymentSecret(data.payment.client_secret);
         setCreatedBookingId(data.booking.id);

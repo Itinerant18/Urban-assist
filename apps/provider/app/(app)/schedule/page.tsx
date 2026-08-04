@@ -3,7 +3,7 @@ import * as React from 'react';
 import { Card, Button, Badge, EmptyState } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { ukDate, ukDateTime } from '@urban-assist/lib';
-import { Calendar, Check, Clock, Coffee, Plus, Trash2 } from 'lucide-react';
+import { Calendar, Check, Clock, Coffee, History, Plus, Trash2 } from 'lucide-react';
 import { DateField, DayCheckbox, TimeField } from './schedule-fields';
 
 // DB convention: weekday 0 = Sunday (matches JS getDay()). UI renders Monday-first.
@@ -61,11 +61,12 @@ function formatWeeklyHours(totalMinutes: number): string {
 }
 
 export default function SchedulePage() {
-  const [tab, setTab] = React.useState<'jobs' | 'availability'>('jobs');
+  const [tab, setTab] = React.useState<'jobs' | 'history' | 'availability'>('jobs');
   const [loading, setLoading] = React.useState(true);
   const [userId, setUserId] = React.useState<string | null>(null);
 
   const [jobs, setJobs] = React.useState<UpcomingJob[]>([]);
+  const [history, setHistory] = React.useState<UpcomingJob[]>([]);
   const [week, setWeek] = React.useState<Record<number, DayWindow>>(defaultWeek);
   const [timeOffList, setTimeOffList] = React.useState<TimeOff[]>([]);
 
@@ -79,9 +80,9 @@ export default function SchedulePage() {
   const [timeOffSaved, setTimeOffSaved] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
 
-  const scrollByTab = React.useRef({ jobs: 0, availability: 0 });
+  const scrollByTab = React.useRef({ jobs: 0, history: 0, availability: 0 });
 
-  function switchTab(next: 'jobs' | 'availability') {
+  function switchTab(next: 'jobs' | 'history' | 'availability') {
     if (next === tab) return;
     scrollByTab.current[tab] = window.scrollY;
     setTab(next);
@@ -110,6 +111,14 @@ export default function SchedulePage() {
           .in('status', ['assigned', 'on_the_way', 'arrived', 'in_progress'])
           .order('scheduled_at');
 
+        const { data: historyData } = await sb
+          .from('bookings')
+          .select('id, short_code, scheduled_at, status, price_pence, total_pence, category:service_categories(name), address:addresses(line1,postcode)')
+          .eq('provider_id', user.id)
+          .in('status', ['completed', 'cancelled', 'disputed'])
+          .order('scheduled_at', { ascending: false })
+          .limit(20);
+
         const { data: slotsData } = await sb
           .from('availability_slots')
           .select('*')
@@ -134,6 +143,7 @@ export default function SchedulePage() {
         }
 
         setJobs(jobsData as any ?? []);
+        setHistory(historyData as any ?? []);
         setWeek(wk);
         setTimeOffList(timeOffData ?? []);
       } catch (err) {
@@ -280,6 +290,17 @@ export default function SchedulePage() {
         <button
           type="button"
           role="tab"
+          aria-selected={tab === 'history'}
+          onClick={() => switchTab('history')}
+          className={`flex-1 rounded-lg py-2.5 text-xs font-mono-utility font-medium transition flex items-center justify-center gap-1.5 ${
+            tab === 'history' ? 'bg-ink text-bg shadow-sm' : 'text-muted hover:text-ink'
+          }`}
+        >
+          <History className="h-3.5 w-3.5" /> History
+        </button>
+        <button
+          type="button"
+          role="tab"
           aria-selected={tab === 'availability'}
           onClick={() => switchTab('availability')}
           className={`flex-1 rounded-lg py-2.5 text-xs font-mono-utility font-medium transition flex items-center justify-center gap-1.5 ${
@@ -313,6 +334,50 @@ export default function SchedulePage() {
                         {j.category?.name}
                       </span>
                       <Badge tone="accent">
+                        {j.status.replace(/_/g, ' ')}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted mt-1">
+                      {ukDateTime(j.scheduled_at)} · {[j.address?.line1, j.address?.postcode].filter(Boolean).join(', ')}
+                    </p>
+                    <p className="font-mono-utility text-muted mt-0.5">#{j.short_code}</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/jobs/${j.id}`;
+                  }}>
+                    Open
+                  </Button>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section
+        className={`space-y-3 ${tab === 'history' ? '' : 'hidden'}`}
+        aria-hidden={tab !== 'history'}
+      >
+        {!history.length ? (
+          <EmptyState
+            title="No past jobs yet"
+            description="Completed and cancelled jobs will appear here."
+          />
+        ) : (
+          <ul className="space-y-2.5">
+            {history.map((j) => (
+              <li key={j.id}>
+                <Card
+                  onClick={() => window.location.href = `/jobs/${j.id}`}
+                  className="flex items-center justify-between gap-4 cursor-pointer hover:border-ink transition"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm sm:text-base">
+                        {j.category?.name}
+                      </span>
+                      <Badge tone={j.status === 'completed' ? 'success' : 'muted'}>
                         {j.status.replace(/_/g, ' ')}
                       </Badge>
                     </div>

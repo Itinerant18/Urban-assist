@@ -159,7 +159,14 @@ export async function createBooking(
     })
     .select()
     .single();
-  if (bErr || !booking) throw new Error(bErr?.message ?? 'insert_failed');
+  if (bErr || !booking) {
+    // Unique index bookings_dedupe_active_idx: same customer/service/slot with a
+    // live prior booking — double-click or back-button resubmission.
+    if (bErr?.code === '23505') {
+      throw new Error('You already have an active booking for this service at that time.');
+    }
+    throw new Error(bErr?.message ?? 'insert_failed');
+  }
 
   await appendBookingStatus({
     booking_id: booking.id,

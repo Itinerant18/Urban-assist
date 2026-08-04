@@ -84,13 +84,18 @@ export default function EarningsPage() {
     loadData();
   }, []);
 
-  // Commission-net balance from the server — gross-minus-net was overstating it.
+  // Commission-net balance + per-booking splits from the server — commission
+  // rules are service-role-only, so the numbers must come from the API.
   const [balancePending, setBalancePending] = React.useState(0);
+  const [splits, setSplits] = React.useState<
+    Record<string, { net_pence: number; commission_pence: number; bps: number }>
+  >({});
   React.useEffect(() => {
     fetch('/api/earnings/balance', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (typeof data?.balance_pence === 'number') setBalancePending(data.balance_pence);
+        if (data?.splits) setSplits(data.splits);
       })
       .catch(() => {});
   }, []);
@@ -181,6 +186,9 @@ export default function EarningsPage() {
             <div>
               <p className="text-xs font-bold text-muted uppercase tracking-wider">Available Balance</p>
               <div className="font-display text-4xl font-bold mt-1 text-ink">{pence(balancePending)}</div>
+              <p className="text-xs text-muted mt-1 max-w-[260px]">
+                Card jobs only — cash jobs are paid to you on site and never enter the balance.
+              </p>
             </div>
           </div>
           
@@ -249,19 +257,32 @@ export default function EarningsPage() {
                     <div className="p-4 text-sm text-muted text-center">No completed jobs this week.</div>
                  ) : (
                    <ul className="divide-y divide-hairline">
-                     {recentJobs.map(job => (
+                     {recentJobs.map(job => {
+                       const split = splits[job.id];
+                       return (
                        <li key={job.id} className="p-4 flex items-center justify-between hover:bg-bg/40">
                          <div>
                             <div className="font-bold text-sm text-ink flex items-center gap-2">
                                {ukDate(job.date)} <span className="text-hairline">•</span> {job.title}
                             </div>
-                            <div className="text-xs text-muted font-mono-utility mt-1">Booking: #{job.short_code}</div>
+                            <div className="text-xs text-muted font-mono-utility mt-1">
+                              Booking: #{job.short_code}
+                              {job.method === 'cash' && ' · cash, paid on site'}
+                            </div>
                          </div>
-                         <div className="font-mono-utility text-success font-medium">
-                           +{pence(job.amount_pence)}
+                         <div className="text-right">
+                           <div className="font-mono-utility text-success font-medium">
+                             +{pence(split ? split.net_pence : job.amount_pence)}
+                           </div>
+                           {split && split.commission_pence > 0 && (
+                             <div className="text-[11px] text-muted font-mono-utility mt-0.5">
+                               {pence(job.amount_pence)} − {pence(split.commission_pence)} fee ({split.bps / 100}%)
+                             </div>
+                           )}
                          </div>
                        </li>
-                     ))}
+                       );
+                     })}
                    </ul>
                  )}
                </div>

@@ -17,21 +17,29 @@ export async function GET() {
   const [{ data: bookings }, rateFor, { data: payouts }] = await Promise.all([
     admin
       .from('bookings')
-      .select('price_pence, category_id')
+      .select('id, price_pence, category_id, payment_method')
       .eq('provider_id', user.id)
-      .eq('status', 'completed')
-      .eq('payment_method', 'card'),
+      .eq('status', 'completed'),
     loadCommissionRates(admin),
     admin.from('payouts').select('amount_pence, status').eq('provider_id', user.id),
   ]);
 
-  const netEarnings = (bookings ?? []).reduce(
-    (sum, b) => sum + splitCommission(b.price_pence, rateFor(b.category_id)).net,
-    0,
-  );
+  // Per-booking commission split for the earnings list (cash included — the
+  // provider keeps the net either way; cash just never enters the balance).
+  const splits: Record<string, { net_pence: number; commission_pence: number; bps: number }> = {};
+  let netCardEarnings = 0;
+  for (const b of bookings ?? []) {
+    const split = splitCommission(b.price_pence, rateFor(b.category_id));
+    splits[b.id] = { net_pence: split.net, commission_pence: split.commission, bps: split.bps };
+    if (b.payment_method === 'card') netCardEarnings += split.net;
+  }
+
   const paidOut = (payouts ?? [])
     .filter((po) => po.status === 'paid')
     .reduce((sum, po) => sum + po.amount_pence, 0);
 
-  return NextResponse.json({ balance_pence: Math.max(0, netEarnings - paidOut) });
+  return NextResponse.json({
+    balance_pence: Math.max(0, netCardEarnings - paidOut),
+    splits,
+  });
 }
