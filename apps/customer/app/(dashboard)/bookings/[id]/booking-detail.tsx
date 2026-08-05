@@ -200,11 +200,26 @@ export function BookingDetail({
     if (!draft.trim()) return;
     const body = draft;
     setDraft('');
-    await fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ booking_id: booking.id, content: body }),
-    });
+    // A swallowed failure here silently loses the customer's message — the server
+    // legitimately rejects with chat_unavailable until a provider is assigned.
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ booking_id: booking.id, content: body }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(
+          j.error === 'chat_unavailable'
+            ? 'Chat opens once a professional is assigned to your booking.'
+            : 'Your message could not be sent. Please try again.',
+        );
+      }
+    } catch (err: any) {
+      setDraft(body);
+      toast.error(err.message ?? 'Your message could not be sent. Please try again.');
+    }
   }
 
   async function confirmCash() {

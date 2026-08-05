@@ -17,6 +17,11 @@ interface CartContextType {
   removeFromCart: () => void;
 }
 
+// v2: carts saved before the clear-on-booking-success fix could hold an
+// already-booked item with a live Checkout button. Bumping the key drops
+// every pre-fix cart exactly once (a cart is one item — two taps to re-add).
+const KEY = 'ua_cart_v2';
+
 const CartContext = React.createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -25,12 +30,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Load from localStorage on mount
   React.useEffect(() => {
-    const saved = localStorage.getItem('ua_cart');
+    localStorage.removeItem('ua_cart');
+    const saved = localStorage.getItem(KEY);
     if (saved) {
       try {
         setCart(JSON.parse(saved));
       } catch {
-        localStorage.removeItem('ua_cart');
+        localStorage.removeItem(KEY);
       }
     }
     setHydrated(true);
@@ -38,12 +44,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = React.useCallback((item: CartItem) => {
     setCart(item);
-    localStorage.setItem('ua_cart', JSON.stringify(item));
+    localStorage.setItem(KEY, JSON.stringify(item));
   }, []);
 
   const removeFromCart = React.useCallback(() => {
     setCart(null);
-    localStorage.removeItem('ua_cart');
+    localStorage.removeItem(KEY);
   }, []);
 
   return (

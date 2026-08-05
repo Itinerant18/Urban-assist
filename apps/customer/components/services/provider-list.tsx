@@ -65,8 +65,9 @@ export function ProviderList({ providers }: { providers: ProviderService[] }) {
                   </div>
                 </div>
 
-                {/* Action / Price */}
-                <div className="flex items-center gap-3">
+                {/* Action / Price — stacked, not side-by-side: a horizontal pair ate
+                    ~188px of a 343px card and squeezed the provider name to "Anik…" */}
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
                   <div className="text-right">
                     <div className="text-[11px] text-muted">From</div>
                     <div className="text-[16px] font-extrabold text-ink">{pence(p.price_pence)}</div>

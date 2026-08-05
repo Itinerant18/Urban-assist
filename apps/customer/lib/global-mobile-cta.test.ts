@@ -5,6 +5,8 @@ describe('ownsOwnSticky', () => {
   it('hides on book wizard paths only', () => {
     expect(ownsOwnSticky('/book')).toBe(true);
     expect(ownsOwnSticky('/book/svc-1')).toBe(true);
+    // Cart owns Checkout; no second "Book now" mid-purchase.
+    expect(ownsOwnSticky('/cart')).toBe(true);
   });
 
   it('does not treat /bookings as the book wizard (prefix collision)', () => {

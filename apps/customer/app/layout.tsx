@@ -31,6 +31,9 @@ export const metadata: Metadata = {
     title: 'Urban Assist',
   },
   applicationName: 'Urban Assist',
+  // appleWebApp emits the deprecated apple-mobile-web-app-capable; Chrome wants
+  // the unprefixed variant alongside it.
+  other: { 'mobile-web-app-capable': 'yes' },
 };
 
 export const viewport: Viewport = {

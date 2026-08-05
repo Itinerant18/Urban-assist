@@ -21,6 +21,7 @@ import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { CreditCard, Banknote, MapPin, Plus, CheckCircle2, ChevronLeft, ChevronUp } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { AddressForm } from '../../../../components/address-form';
+import { useCart } from '../../../../components/cart-context';
 import { StickyActionBar, StickyActionMeta } from '../../../../components/sticky-action-bar';
 import {
   defaultFutureSlot,
@@ -97,6 +98,12 @@ export function BookFlow({
   cardEnabled?: boolean;
 }) {
   const router = useRouter();
+  const { cart, removeFromCart } = useCart();
+  // The just-booked item must not stay in the cart with a live Checkout button —
+  // that's one tap from an accidental duplicate booking.
+  const clearBookedItemFromCart = React.useCallback(() => {
+    if (cart?.id === service.id) removeFromCart();
+  }, [cart?.id, service.id, removeFromCart]);
   const [addresses, setAddresses] = React.useState<Address[]>(initialAddresses);
   const [applyWallet, setApplyWallet] = React.useState(false);
   const [step, setStep] = React.useState<WizardStep>('address');
@@ -278,6 +285,7 @@ export function BookFlow({
       if (payErr) throw new Error(payErr.message ?? 'Payment failed');
       if (paymentIntent?.status === 'succeeded') {
         buzz();
+        clearBookedItemFromCart();
         router.replace(`/book/success?id=${createdBookingId}`);
       } else {
         throw new Error('Payment was not completed successfully.');
@@ -334,6 +342,7 @@ export function BookFlow({
         setStep('confirm');
       } else {
         buzz();
+        clearBookedItemFromCart();
         router.replace(`/book/success?id=${data.booking.id}`);
       }
     } catch (e: any) {
@@ -530,7 +539,9 @@ export function BookFlow({
       </ol>
 
       <div className="grid gap-6 lg:grid-cols-[1fr,320px] lg:items-start">
-        <div className="space-y-4">
+        {/* min-w-0: grid items default to min-width:auto, so the 14-day date strip's
+            max-content width was stretching the whole page to 826px on mobile */}
+        <div className="min-w-0 space-y-4">
           <Card className="flex items-center justify-between gap-4 border border-hairline bg-white p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-hairline">

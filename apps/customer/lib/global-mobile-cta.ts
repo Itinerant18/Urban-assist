@@ -13,6 +13,8 @@ export function ownsOwnSticky(pathname: string | null): boolean {
   if (pathname.startsWith('/coming-soon')) return true;
   // Book wizard only — must not match /bookings (prefix collision).
   if (pathname === '/book' || pathname.startsWith('/book/')) return true;
+  // Cart owns Checkout — a second "Book now" CTA mid-purchase is noise.
+  if (pathname === '/cart') return true;
   if (/^\/bookings\/[^/]+\/rate\/?$/.test(pathname)) return true;
   // Booking detail: Rate / Confirm cash sticky
   if (/^\/bookings\/[^/]+\/?$/.test(pathname)) return true;
