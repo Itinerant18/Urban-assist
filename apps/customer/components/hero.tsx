@@ -1,6 +1,6 @@
 import type { HomepageCategory, HomepageData } from '../lib/homepage-data';
-import { getCategoryIcon } from '../lib/homepage-data';
 import { pence } from '@urban-assist/lib';
+import { ServiceImage } from '@urban-assist/ui';
 import { PostcodeGate } from './postcode-gate';
 
 interface HeroProps {
@@ -34,19 +34,14 @@ export function Hero({ categories, promoCode }: HeroProps) {
               <h2 className="mb-4 text-[15px] font-bold text-ink">What are you looking for?</h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {categories.map((cat) => {
-                  const Icon = getCategoryIcon(cat.icon);
-                  const color = cat.color ?? '#C1622E';
                   return (
                     <a
                       key={cat.id}
                       href={`/services/${cat.slug}`}
                       className="group flex flex-col items-center gap-2 rounded-xl border border-input-border bg-white p-4 text-center transition hover:border-accent"
                     >
-                      <span
-                        className="grid h-10 w-10 place-items-center rounded-lg"
-                        style={{ background: `${color}15` }}
-                      >
-                        <Icon className="h-5 w-5" style={{ color }} />
+                      <span className="relative h-20 w-20">
+                        <ServiceImage slug={cat.slug} caption="" />
                       </span>
                       <span className="text-[12px] font-semibold leading-tight text-ink">
                         {cat.name}

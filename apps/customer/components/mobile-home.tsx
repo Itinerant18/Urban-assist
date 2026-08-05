@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { Logo } from '@urban-assist/ui';
+import { Logo, ServiceImage } from '@urban-assist/ui';
 import { pence } from '@urban-assist/lib';
 import type {
   HomepageCategory,
@@ -109,29 +109,26 @@ function ServiceCategories({ categories }: { categories: HomepageCategory[] }) {
       </div>
 
       <div className="grid grid-cols-4 gap-x-2 gap-y-4">
-        {visibleCategories.map((category) => {
-          const Icon = getCategoryIcon(category.icon);
-          return (
-            <Link
-              key={category.id}
-              href={`/services/${category.slug}`}
-              className="group flex min-h-[84px] min-w-0 flex-col items-center justify-start gap-2 rounded-xl px-1 py-2 text-center transition-colors hover:bg-white focus-visible:bg-white"
-            >
-              <span className="grid h-11 w-11 place-items-center rounded-xl bg-white text-ink ring-1 ring-input-border transition-colors group-hover:text-accent group-hover:ring-accent/40">
-                <Icon className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <span className="line-clamp-2 text-[11px] font-bold leading-[1.25] text-charcoal">
-                {category.name}
-              </span>
-            </Link>
-          );
-        })}
+        {visibleCategories.map((category) => (
+          <Link
+            key={category.id}
+            href={`/services/${category.slug}`}
+            className="group flex min-h-[104px] min-w-0 flex-col items-center justify-start gap-2 rounded-xl px-1 py-2 text-center transition-colors hover:bg-white focus-visible:bg-white"
+          >
+            <span className="relative h-16 w-16">
+              <ServiceImage slug={category.slug} caption="" />
+            </span>
+            <span className="line-clamp-2 text-[11px] font-bold leading-[1.25] text-charcoal">
+              {category.name}
+            </span>
+          </Link>
+        ))}
         <Link
           href="/services"
-          className="group flex min-h-[84px] min-w-0 flex-col items-center justify-start gap-2 rounded-xl px-1 py-2 text-center transition-colors hover:bg-white focus-visible:bg-white"
+          className="group flex min-h-[104px] min-w-0 flex-col items-center justify-start gap-2 rounded-xl px-1 py-2 text-center transition-colors hover:bg-white focus-visible:bg-white"
         >
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-ink text-white">
-            <Grid3X3 className="h-5 w-5" aria-hidden="true" />
+          <span className="grid h-16 w-16 place-items-center rounded-xl bg-ink text-white">
+            <Grid3X3 className="h-6 w-6" aria-hidden="true" />
           </span>
           <span className="text-[11px] font-bold leading-[1.25] text-charcoal">All services</span>
         </Link>

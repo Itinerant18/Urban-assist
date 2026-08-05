@@ -10,7 +10,11 @@
 //     the content does).
 //   • Everything else (documents, RSC payloads, /api)  → network only. No
 //     caching of anything that can carry personal data.
-const CACHE = 'urban-assist-customer-v2';
+// Dev is the one case where /_next/static/ URLs are NOT content-hashed: `next dev`
+// serves chunks at stable paths, so cache-first pins the pre-edit client bundle
+// while the document stays fresh — hydration mismatches that survive a hard reload.
+const DEV = ['localhost', '127.0.0.1', '[::1]'].includes(self.location.hostname);
+const CACHE = 'urban-assist-customer-v3';
 const STATIC_PREFIXES = ['/_next/static/', '/images/', '/icon-', '/urban-assist.svg'];
 
 self.addEventListener('install', () => {
@@ -35,7 +39,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin || !isStatic(url)) return; // straight to network
+  if (DEV || url.origin !== self.location.origin || !isStatic(url)) return; // straight to network
 
   event.respondWith(
     caches.match(req).then(
