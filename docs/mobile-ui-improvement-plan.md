@@ -34,7 +34,7 @@ The gaps are not "rebuild the UI" gaps. They cluster into five themes:
 Severity: **P0** = trust/conversion breaker or broken UX, **P1** = quality gap vs. benchmark, **P2** = polish/debt.
 
 | # | Screen / area | App | Issue | Evidence | Sev |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | 1 | Browse + provider profiles | customer | Auth-gated despite PRODUCT.md "guest-first" principle; all public Book CTAs route here | `middleware.ts:4-18`, `lib/global-mobile-cta.ts:47-93` | P0 |
 | 2 | Offer modal / list / detail | provider | Net vs gross shown inconsistently; commission base differs (`price_pence` in modal vs `total_pence` in detail) | `offer-card.tsx:144-150`, `offers-list.tsx:170`, `offer-detail.tsx:94-95` | P0 |
 | 3 | Offer countdown | provider | `OFFER_TTL_SECONDS = 600` but UI copy says "90 seconds" in two places | `packages/utils/src/constants.ts:4`, `help/page.tsx:42`, `settings-view.tsx:114` | P0 |
@@ -66,7 +66,7 @@ Severity: **P0** = trust/conversion breaker or broken UX, **P1** = quality gap v
 ## 3. Competitive pattern reference
 
 | Pattern | Source | How we adapt it |
-|---|---|---|
+| --- | --- | --- |
 | Search bar + category icon grid + promo carousel as home hierarchy | Urban Company home | Customer `MobileHome` already approximates this; fix the double-header, add a "resume your booking" chip (UC's own known gap — cart progress lost on drop-off; our sessionStorage wizard persistence makes this cheap to surface) |
 | Sticky bottom bar with item count + running total throughout the funnel | UC service detail → cart | Extend `StickyActionBar`: total becomes a tappable disclosure opening a bottom-sheet line-item breakdown (service, discount, VAT, total). Desktop keeps the aside |
 | Horizontal date chips + time-slot chip grid (no full calendar) | UC slot picker | Already implemented (14-day strip + six 2h windows) — keep; pin to `Europe/London` and keep the honest "platform windows, not live diary" copy |
@@ -87,11 +87,11 @@ Severity: **P0** = trust/conversion breaker or broken UX, **P1** = quality gap v
 ### P0
 
 | Item | Current issue | Proposed fix | Effort |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Guest-first funnel | `/browse`, `/providers` in `PROTECTED_PREFIXES`; anonymous users bounce to login at discovery | Remove both from the middleware list; keep auth at `/cart`, `/book*`, account surfaces. CTAs then flow public → browse → detail → login-at-booking (PRODUCT.md principle 2) | M |
 | Sticky CTA / tab bar overlap | `hasBottomTabs()` in `lib/global-mobile-cta.ts` claims `/services*` has no tabs; CTA renders `bottom-0` under the tab bar; `/coming-soon` gets a Book CTA | Correct the route map to match `AppShell.shouldHideBottomNav`; introduce a shared `--tabbar-clearance` variable (see tokens) replacing the three hardcoded `3rem`s; suppress CTA on `/coming-soon` | S |
 | Double header on mobile home | `MobileHome` renders its own `bg-ink` header under the sticky `SiteHeader` | One header: fold sign-in affordance into `SiteHeader`, delete the inner header, add `env(safe-area-inset-top)` padding to `SiteHeader` (currently missing) | M |
-| Postcode-first address picker | Lookup API returns `addresses[]`; form ignores it, user types line 1 manually; `admin_ward` written into city | After Find: render selectable address list (radio list), autofill line1/line2/city on pick, "Enter address manually" fallback link; map `admin_district` (not ward) to city; add `autocomplete="postal-code|address-line1|address-level2"` | M |
+| Postcode-first address picker | Lookup API returns `addresses[]`; form ignores it, user types line 1 manually; `admin_ward` written into city | After Find: render selectable address list (radio list), autofill line1/line2/city on pick, "Enter address manually" fallback link; map `admin_district` (not ward) to city; add `autocomplete="postal-code | address-line1 | address-level2"` | M |
 | Broken saved-provider link | `/profile/${id}` 404s for every row | Point to `/providers/${id}` | S |
 | Mobile price transparency | Sticky bar shows only the total; promo/wallet UI duplicated in two places | Total in `StickyActionBar` becomes a disclosure button opening a `BottomSheet` with line item, discount, "VAT (rate from env)", total, promo input, wallet toggle — single source, kills the duplicate block | M |
 | Route-level skeletons | No `loading.tsx` anywhere; hard blank on `/browse`, `/bookings`, `/bookings/[id]`, `/messages`, `/account` | Add `loading.tsx` per route group composing ui `Skeleton` into content-shaped placeholders (card list for bookings, thread list for messages, etc.) | M |
@@ -126,7 +126,7 @@ Severity: **P0** = trust/conversion breaker or broken UX, **P1** = quality gap v
 ### P0
 
 | Item | Current issue | Proposed fix | Effort |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Offer amount consistency | Modal shows net (base `price_pence`), list shows gross `total_pence`, detail computes commission on `total_pence` | One rule everywhere: **NET prominent**, "£gross − X% commission" subtext; single `splitCommission` call site with one base (confirm correct base against payment records before changing display) | M |
 | TTL copy truth | Constant 600s; help + settings say "90 seconds" | Derive all copy from `OFFER_TTL_SECONDS` (format helper: "10 minutes" / "90 seconds") | S |
 | Offer modal rebuild | No `role="dialog"`/`aria-modal`/focus trap/Esc; header `bg-accent text-ink` 2.85:1; footer ignores safe-area | Rebuild on the new `Dialog` primitive (trap + Esc included); header → `bg-ink text-bg` or accent with white ≥18px bold; footer `pb-[max(12px,env(safe-area-inset-bottom))]`; vibrate on accept | M |
@@ -161,7 +161,7 @@ Severity: **P0** = trust/conversion breaker or broken UX, **P1** = quality gap v
 **P0 — new primitives (unblocks both apps):**
 
 | Primitive | Notes | Effort |
-|---|---|---|
+| --- | --- | --- |
 | `Dialog` | Focus trap, Esc, scrim `bg-ink/40`, `role="dialog"` + `aria-modal`; replaces 2 hand-rolled modals | M |
 | `BottomSheet` | One component: sheet from bottom `<lg`, centered dialog `≥lg` (pattern already hand-rolled in customer booking-detail); drag-to-dismiss optional via framer-motion (already a dep) | M |
 | `Toast` | Queue + `role="status"`/`aria-live`; replaces `alert()` and ad-hoc success text | M |

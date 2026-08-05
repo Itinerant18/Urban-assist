@@ -1,6 +1,24 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Providers } from './providers';
+import { Inter, JetBrains_Mono } from 'next/font/google';
+
+// next/font self-hosts and preloads: no render-blocking request to fonts.googleapis.com,
+// no layout shift from a late swap. The CSS variables feed the shared Tailwind preset.
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['500', '600'],
+  variable: '--font-mono',
+  display: 'swap',
+});
+
 
 export const metadata: Metadata = {
   title: 'Urban Assist Admin',
@@ -8,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#FAFAF8',
+  themeColor: '#F5F1EB',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
@@ -16,15 +34,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-GB">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap"
-        />
-      </head>
+    <html lang="en-GB" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

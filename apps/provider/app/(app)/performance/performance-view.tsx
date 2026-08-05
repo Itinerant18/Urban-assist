@@ -93,7 +93,7 @@ export function PerformanceView({
         <Card className="!p-4 bg-white">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <p className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+              <p className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
                 Training
               </p>
               <p className="text-sm font-semibold text-ink">{training.completionLabel}</p>
@@ -129,7 +129,7 @@ export function PerformanceView({
       {/* Headline rating */}
       <Card className="!p-5 bg-white flex items-center justify-between">
         <div>
-          <p className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+          <p className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
             Average rating
           </p>
           <div className="flex items-center gap-2 mt-1">
@@ -188,7 +188,7 @@ export function PerformanceView({
       <UpskillingCard stats={stats} />
 
       <section className="space-y-3">
-        <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+        <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
           Reviews from customers
         </h2>
         {reviews.length === 0 ? (
@@ -208,7 +208,7 @@ export function PerformanceView({
                         {r.author?.full_name ?? 'Customer'}
                       </span>
                     </div>
-                    <span className="text-[10px] text-muted font-mono-utility">
+                    <span className="text-[11px] text-muted font-mono-utility">
                       {ukDate(r.created_at)}
                     </span>
                   </div>
@@ -238,7 +238,7 @@ function Metric({
 }) {
   return (
     <Card className="!p-4 bg-white flex flex-col gap-0.5">
-      <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+      <span className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
         {label}
       </span>
       <span
@@ -248,7 +248,7 @@ function Metric({
       >
         {value}
       </span>
-      {hint && <span className="text-[10px] text-muted">{hint}</span>}
+      {hint && <span className="text-[11px] text-muted">{hint}</span>}
     </Card>
   );
 }

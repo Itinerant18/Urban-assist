@@ -1,20 +1,28 @@
 'use client';
-// Job-offer screen-locking modal (desktop) / full-screen takeover (mobile).
+// Job-offer takeover: full-height sheet on mobile, centred dialog on desktop.
 // Timed window to accept; a late accept is still honoured server-side while the
 // booking remains unassigned.
+//
+// Built on the shared Dialog, which is a native <dialog> — that supplies the
+// focus trap, Esc, and inert background this screen previously had none of.
 
 import * as React from 'react';
-import { Button } from '@urban-assist/ui';
+import { Button, Dialog, Spinner } from '@urban-assist/ui';
 import { pence, ukDateTime, miles, haversineKm } from '@urban-assist/lib';
 import { OFFER_TTL_SECONDS } from '@urban-assist/utils/constants';
 import { Clock, MapPin, ShieldAlert } from 'lucide-react';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { splitCommission } from '../../lib/provider-data';
+import { commissionNote, offerEarnings } from '../../lib/provider-data';
 
 function formatTimer(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')} MINS`;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+/** Short confirmation buzz. Progressive — silently absent where unsupported. */
+function buzz(ms = 10) {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(ms);
 }
 
 export function OfferCard({ offer, onResolved }: { offer: any; onResolved: () => void }) {
@@ -80,6 +88,7 @@ export function OfferCard({ offer, onResolved }: { offer: any; onResolved: () =>
         setTimeout(onResolved, 2500);
         return;
       }
+      if (accept) buzz();
       onResolved();
     } catch (e: any) {
       setErr(e.message);
@@ -89,6 +98,7 @@ export function OfferCard({ offer, onResolved }: { offer: any; onResolved: () =>
   }
 
   const b = offer.booking ?? {};
+  const earnings = offerEarnings(b, offer.commission_bps);
   const jobLat = b.address?.lat;
   const jobLng = b.address?.lng;
   const hasRouteCoords = providerLoc && jobLat && jobLng;
@@ -106,107 +116,130 @@ export function OfferCard({ offer, onResolved }: { offer: any; onResolved: () =>
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-0 md:p-4 overflow-y-auto">
-      {/* Mobile view takeover vs Desktop modal */}
-      <div className="w-full h-full md:h-auto md:max-w-2xl bg-bg flex flex-col md:rounded-2xl md:shadow-2xl md:border md:border-hairline overflow-hidden">
-        {/* Header */}
-        <header className="bg-accent text-ink px-6 py-4 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-2 font-display font-bold">
-            <ShieldAlert className="h-5 w-5 animate-pulse" />
-            <span>⚠️ NEW JOB OFFER</span>
-          </div>
-          <div className="flex items-center gap-1.5 font-mono-utility text-xs font-bold bg-white/25 px-2.5 py-1 rounded-md border border-white/20">
-            <Clock className="h-3.5 w-3.5" />
+    <Dialog
+      open
+      onClose={onResolved}
+      // Esc must not silently discard a live offer — the provider decides.
+      dismissible={false}
+      hideClose
+      className="w-full sm:max-w-2xl"
+    >
+      <div className="-mx-5 -mt-4">
+        {/* Header — ink, not accent: accent behind ink text was 2.85:1. */}
+        <header className="flex items-center justify-between gap-3 bg-ink px-5 py-4 text-bg">
+          <h2 className="flex items-center gap-2 font-display text-base font-bold">
+            <ShieldAlert className="h-5 w-5 text-amber" aria-hidden />
+            New job offer
+          </h2>
+          <p
+            className="flex items-center gap-1.5 rounded-md border border-white/20 bg-white/15 px-2.5 py-1 font-mono-utility text-xs font-bold"
+            aria-live="off"
+          >
+            <Clock className="h-3.5 w-3.5" aria-hidden />
             <span>{formatTimer(secsLeft)}</span>
-          </div>
+            <span className="sr-only">remaining to respond</span>
+          </p>
         </header>
 
-        {/* Progress bar */}
-        <div className="h-1.5 w-full bg-hairline relative">
-          <div className="h-full bg-accent transition-all duration-1000" style={{ width: `${pct}%` }} />
+        <div className="relative h-1.5 w-full bg-hairline">
+          <div
+            className="h-full bg-accent transition-all duration-1000"
+            style={{ width: `${pct}%` }}
+            role="progressbar"
+            aria-valuenow={secsLeft}
+            aria-valuemin={0}
+            aria-valuemax={OFFER_TTL_SECONDS}
+            aria-label="Time left to respond"
+          />
         </div>
-
-        {/* Body content */}
-        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-          <div className="space-y-1">
-            <h2 className="font-display text-xl font-bold text-ink">You have a new request!</h2>
-            <p className="text-sm text-muted">Accept before the timer runs out to secure this booking.</p>
-          </div>
-
-          {/* Details grid */}
-          <div className="grid grid-cols-2 gap-4 bg-hairline/20 p-4 rounded-xl">
-            <div>
-              <span className="font-mono-utility text-[10px] uppercase text-muted">Service</span>
-              <p className="font-semibold text-sm text-ink">{b.category?.name ?? 'Job'}</p>
-            </div>
-            <div>
-              <span className="font-mono-utility text-[10px] uppercase text-muted">Est. Earnings</span>
-              <p className="font-bold text-lg text-success">
-                {pence(
-                  typeof offer.commission_bps === 'number' && b.price_pence != null
-                    ? splitCommission(b.price_pence, offer.commission_bps).net
-                    : b.total_pence ?? 0,
-                )}
-              </p>
-            </div>
-            <div>
-              <span className="font-mono-utility text-[10px] uppercase text-muted">Date & Time</span>
-              <p className="font-medium text-xs text-ink">{ukDateTime(b.scheduled_at)}</p>
-            </div>
-            <div>
-              <span className="font-mono-utility text-[10px] uppercase text-muted">Distance</span>
-              <p className="font-medium text-xs text-ink">{distanceLabel}</p>
-            </div>
-            <div className="col-span-2">
-              <span className="font-mono-utility text-[10px] uppercase text-muted">Location</span>
-              <p className="font-medium text-xs text-ink flex items-center gap-1 mt-0.5">
-                <MapPin className="h-3.5 w-3.5 shrink-0 text-muted" />
-                {[b.address?.line1, b.address?.postcode].filter(Boolean).join(', ')}
-              </p>
-            </div>
-          </div>
-
-          {/* Map Preview */}
-          {mapUrl ? (
-            <div className="h-48 md:h-64 rounded-xl overflow-hidden border border-hairline shadow-inner relative">
-              <iframe
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                loading="lazy"
-                allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-                src={mapUrl}
-              />
-            </div>
-          ) : (
-            <div className="h-48 md:h-64 bg-hairline/30 rounded-xl flex items-center justify-center text-sm text-muted">
-              Map preview loading…
-            </div>
-          )}
-
-          {err && <p className="text-sm text-danger text-center font-medium">{err}</p>}
-        </div>
-
-        {/* Footer sticky bottom buttons */}
-        <footer className="border-t border-hairline bg-white p-4 flex gap-3 sticky bottom-0 z-10">
-          <Button 
-            variant="outline" 
-            className="flex-1 py-4 font-semibold text-charcoal" 
-            onClick={() => respond(false)} 
-            disabled={!!busy}
-          >
-            {busy === 'decline' ? 'Declining…' : 'DECLINE'}
-          </Button>
-          <Button 
-            className="flex-1 py-4 font-semibold text-white bg-accent hover:bg-accent/90" 
-            onClick={() => respond(true)} 
-            disabled={!!busy}
-          >
-            {busy === 'accept' ? 'Accepting…' : 'ACCEPT JOB'}
-          </Button>
-        </footer>
       </div>
-    </div>
+
+      <div className="space-y-5 pt-5">
+        <p className="text-sm text-muted">Accept before the timer runs out to secure this booking.</p>
+
+        <dl className="grid grid-cols-2 gap-4 rounded-xl bg-bg p-4">
+          <div>
+            <dt className="font-mono-utility text-[11px] uppercase text-muted">Service</dt>
+            <dd className="text-sm font-semibold text-ink">{b.category?.name ?? 'Job'}</dd>
+          </div>
+          <div>
+            <dt className="font-mono-utility text-[11px] uppercase text-muted">You earn</dt>
+            {earnings ? (
+              <dd>
+                <span className="font-display text-lg font-bold text-success-deep">
+                  {pence(earnings.net)}
+                </span>
+                <span className="block text-[11px] text-muted">
+                  {pence(earnings.gross)} · {commissionNote(earnings.bps)}
+                </span>
+              </dd>
+            ) : (
+              <dd className="font-display text-lg font-bold text-muted">—</dd>
+            )}
+          </div>
+          <div>
+            <dt className="font-mono-utility text-[11px] uppercase text-muted">Date &amp; time</dt>
+            <dd className="text-xs font-medium text-ink">{ukDateTime(b.scheduled_at)}</dd>
+          </div>
+          <div>
+            <dt className="font-mono-utility text-[11px] uppercase text-muted">Distance</dt>
+            <dd className="text-xs font-medium text-ink">{distanceLabel}</dd>
+          </div>
+          <div className="col-span-2">
+            <dt className="font-mono-utility text-[11px] uppercase text-muted">Location</dt>
+            <dd className="mt-0.5 flex items-center gap-1 text-xs font-medium text-ink">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+              {[b.address?.line1, b.address?.postcode].filter(Boolean).join(', ') || '—'}
+            </dd>
+          </div>
+        </dl>
+
+        {mapUrl ? (
+          <div className="h-48 overflow-hidden rounded-xl border border-hairline md:h-64">
+            <iframe
+              title="Route to the job address"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              src={mapUrl}
+            />
+          </div>
+        ) : (
+          <div className="flex h-48 items-center justify-center rounded-xl bg-hairline/30 text-sm text-muted md:h-64">
+            Map preview loading…
+          </div>
+        )}
+
+        {err && (
+          <p role="alert" className="text-center text-sm font-medium text-danger">
+            {err}
+          </p>
+        )}
+      </div>
+
+      {/* Footer lives in the sheet's own pinned area (safe-area padded). */}
+      <div className="sticky bottom-0 -mx-5 -mb-5 mt-5 flex gap-3 border-t border-hairline bg-white px-5 pt-3 safe-pb">
+        <Button
+          variant="outline"
+          className="flex-1 py-4 font-semibold text-charcoal"
+          onClick={() => respond(false)}
+          disabled={!!busy}
+        >
+          {busy === 'decline' && <Spinner />}
+          {busy === 'decline' ? 'Declining…' : 'Decline'}
+        </Button>
+        <Button
+          className="flex-1 py-4 font-semibold"
+          onClick={() => respond(true)}
+          disabled={!!busy}
+        >
+          {busy === 'accept' && <Spinner />}
+          {busy === 'accept' ? 'Accepting…' : 'Accept job'}
+        </Button>
+      </div>
+    </Dialog>
   );
 }

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSupabaseServer, createServiceRole } from '@urban-assist/db/server';
 import { Dashboard } from './dashboard';
 import { buildWeeklyEarnings, weeklyWindow } from '../../lib/weekly-earnings';
-import { loadCommissionRates } from '../../lib/provider-data';
+import { commissionResolver, loadCommissionTable } from '../../lib/provider-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,10 +34,13 @@ export default async function Home() {
     .order('offered_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  // Resolve commission server-side so the modal can show net earnings.
-  const commissionFor = rawOffer ? await loadCommissionRates(createServiceRole()) : null;
+  // Commission is resolved server-side (the rules table is service-role only).
+  // The table itself is platform-wide config, so it can be handed to the client
+  // for offers that arrive later over the realtime channel.
+  const commissionTable = await loadCommissionTable(createServiceRole());
+  const commissionFor = commissionResolver(commissionTable);
   const openOffer = rawOffer
-    ? { ...rawOffer, commission_bps: commissionFor!((rawOffer as any).booking?.category_id) }
+    ? { ...rawOffer, commission_bps: commissionFor((rawOffer as any).booking?.category_id) }
     : null;
   const now = new Date();
   const { start: weekStart, end: weekEnd } = weeklyWindow(now);
@@ -74,6 +77,7 @@ export default async function Home() {
       profile={profile}
       jobsToday={jobsToday ?? []}
       openOffer={openOffer}
+      commissionTable={commissionTable}
       servicesCount={services?.length ?? 0}
       weeklyEarnings={buildWeeklyEarnings(completedBookings ?? [], now)}
       completionRate={

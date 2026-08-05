@@ -6,6 +6,9 @@ import { Card, Badge, EmptyState } from '@urban-assist/ui';
 import { pence, ukDate, ukDateTime } from '@urban-assist/lib';
 import { MapPin, ChevronRight, ShieldCheck } from 'lucide-react';
 import { JOB_FILTERS, type JobFilter } from '../../../lib/provider-data';
+// One status vocabulary across customer, provider and admin — `assigned` used to
+// read "Upcoming/muted" here and "Scheduled/accent" to the customer.
+import { bookingStatusLabel, bookingStatusTone } from '@urban-assist/domain/job-status';
 
 const TABS: { value: JobFilter; label: string }[] = [
   { value: 'active', label: 'Active' },
@@ -13,26 +16,6 @@ const TABS: { value: JobFilter; label: string }[] = [
   { value: 'cancelled', label: 'Cancelled' },
   { value: 'all', label: 'All' },
 ];
-
-const STATUS_TONE: Record<string, 'accent' | 'success' | 'danger' | 'muted' | 'ink'> = {
-  assigned: 'muted',
-  on_the_way: 'accent',
-  arrived: 'accent',
-  in_progress: 'ink',
-  completed: 'success',
-  cancelled: 'danger',
-  disputed: 'danger',
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  assigned: 'Upcoming',
-  on_the_way: 'On the way',
-  arrived: 'Arrived',
-  in_progress: 'In progress',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-  disputed: 'Disputed',
-};
 
 /**
  * Boundary of a local calendar day from a `YYYY-MM-DD` date input.
@@ -115,7 +98,7 @@ export function JobsList({ jobs }: { jobs: any[] }) {
 
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1">
-            <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+            <span className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
               From
             </span>
             <input
@@ -127,7 +110,7 @@ export function JobsList({ jobs }: { jobs: any[] }) {
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+            <span className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
               To
             </span>
             <input
@@ -178,8 +161,8 @@ export function JobsList({ jobs }: { jobs: any[] }) {
                         <span className="font-display font-bold text-ink">
                           {j.category?.name ?? 'Job'}
                         </span>
-                        <Badge tone={STATUS_TONE[j.status] ?? 'muted'}>
-                          {STATUS_LABEL[j.status] ?? j.status}
+                        <Badge tone={bookingStatusTone(j.status)}>
+                          {bookingStatusLabel(j.status)}
                         </Badge>
                         {j.admin_assigned && (
                           <Badge tone="muted">
@@ -202,7 +185,7 @@ export function JobsList({ jobs }: { jobs: any[] }) {
                         <p className="text-xs text-danger">Reason: {j.cancellation_reason}</p>
                       )}
                       {j.status === 'completed' && j.completed_at && (
-                        <p className="text-[10px] text-muted font-mono-utility">
+                        <p className="text-[11px] text-muted font-mono-utility">
                           Completed {ukDate(j.completed_at)} · #{j.short_code}
                         </p>
                       )}

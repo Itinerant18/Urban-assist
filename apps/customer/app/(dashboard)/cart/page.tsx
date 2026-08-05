@@ -6,6 +6,7 @@ import { useCart } from '../../../components/cart-context';
 import { Card, Button, EmptyState, Skeleton } from '@urban-assist/ui';
 import { pence, quote } from '@urban-assist/lib';
 import { Clock, Trash2, ArrowRight } from 'lucide-react';
+import { vatLabel } from '@urban-assist/ui';
 
 export default function CartPage() {
   const { cart, hydrated, removeFromCart } = useCart();
@@ -80,7 +81,7 @@ export default function CartPage() {
                 <span className="font-medium text-ink">{pence(q.subtotal_pence)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted">VAT (20%)</span>
+                <span className="text-muted">{vatLabel}</span>
                 <span className="font-medium text-ink">{pence(q.vat_pence)}</span>
               </div>
               <div className="flex items-center justify-between pt-1">

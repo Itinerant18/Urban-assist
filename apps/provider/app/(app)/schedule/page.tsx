@@ -481,7 +481,7 @@ export default function SchedulePage() {
             </div>
 
             {/* ponytail: 3.5rem ≈ measured tab-bar height in app-shell.tsx; not tokenized until a second consumer needs it */}
-            <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-hairline bg-bg/95 px-4 py-3 backdrop-blur lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+            <div className="fixed inset-x-0 above-tabbar z-sticky border-t border-hairline bg-bg/95 px-4 py-3 backdrop-blur lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
               <div className="mb-2 rounded-lg border border-ink/10 bg-ink/[0.04] px-2.5 py-2 text-[11px] leading-snug text-ink/80">
                 Saves <span className="font-medium text-ink">weekly hours</span> only.
                 Time off saves when you tap Add time off.

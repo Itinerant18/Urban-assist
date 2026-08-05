@@ -29,25 +29,6 @@ interface MobileHomeProps {
   data: HomepageData;
 }
 
-function MobileHeader() {
-  return (
-    <header className="bg-ink text-white lg:hidden">
-      <div className="flex items-center justify-between px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
-        <Link href="/" className="tap flex items-center gap-2.5 rounded-lg" aria-label="Urban Assist home">
-          <Logo inverted />
-          <span className="text-[15px] font-extrabold tracking-[-0.01em]">Urban Assist</span>
-        </Link>
-        <Link
-          href="/login"
-          className="tap inline-flex items-center rounded-full border border-white/25 px-4 text-[13px] font-semibold text-white transition-colors hover:bg-white/10"
-        >
-          Sign in
-        </Link>
-      </div>
-    </header>
-  );
-}
-
 function MobileIntro({ promoCode }: { promoCode: HomepageData['promoCode'] }) {
   return (
     <section className="bg-ink px-4 pb-7 text-white lg:hidden">
@@ -360,7 +341,6 @@ export function MobileHome({ data }: MobileHomeProps) {
 
   return (
     <div className="min-h-dvh bg-bg lg:hidden">
-      <MobileHeader />
       <main>
         <MobileIntro promoCode={promoCode} />
         <TrustStrip />

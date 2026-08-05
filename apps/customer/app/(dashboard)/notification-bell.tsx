@@ -45,10 +45,14 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   }, []);
 
   return (
-    <Link href="/notifications" className="relative tap p-2 flex items-center justify-center rounded-full hover:bg-hairline/40 transition">
-      <Bell className="h-5 w-5 text-ink" />
+    <Link
+      href="/notifications"
+      aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+      className="relative tap p-2 flex items-center justify-center rounded-full hover:bg-hairline/40 transition"
+    >
+      <Bell className="h-5 w-5 text-ink" aria-hidden />
       {unread > 0 && (
-        <span className="absolute top-1.5 right-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white">
+        <span className="absolute top-1.5 right-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-danger text-[11px] font-bold text-white">
           {unread > 9 ? '9+' : unread}
         </span>
       )}

@@ -6,12 +6,14 @@ import { pence, ukDateTime } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { OfferCard } from './offer-card';
 import type { WeeklyEarning } from '../../lib/weekly-earnings';
+import { commissionResolver, type CommissionTable } from '../../lib/provider-data';
 import { postCurrentLocation } from '../../lib/post-location';
 
 export function Dashboard({
   profile,
   jobsToday,
   openOffer: initialOffer,
+  commissionTable,
   servicesCount,
   weeklyEarnings,
   completionRate,
@@ -19,6 +21,7 @@ export function Dashboard({
   profile: any;
   jobsToday: any[];
   openOffer: any | null;
+  commissionTable: CommissionTable;
   servicesCount: number;
   weeklyEarnings: WeeklyEarning[];
   completionRate: number | null;
@@ -26,6 +29,7 @@ export function Dashboard({
   const [online, setOnline] = React.useState<boolean>(!!profile?.is_online);
   const [offer, setOffer] = React.useState(initialOffer);
   const [toggling, setToggling] = React.useState(false);
+  const commissionFor = React.useMemo(() => commissionResolver(commissionTable), [commissionTable]);
 
   // Live: listen for new offers landing in `notifications`.
   React.useEffect(() => {
@@ -41,17 +45,26 @@ export function Dashboard({
           // Fetch the offer fresh so we have booking + address.
           const { data } = await sb
             .from('booking_offers')
-            .select('id, booking_id, responds_by, booking:bookings(id,short_code,scheduled_at,total_pence,category:service_categories(name),address:addresses(line1,postcode,lat,lng))')
+            .select(
+              'id, booking_id, responds_by, booking:bookings(id,short_code,scheduled_at,total_pence,price_pence,category_id,category:service_categories(name),address:addresses(line1,postcode,lat,lng))',
+            )
             .eq('id', n.payload.offer_id)
             .single();
-          if (data) setOffer(data as any);
+          // Without price_pence + commission the takeover cannot state earnings,
+          // and a realtime offer would show "—" where the server-rendered one
+          // shows a figure.
+          if (data)
+            setOffer({
+              ...(data as any),
+              commission_bps: commissionFor((data as any).booking?.category_id),
+            });
         },
       )
       .subscribe();
     return () => {
       sb.removeChannel(ch);
     };
-  }, [profile.id]);
+  }, [profile.id, commissionFor]);
 
   async function toggleOnline() {
     setToggling(true);
@@ -82,6 +95,9 @@ export function Dashboard({
         <button
           onClick={toggleOnline}
           disabled={toggling}
+          role="switch"
+          aria-checked={online}
+          aria-label="Accept job offers"
           className="tap flex items-center gap-2 rounded-full border border-hairline bg-white px-3.5 py-1.5 text-xs font-medium text-ink transition hover:border-ink"
         >
           <span className={`h-2 w-2 rounded-full ${online ? 'bg-success animate-pulse' : 'bg-muted'}`} />
@@ -92,12 +108,12 @@ export function Dashboard({
       {/* Prominent stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Card className="flex flex-col gap-1 border border-hairline p-4 bg-white shadow-card rounded-xl">
-          <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">Today's Earnings</span>
+          <span className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">Today's Earnings</span>
           <span className="font-display text-2xl font-extrabold text-ink">{pence(earningsToday)}</span>
         </Card>
         <Card className="flex flex-col gap-1 border border-hairline p-4 bg-white shadow-card rounded-xl">
-          <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">Completion Rate</span>
-          <span className="font-display text-2xl font-extrabold text-success">
+          <span className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">Completion Rate</span>
+          <span className="font-display text-2xl font-extrabold text-success-deep">
             {completionRate === null ? '-' : `${completionRate}%`}
           </span>
         </Card>
@@ -105,11 +121,11 @@ export function Dashboard({
             catch the realtime modal while the app happens to be open. */}
         <Link href="/offers" className="tap col-span-2 sm:col-span-1">
           <Card className="h-full flex flex-col gap-1 border border-hairline p-4 bg-white shadow-card rounded-xl transition hover:border-ink">
-            <span className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">New Requests</span>
+            <span className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">New Requests</span>
             <span className="font-display text-2xl font-extrabold text-ink">
               {offer ? '1 Pending' : '0 Pending'}
             </span>
-            <span className="text-[10px] text-accent">View all offers →</span>
+            <span className="text-[11px] text-accent-deep">View all offers →</span>
           </Card>
         </Link>
       </div>
@@ -121,7 +137,7 @@ export function Dashboard({
             <span className="font-display text-lg font-bold">{Number(profile.rating_avg ?? 0).toFixed(1)}</span>
             <RatingStars value={Number(profile.rating_avg ?? 0)} />
           </div>
-          <div className="text-[10px] text-muted mt-1">{profile.rating_count ?? 0} reviews</div>
+          <div className="text-[11px] text-muted mt-1">{profile.rating_count ?? 0} reviews</div>
         </Card>
         <Stat label="Accept rate" value={`${Math.round(Number(profile.acceptance_rate ?? 1) * 100)}%`} />
       </div>
@@ -136,7 +152,7 @@ export function Dashboard({
           {weeklyEarnings.map((bar) => (
             <div key={bar.day} className="flex flex-col items-center gap-2 w-10 group relative justify-end h-full">
               {/* Tooltip */}
-              <span className="absolute -top-8 scale-0 transition-all rounded bg-ink px-2 py-1 text-[10px] text-bg group-hover:scale-100 font-mono-utility">
+              <span className="absolute -top-8 scale-0 transition-all rounded bg-ink px-2 py-1 text-[11px] text-bg group-hover:scale-100 font-mono-utility">
                 {pence(bar.amountPence)}
               </span>
               {/* Bar */}
@@ -145,7 +161,7 @@ export function Dashboard({
                 style={{ height: `${bar.heightPercent}%` }}
               />
               {/* Label */}
-              <span className="text-[10px] text-muted font-mono-utility">{bar.day}</span>
+              <span className="text-[11px] text-muted font-mono-utility">{bar.day}</span>
             </div>
           ))}
         </div>
@@ -160,12 +176,12 @@ export function Dashboard({
         <div className="flex h-28 items-end justify-between gap-2 border-b border-hairline px-1 pt-2">
           {weeklyEarnings.map((bar) => (
             <div key={bar.day} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
-              <span className="font-mono-utility text-[9px] text-muted">{pence(bar.amountPence)}</span>
+              <span className="font-mono-utility text-[11px] text-muted">{pence(bar.amountPence)}</span>
               <div
                 className="w-full max-w-5 rounded-t bg-accent/80"
                 style={{ height: `${bar.heightPercent}%` }}
               />
-              <span className="font-mono-utility text-[9px] text-muted">{bar.day.slice(0, 1)}</span>
+              <span className="font-mono-utility text-[11px] text-muted">{bar.day.slice(0, 1)}</span>
             </div>
           ))}
         </div>
@@ -242,7 +258,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
     <Card className="!p-3">
       <div className="font-mono-utility text-muted">{label}</div>
       <div className="font-display text-lg">{value}</div>
-      {sub && <div className="text-[10px] text-muted">{sub}</div>}
+      {sub && <div className="text-[11px] text-muted">{sub}</div>}
     </Card>
   );
 }

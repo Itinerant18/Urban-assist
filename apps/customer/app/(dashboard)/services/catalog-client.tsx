@@ -190,7 +190,7 @@ export function CatalogClient({ categories = SERVICE_CATEGORIES }: CatalogClient
                               <h4 className="font-bold text-ink text-xs line-clamp-2 leading-snug group-hover:text-accent transition-colors">
                                 {sub.name}
                               </h4>
-                              <p className="text-[10px] text-muted line-clamp-1 mt-1">
+                              <p className="text-[11px] text-muted line-clamp-1 mt-1">
                                 {sub.services.length} services
                               </p>
                             </div>

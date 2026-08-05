@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Card, Button, Badge, RatingStars } from '@urban-assist/ui';
 import { pence, ukDateTime, miles, haversineKm } from '@urban-assist/lib';
 import { Clock, MapPin, ArrowLeft, AlertCircle } from 'lucide-react';
-import { splitCommission } from '../../../../lib/provider-data';
+import { offerEarnings } from '../../../../lib/provider-data';
 
 /**
  * Reasons written to booking_offers.decline_reason, which already exists and is
@@ -91,8 +91,9 @@ export function OfferDetail({
     }
   }
 
-  const gross = b.total_pence ?? 0;
-  const { commission, net } = splitCommission(gross, commissionBps);
+  // Base is price_pence (see offerEarnings) — this used to compute the fee off
+  // total_pence, which includes the customer's VAT.
+  const earnings = offerEarnings(b, commissionBps);
 
   const lat = b.address?.lat;
   const lng = b.address?.lng;
@@ -142,33 +143,43 @@ export function OfferDetail({
 
       {/* Payment breakdown — commission was previously invisible to providers. */}
       <Card className="!p-4 bg-white space-y-2">
-        <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+        <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
           What you earn
         </h2>
-        <dl className="space-y-1.5 text-sm">
-          <div className="flex justify-between">
-            <dt className="text-muted">Job total</dt>
-            <dd className="font-mono-utility">{pence(gross)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-muted">
-              Platform commission {commissionBps > 0 && `(${(commissionBps / 100).toFixed(1)}%)`}
-            </dt>
-            <dd className="font-mono-utility text-danger">−{pence(commission)}</dd>
-          </div>
-          <div className="flex justify-between border-t border-hairline pt-1.5">
-            <dt className="font-semibold text-ink">You receive</dt>
-            <dd className="font-display font-bold text-success">{pence(net)}</dd>
-          </div>
-        </dl>
-        <p className="text-[10px] text-muted">
-          Paid by {b.payment_method === 'cash' ? 'cash on completion' : 'card'}.
-        </p>
+        {earnings ? (
+          <>
+            <dl className="space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-muted">Job value</dt>
+                <dd className="font-mono-utility">{pence(earnings.gross)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted">
+                  Platform commission{' '}
+                  {earnings.bps > 0 && `(${(earnings.bps / 100).toFixed(1)}%)`}
+                </dt>
+                <dd className="font-mono-utility text-danger">−{pence(earnings.commission)}</dd>
+              </div>
+              <div className="flex justify-between border-t border-hairline pt-1.5">
+                <dt className="font-semibold text-ink">You receive</dt>
+                <dd className="font-display font-bold text-success-deep">{pence(earnings.net)}</dd>
+              </div>
+            </dl>
+            <p className="text-[11px] text-muted">
+              Paid by {b.payment_method === 'cash' ? 'cash on completion' : 'card'}.
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-muted">
+            We could not load the payment breakdown for this job. Open it again, or contact support
+            before accepting.
+          </p>
+        )}
       </Card>
 
       {/* Location */}
       <Card className="!p-4 bg-white space-y-3">
-        <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+        <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
           Where
         </h2>
         <p className="text-sm text-ink flex items-start gap-1.5">
@@ -183,7 +194,7 @@ export function OfferDetail({
         {mapUrl && (
           <div className="h-48 rounded-xl overflow-hidden border border-hairline">
             <iframe
-              title="Job location"
+              title="Route to the job address"
               width="100%"
               height="100%"
               style={{ border: 0 }}
@@ -197,7 +208,7 @@ export function OfferDetail({
 
       {/* Customer + notes */}
       <Card className="!p-4 bg-white space-y-3">
-        <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+        <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
           Customer
         </h2>
         <div className="flex items-center gap-2 text-sm">
@@ -213,7 +224,7 @@ export function OfferDetail({
         </div>
         {b.notes && (
           <div className="rounded-xl bg-bg/60 p-3">
-            <p className="font-mono-utility text-[10px] uppercase tracking-wider text-muted mb-1">
+            <p className="font-mono-utility text-[11px] uppercase tracking-wider text-muted mb-1">
               Notes from customer
             </p>
             <p className="text-sm text-charcoal whitespace-pre-wrap">{b.notes}</p>
@@ -237,7 +248,7 @@ export function OfferDetail({
       )}
 
       {isLive && (
-        <div className="fixed inset-x-0 bottom-16 z-20 border-t border-hairline bg-white p-4 lg:static lg:border-0 lg:bg-transparent lg:p-0">
+        <div className="fixed inset-x-0 above-tabbar z-sticky border-t border-hairline bg-white p-4 lg:static lg:border-0 lg:bg-transparent lg:p-0">
           {declining ? (
             <div className="space-y-3">
               <fieldset>
@@ -275,7 +286,7 @@ export function OfferDetail({
                   {busy === 'decline' ? 'Declining…' : 'Confirm decline'}
                 </Button>
               </div>
-              <p className="text-[10px] text-muted text-center">
+              <p className="text-[11px] text-muted text-center">
                 Declining is optional to explain, but it helps us send you better jobs.
               </p>
             </div>

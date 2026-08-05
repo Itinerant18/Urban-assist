@@ -53,7 +53,7 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
                 {[1, 2, 3, 4, 5].map((s) => (
                   <Star
                     key={s}
-                    className={`h-3.5 w-3.5 ${s <= r.rating ? 'fill-amber text-amber' : 'text-hairline'}`}
+                    className={`h-3.5 w-3.5 ${s <= r.rating ? 'fill-amber text-amber' : 'text-input-border'}`}
                   />
                 ))}
               </div>
@@ -201,7 +201,7 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
               <span className="font-bold text-ink">{Number(provider.rating_avg ?? 0).toFixed(1)}</span>
               <span className="text-muted">({provider.rating_count ?? 0} Reviews)</span>
             </div>
-            <div className="mt-1.5 flex items-center gap-1 text-[10px] text-success font-semibold">
+            <div className="mt-1.5 flex items-center gap-1 text-[11px] text-success font-semibold">
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Background Checked & Verified</span>
             </div>
@@ -270,7 +270,7 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
       </div>
 
       {cart && (
-        <StickyActionBar bottomClassName="bottom-[calc(3rem+env(safe-area-inset-bottom))]">
+        <StickyActionBar bottomClassName="above-tabbar">
           <StickyActionMeta label="1 item" value={pence(cart.pricePence)} />
           <Link
             href="/cart"

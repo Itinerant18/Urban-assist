@@ -48,7 +48,7 @@ export default async function ServiceAreasPage() {
 
       <Card className="!p-4 bg-white flex items-center justify-between">
         <div>
-          <p className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+          <p className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
             Travel radius
           </p>
           <p className="font-display text-2xl font-extrabold text-ink mt-0.5">
@@ -59,7 +59,7 @@ export default async function ServiceAreasPage() {
       </Card>
 
       <section className="space-y-3">
-        <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+        <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
           Postcode coverage
         </h2>
 

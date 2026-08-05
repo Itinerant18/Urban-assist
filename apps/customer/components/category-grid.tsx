@@ -186,7 +186,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                     <ServiceImage slug={tile.slug} caption={tile.caption} stripeType={tile.stripeType} />
                     {tile.badge && (
                       <span
-                        className="absolute top-4 left-4 rounded px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.04em] text-white"
+                        className="absolute top-4 left-4 rounded px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.04em] text-white"
                         style={{ background: tile.badge.bg }}
                       >
                         {tile.badge.label}
@@ -210,7 +210,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                     <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3">
                       {tile.category && (
                         <div>
-                          <span className="text-[10px] uppercase tracking-wider text-muted block">Starting at</span>
+                          <span className="text-[11px] uppercase tracking-wider text-muted block">Starting at</span>
                           <span className="text-[16px] font-extrabold text-ink">
                             {pence(tile.category.minPricePence)}
                           </span>
@@ -238,7 +238,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                       <div className="flex items-center gap-2 mb-1.5">
                         {tile.badge && (
                           <span
-                            className="rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.04em] text-white"
+                            className="rounded px-1.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-white"
                             style={{ background: tile.badge.bg }}
                           >
                             {tile.badge.label}
@@ -288,7 +288,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                   <div className="relative h-28 sm:h-32 overflow-hidden">
                     <ServiceImage slug={tile.slug} caption={tile.caption} stripeType={tile.stripeType} />
                     <span
-                      className="absolute top-3 left-3 rounded px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.04em] text-white"
+                      className="absolute top-3 left-3 rounded px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-white"
                       style={{ background: tile.badge.bg }}
                     >
                       {tile.badge.label}
@@ -322,7 +322,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                   <ServiceImage slug={tile.slug} caption={tile.caption} stripeType={tile.stripeType} />
                   {tile.badge && (
                     <span
-                      className="absolute top-3 left-3 rounded px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.04em] text-white"
+                      className="absolute top-3 left-3 rounded px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-white"
                       style={{ background: tile.badge.bg }}
                     >
                       {tile.badge.label}

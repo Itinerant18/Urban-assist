@@ -1,5 +1,59 @@
 import { describe, expect, it } from 'vitest';
-import { splitCommission, computePerformance } from './provider-data';
+import {
+  splitCommission,
+  computePerformance,
+  offerEarnings,
+  commissionNote,
+  commissionResolver,
+} from './provider-data';
+
+describe('offerEarnings', () => {
+  // The base is price_pence. claim_booking_payout() nets commission off
+  // price_pence, so anything computed from total_pence (which carries the
+  // customer's VAT) promises a take-home the payout will not send.
+  const booking = { price_pence: 10_000, total_pence: 12_000 };
+
+  it('nets commission off price_pence, never total_pence', () => {
+    const e = offerEarnings(booking, 1500)!;
+    expect(e).toMatchObject({ gross: 10_000, commission: 1_500, net: 8_500 });
+    // The bug this replaces: 12_000 − 15% = 10_200, £17 too generous.
+    expect(e.net).not.toBe(10_200);
+  });
+
+  it('agrees with splitCommission — one rule, one call site', () => {
+    const e = offerEarnings(booking, 1500)!;
+    expect([e.commission, e.net]).toEqual(
+      Object.values(splitCommission(booking.price_pence, 1500)).slice(0, 2),
+    );
+  });
+
+  it('returns null rather than a zero when the figure is unknown', () => {
+    expect(offerEarnings({ total_pence: 12_000 }, 1500)).toBeNull();
+    expect(offerEarnings(booking, undefined)).toBeNull();
+    expect(offerEarnings(null, 1500)).toBeNull();
+  });
+
+  it('handles a zero-commission category', () => {
+    expect(offerEarnings(booking, 0)).toMatchObject({ commission: 0, net: 10_000 });
+  });
+});
+
+describe('commissionNote', () => {
+  it('reads as a percentage, dropping a pointless decimal', () => {
+    expect(commissionNote(1500)).toBe('after 15% commission');
+    expect(commissionNote(1250)).toBe('after 12.5% commission');
+    expect(commissionNote(0)).toBe('no commission on this job');
+  });
+});
+
+describe('commissionResolver', () => {
+  it('prefers the category rule, then the default', () => {
+    const rate = commissionResolver({ byCategory: { 'cat-1': 2000 }, fallback: 1500 });
+    expect(rate('cat-1')).toBe(2000);
+    expect(rate('cat-unknown')).toBe(1500);
+    expect(rate(null)).toBe(1500);
+  });
+});
 
 describe('splitCommission', () => {
   // Mirrors claim_booking_payout() in SQL, which pays

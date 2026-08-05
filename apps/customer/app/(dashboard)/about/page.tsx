@@ -6,7 +6,7 @@ import { ArrowLeft, Users, Star, MapPin, Briefcase } from 'lucide-react';
 const AboutHero = () => (
   <div className="relative w-full h-48 md:h-60 rounded-2xl bg-gradient-to-br from-accent/90 to-[#1F3A4D] overflow-hidden flex items-center justify-center p-6 text-center border border-hairline/30 shadow-lg">
     <div className="space-y-2.5 z-10">
-      <span className="font-mono-utility text-[10px] font-bold text-accent bg-[#F5F1EB] px-3 py-1 rounded-full uppercase tracking-wider">
+      <span className="font-mono-utility text-[11px] font-bold text-accent bg-[#F5F1EB] px-3 py-1 rounded-full uppercase tracking-wider">
         About Us
       </span>
       <h2 className="font-display text-2xl md:text-3xl font-extrabold text-[#F5F1EB] drop-shadow-sm">
@@ -80,22 +80,22 @@ export default function AboutPage() {
         <div className="grid lg:hidden grid-cols-2 gap-3">
           <Card className="border border-hairline bg-white p-4 rounded-xl text-center space-y-1 shadow-card">
             <div className="font-display text-lg font-extrabold text-ink">50k+ Jobs</div>
-            <div className="text-[10px] text-muted">Completed</div>
+            <div className="text-[11px] text-muted">Completed</div>
           </Card>
           
           <Card className="border border-hairline bg-white p-4 rounded-xl text-center space-y-1 shadow-card">
             <div className="font-display text-lg font-extrabold text-ink">4.8 Rating</div>
-            <div className="text-[10px] text-muted">Average Score</div>
+            <div className="text-[11px] text-muted">Average Score</div>
           </Card>
           
           <Card className="border border-hairline bg-white p-4 rounded-xl text-center space-y-1 shadow-card">
             <div className="font-display text-lg font-extrabold text-ink">10+ Cities</div>
-            <div className="text-[10px] text-muted">Service Areas</div>
+            <div className="text-[11px] text-muted">Service Areas</div>
           </Card>
 
           <Card className="border border-hairline bg-white p-4 rounded-xl text-center space-y-1 shadow-card">
             <div className="font-display text-lg font-extrabold text-ink">5k+</div>
-            <div className="text-[10px] text-muted">Providers</div>
+            <div className="text-[11px] text-muted">Providers</div>
           </Card>
         </div>
       </section>

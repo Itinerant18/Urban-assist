@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Card } from '@urban-assist/ui';
 import { LifeBuoy } from 'lucide-react';
+import { OFFER_TTL_LABEL } from '@urban-assist/lib';
 
 export const metadata = { title: 'Help & support — Urban Assist Pro' };
 
@@ -39,7 +40,7 @@ const FAQ_SECTIONS: { title: string; items: { q: string; a: React.ReactNode }[] 
         q: 'How long do I have to accept an offer?',
         a: (
           <>
-            90 seconds. After that the job is offered to the next available provider. Turn on push
+            {OFFER_TTL_LABEL}. After that the job is offered to the next available provider. Turn on push
             notifications in{' '}
             <Link href="/settings" className="underline hover:text-ink">
               settings
@@ -157,7 +158,7 @@ export default function HelpPage() {
 
       {FAQ_SECTIONS.map((section) => (
         <section key={section.title} className="space-y-2">
-          <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+          <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
             {section.title}
           </h2>
           <div className="space-y-2">

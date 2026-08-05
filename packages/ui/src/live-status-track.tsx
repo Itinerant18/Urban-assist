@@ -132,7 +132,7 @@ export function LiveStatusTrack({
           </motion.div>
         )}
       </div>
-      <div className="mt-3 grid grid-cols-6 gap-1 text-[10px] text-muted">
+      <div className="mt-3 grid grid-cols-6 gap-1 text-[11px] text-muted">
         {ORDER.map((s, i) => (
           <span
             key={s}

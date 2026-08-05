@@ -17,7 +17,9 @@ const NAV_LINKS = [
 export function SiteHeader({ right }: { right?: React.ReactNode }) {
   const pathname = usePathname();
   return (
-    <header className="sticky top-0 z-50 border-b border-hairline bg-white">
+    // The only header on every customer screen — the mobile home used to stack a
+    // second one under it. Pads for the notch so it is not clipped when installed.
+    <header className="sticky top-0 z-header border-b border-hairline bg-white pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex max-w-page items-center gap-4 px-4 py-3 lg:px-6">
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5">

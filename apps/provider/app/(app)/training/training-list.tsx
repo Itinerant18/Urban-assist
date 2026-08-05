@@ -155,7 +155,7 @@ function Section({
 
   return (
     <section className="space-y-2">
-      <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">{title}</h2>
+      <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">{title}</h2>
       <ul className="space-y-2">
         {items.map((item) => {
           const done = !!state[item.id];
@@ -203,7 +203,7 @@ function Section({
                     )}
 
                     <div className="flex flex-wrap items-center gap-3 pt-0.5">
-                      <span className="flex items-center gap-1 font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+                      <span className="flex items-center gap-1 font-mono-utility text-[11px] uppercase tracking-wider text-muted">
                         <Icon className="h-3.5 w-3.5" />
                         {KIND_LABEL[item.kind] ?? item.kind}
                         {item.estimated_mins != null ? ` · ${item.estimated_mins}m` : ''}
@@ -219,7 +219,7 @@ function Section({
                         </a>
                       )}
                       {done && state[item.id] && (
-                        <span className="text-[10px] text-muted">
+                        <span className="text-[11px] text-muted">
                           Done {ukDate(state[item.id]!)}
                         </span>
                       )}

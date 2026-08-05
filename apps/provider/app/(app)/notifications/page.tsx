@@ -189,7 +189,7 @@ export default function NotificationsPage() {
                     <p className={`text-sm ${!notification.read_at ? 'font-medium' : ''}`}>
                       {notification.payload?.title || TYPE_LABELS[notification.type] || notification.type}
                     </p>
-                    <span className="ml-2 whitespace-nowrap text-[10px] text-muted">
+                    <span className="ml-2 whitespace-nowrap text-[11px] text-muted">
                       {ukDateTime(notification.created_at)}
                     </span>
                   </div>

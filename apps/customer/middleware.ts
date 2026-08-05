@@ -1,17 +1,21 @@
 import type { NextRequest } from 'next/server';
 import { updateSupabaseSession } from '@urban-assist/db/middleware';
 
+/**
+ * Auth is required at the point of commitment, not at discovery (PRODUCT.md
+ * principle 2). `/browse` and `/providers` are deliberately absent: every public
+ * "Book now" CTA routes to them, so gating them put a login wall between the
+ * visitor and the catalogue they came to look at.
+ */
 const PROTECTED_PREFIXES = [
   '/about',
   '/account',
   '/book',
   '/bookings',
-  '/browse',
   '/cart',
   '/help',
   '/messages',
   '/notifications',
-  '/providers',
   '/referrals',
   '/reviews',
   '/saved',

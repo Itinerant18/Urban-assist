@@ -19,6 +19,15 @@
     --footer-muted: 159 177 188; /* #9FB1BC */
     --footer-faint: 126 147 160; /* #7E93A0 */
     --card-radius: 14px;
+
+    /* AA-safe text variants. accent/success/amber only clear 4.5:1 as fills or
+     * ≥18px bold; these clear it on white and --bg at any size. */
+    --accent-deep: 143 70 32;    /* #8F4620 */
+    --success-deep: 78 112 80;   /* #4E7050 */
+    --amber-deep: 138 101 22;    /* #8A6516 */
+
+    /* Height of the mobile tab bar. Single source for sticky-bar clearance. */
+    --tabbar-clearance: 3.5rem;
   }
 
   html {
@@ -30,7 +39,7 @@
   body {
     background: rgb(var(--bg));
     color: rgb(var(--charcoal));
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: var(--font-sans), 'Inter', system-ui, sans-serif;
   }
 
   :focus-visible {
@@ -54,6 +63,28 @@
   .tap {
     min-height: 48px;
     min-width: 48px;
+  }
+  /* Sticky bottom bars: clear the tab bar (when shown) + the home indicator. */
+  .above-tabbar {
+    bottom: calc(var(--tabbar-clearance) + env(safe-area-inset-bottom));
+  }
+  .safe-pb {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .printable-container {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    background: #fff;
   }
 }
 

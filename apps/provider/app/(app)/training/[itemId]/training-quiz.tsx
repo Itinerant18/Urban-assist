@@ -158,7 +158,7 @@ export function TrainingQuiz({
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <div className="flex justify-between text-[10px] uppercase tracking-wider text-muted font-mono">
+        <div className="flex justify-between text-[11px] uppercase tracking-wider text-muted font-mono">
           <span>
             Question {index + 1} of {questions.length}
           </span>

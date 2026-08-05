@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, Button, Badge } from '@urban-assist/ui';
+import { useRouter, usePathname } from 'next/navigation';
+import { Card, Button, Badge, toast, useConfirm } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { UploadCloud, Camera, X } from 'lucide-react';
 
@@ -19,6 +19,9 @@ interface OnboardingClientProps {
 
 export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps) {
   const router = useRouter();
+  // /documents renders inside the app shell (tab bar present); /onboarding does not.
+  const insideAppShell = usePathname()?.startsWith('/documents') ?? false;
+  const [confirm, confirmDialog] = useConfirm();
   const [docs, setDocs] = React.useState<DocumentRow[]>(initialDocs);
   const [busy, setBusy] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
@@ -91,7 +94,13 @@ export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps
   };
 
   const deleteDoc = async (docId: string, path: string) => {
-    if (!confirm('Are you sure you want to remove this document?')) return;
+    const ok = await confirm({
+      title: 'Remove this document?',
+      description: 'You will need to upload it again before your account can be verified.',
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy('delete');
     try {
       const sb = supabase();
@@ -207,6 +216,7 @@ export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps
 
   return (
     <div className="space-y-6">
+      {confirmDialog}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 1. UPLOAD GOVERNMENT ID */}
         <Card className="border border-hairline bg-white p-5 rounded-xl shadow-card flex flex-col justify-between">
@@ -245,7 +255,7 @@ export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps
                   <span className="font-bold text-xs text-success block truncate">
                     ✓ ID Uploaded
                   </span>
-                  <span className="text-[10px] text-muted block mt-0.5 truncate">
+                  <span className="text-[11px] text-muted block mt-0.5 truncate">
                     {governmentIdDoc.storage_path.split('/').pop()}
                   </span>
                 </div>
@@ -262,7 +272,7 @@ export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps
                 <div className="flex flex-col items-center text-center space-y-1">
                   <UploadCloud className="h-8 w-8 text-muted mx-auto" />
                   <span className="text-xs font-bold text-ink">Drag and drop file here, or</span>
-                  <span className="mt-1 inline-block rounded-lg bg-ink px-3 py-1.5 text-[10px] font-bold text-white">BROWSE FILES</span>
+                  <span className="mt-1 inline-block rounded-lg bg-ink px-3 py-1.5 text-[11px] font-bold text-white">BROWSE FILES</span>
                 </div>
                 <input
                   type="file"
@@ -291,7 +301,7 @@ export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps
                   <span className="font-bold text-xs text-success block truncate">
                     ✓ Selfie Uploaded
                   </span>
-                  <span className="text-[10px] text-muted block mt-0.5 truncate">
+                  <span className="text-[11px] text-muted block mt-0.5 truncate">
                     {selfieDoc.storage_path.split('/').pop()}
                   </span>
                 </div>
@@ -410,7 +420,13 @@ export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps
         </div>
 
         {/* Mobile Sticky Bottom CTA */}
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-white/95 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+        {/* Sits above the tab bar, not on top of it, when one is present. */}
+        <div
+          className={
+            'fixed inset-x-0 z-sticky border-t border-hairline bg-white/95 px-4 py-3 backdrop-blur lg:hidden ' +
+            (insideAppShell ? 'above-tabbar' : 'bottom-0 safe-pb')
+          }
+        >
           <Button onClick={submitForReview} disabled={missingRequired || submitting} size="block">
             {submitting ? 'Submitting…' : 'SUBMIT DOCUMENTS'}
           </Button>

@@ -1,10 +1,20 @@
 'use client';
 import * as React from 'react';
-import { Card, Button } from '@urban-assist/ui';
+import { Card, Button, ErrorState, PageSkeleton } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { pence, ukDate } from '@urban-assist/lib';
 import { Printer } from 'lucide-react';
 import { buildWeeklyEarnings, weeklyWindow } from '../../../lib/weekly-earnings';
+
+/** Stripe payout states, in the provider's words. */
+const PAYOUT_STATUS: Record<string, string> = {
+  paid: 'Paid',
+  pending: 'On its way',
+  in_transit: 'On its way',
+  failed: 'Failed',
+  canceled: 'Cancelled',
+  cancelled: 'Cancelled',
+};
 
 interface Transaction {
   id: string;
@@ -23,6 +33,10 @@ export default function EarningsPage() {
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
   const [stripeBusy, setStripeBusy] = React.useState(false);
   const [stripeError, setStripeError] = React.useState<string | null>(null);
+  const [loadError, setLoadError] = React.useState(false);
+  // null = not fetched yet or the fetch failed. Never render a number we did not
+  // receive: a failed balance call used to display £0.00 as if it were the truth.
+  const [balancePending, setBalancePending] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     async function loadData() {
@@ -31,21 +45,30 @@ export default function EarningsPage() {
         const { data: { user } } = await sb.auth.getUser();
         if (!user) return;
 
-        const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).single();
+        const { data: p, error: profileErr } = await sb
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        if (profileErr) throw profileErr;
         setProfile(p);
 
-        const { data: bookings } = await sb
+        const { data: bookings, error: bookingsErr } = await sb
           .from('bookings')
           .select('id, short_code, completed_at, created_at, price_pence, payment_method, category:service_categories(name)')
           .eq('provider_id', user.id)
           .eq('status', 'completed')
           .order('completed_at', { ascending: false });
 
-        const { data: payouts } = await sb
+        if (bookingsErr) throw bookingsErr;
+
+        const { data: payouts, error: payoutsErr } = await sb
           .from('payouts')
           .select('*')
           .eq('provider_id', user.id)
           .order('created_at', { ascending: false });
+
+        if (payoutsErr) throw payoutsErr;
 
         const list: Transaction[] = [];
 
@@ -77,6 +100,7 @@ export default function EarningsPage() {
         setTransactions(list);
       } catch (err) {
         console.error('Failed to load earnings data', err);
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
@@ -86,22 +110,22 @@ export default function EarningsPage() {
 
   // Commission-net balance + per-booking splits from the server — commission
   // rules are service-role-only, so the numbers must come from the API.
-  const [balancePending, setBalancePending] = React.useState(0);
   const [splits, setSplits] = React.useState<
     Record<string, { net_pence: number; commission_pence: number; bps: number }>
   >({});
   React.useEffect(() => {
     fetch('/api/earnings/balance', { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('balance fetch failed'))))
       .then((data) => {
         if (typeof data?.balance_pence === 'number') setBalancePending(data.balance_pence);
+        else throw new Error('balance missing from response');
         if (data?.splits) setSplits(data.splits);
       })
-      .catch(() => {});
+      .catch(() => setLoadError(true));
   }, []);
 
   async function requestInstantPayout() {
-    if (balancePending <= 0) return;
+    if (balancePending === null || balancePending <= 0) return;
     setStripeBusy(true);
     setStripeError(null);
     try {
@@ -140,12 +164,18 @@ export default function EarningsPage() {
 
   const hasStripe = !!profile?.stripe_account_id;
 
-  if (loading) {
+  if (loading) return <PageSkeleton variant="detail" rows={5} />;
+
+  // An error is not an empty wallet. Say so, and offer the retry, rather than
+  // rendering zeroes the provider might act on.
+  if (loadError) {
     return (
-      <div className="space-y-4 py-8 animate-pulse">
-        <div className="h-8 w-48 bg-hairline rounded" />
-        <div className="h-24 bg-hairline rounded-xl" />
-        <div className="h-64 bg-hairline rounded-xl" />
+      <div className="py-6">
+        <ErrorState
+          title="We could not load your earnings"
+          description="This is a display problem, not a change to your balance. Nothing has been paid out or withheld."
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }
@@ -185,7 +215,9 @@ export default function EarningsPage() {
           <div className="space-y-4 md:space-y-0 md:flex md:gap-12">
             <div>
               <p className="text-xs font-bold text-muted uppercase tracking-wider">Available Balance</p>
-              <div className="font-display text-4xl font-bold mt-1 text-ink">{pence(balancePending)}</div>
+              <div className="font-display text-4xl font-bold mt-1 text-ink">
+                {balancePending === null ? '—' : pence(balancePending)}
+              </div>
               <p className="text-xs text-muted mt-1 max-w-[260px]">
                 Card jobs only — cash jobs are paid to you on site and never enter the balance.
               </p>
@@ -195,7 +227,7 @@ export default function EarningsPage() {
           <div className="mt-6 md:mt-0 hidden md:flex md:flex-col md:items-end md:gap-2">
             {hasStripe ? (
               <>
-                <Button onClick={requestInstantPayout} disabled={stripeBusy || balancePending <= 0}>
+                <Button onClick={requestInstantPayout} disabled={stripeBusy || balancePending === null || balancePending <= 0}>
                   {stripeBusy ? 'Processing...' : 'Withdraw to Bank'}
                 </Button>
                 <button
@@ -230,7 +262,7 @@ export default function EarningsPage() {
                <h2 className="text-xs font-bold text-muted uppercase tracking-wider">Earnings History (Last 7 Days)</h2>
                <Card className="!p-6 flex flex-col justify-end h-48 bg-bg/30">
                   <div className="flex items-end gap-4 h-full border-b border-hairline pb-2">
-                     <div className="flex flex-col justify-between h-full text-[10px] text-muted font-mono-utility pr-2">
+                     <div className="flex flex-col justify-between h-full text-[11px] text-muted font-mono-utility pr-2">
                        <span>{pence(weekMax)}</span>
                        <span>{pence(Math.round(weekMax / 2))}</span>
                        <span>{pence(0)}</span>
@@ -241,7 +273,7 @@ export default function EarningsPage() {
                        ))}
                      </div>
                   </div>
-                  <div className="flex pl-10 mt-2 justify-around text-[10px] text-muted font-mono-utility">
+                  <div className="flex pl-10 mt-2 justify-around text-[11px] text-muted font-mono-utility">
                      {weeklyEarnings.map((entry) => (
                        <span key={entry.date}>{entry.day}</span>
                      ))}
@@ -263,7 +295,7 @@ export default function EarningsPage() {
                        <li key={job.id} className="p-4 flex items-center justify-between hover:bg-bg/40">
                          <div>
                             <div className="font-bold text-sm text-ink flex items-center gap-2">
-                               {ukDate(job.date)} <span className="text-hairline">•</span> {job.title}
+                               {ukDate(job.date)} <span className="text-muted">•</span> {job.title}
                             </div>
                             <div className="text-xs text-muted font-mono-utility mt-1">
                               Booking: #{job.short_code}
@@ -271,7 +303,7 @@ export default function EarningsPage() {
                             </div>
                          </div>
                          <div className="text-right">
-                           <div className="font-mono-utility text-success font-medium">
+                           <div className="font-mono-utility text-success-deep font-medium">
                              +{pence(split ? split.net_pence : job.amount_pence)}
                            </div>
                            {split && split.commission_pence > 0 && (
@@ -300,8 +332,15 @@ export default function EarningsPage() {
                  ) : (
                    <ul className="space-y-3">
                      {recentPayouts.map(payout => (
-                       <li key={payout.id} className="flex items-center justify-between text-sm">
-                         <span className="text-muted">{ukDate(payout.date)}:</span>
+                       <li key={payout.id} className="flex items-center justify-between gap-3 text-sm">
+                         <span className="min-w-0">
+                           <span className="text-muted">{ukDate(payout.date)}</span>
+                           {/* payout.status was loaded and thrown away — "paid" and
+                               "still in flight" are not the same news. */}
+                           <span className="ml-2 text-[11px] font-medium text-muted">
+                             {PAYOUT_STATUS[payout.status] ?? payout.status}
+                           </span>
+                         </span>
                          <span className="font-mono-utility font-medium">{pence(payout.amount_pence)}</span>
                        </li>
                      ))}
@@ -315,12 +354,12 @@ export default function EarningsPage() {
       </div>
 
       {/* Sticky Bottom CTA for Mobile */}
-      <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-hairline z-20">
+      <div className="md:hidden fixed above-tabbar left-0 right-0 p-4 bg-white border-t border-hairline z-sticky">
          {hasStripe ? (
            <Button
               className="w-full shadow-lg"
               onClick={requestInstantPayout}
-              disabled={stripeBusy || balancePending <= 0}
+              disabled={stripeBusy || balancePending === null || balancePending <= 0}
             >
               {stripeBusy ? 'Processing...' : 'Withdraw to Bank'}
            </Button>

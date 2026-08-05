@@ -49,8 +49,8 @@ export default async function SavedPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl">Saved & Offers</h1>
-        <p className="text-sm text-muted mt-1">Manage your favorite professionals and active promotions.</p>
+        <h1 className="font-display text-2xl">Saved & offers</h1>
+        <p className="text-sm text-muted mt-1">Manage your favourite professionals and active promotions.</p>
       </div>
 
       <div className="flex rounded-xl bg-hairline/30 p-1">
@@ -97,7 +97,8 @@ export default async function SavedPage({
                     <div className="text-sm text-muted">★ {Number(p.rating_avg || 0).toFixed(1)}</div>
                   </div>
                   <Link
-                    href={`/profile/${p.id}`}
+                    href={`/providers/${p.id}`}
+                    aria-label={`View ${p.full_name}'s profile`}
                     className="shrink-0 h-10 w-10 p-2 flex items-center justify-center rounded-full border border-hairline hover:bg-hairline/40 transition"
                   >
                     <ArrowRight className="h-4 w-4 text-muted" />
@@ -124,7 +125,7 @@ export default async function SavedPage({
                       <Badge tone="success" className="font-mono-utility text-xs">
                         {promo.code}
                       </Badge>
-                      <span className="text-[10px] text-muted">
+                      <span className="text-[11px] text-muted">
                         Expires {new Date(promo.expires_at).toLocaleDateString()}
                       </span>
                     </div>

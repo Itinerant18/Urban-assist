@@ -9,8 +9,12 @@ import {
   LiveStatusTrack,
   statusToStage,
   Field,
+  toast,
+  BottomSheet,
+  Spinner,
 } from '@urban-assist/ui';
 import { pence, ukDateTime } from '@urban-assist/lib';
+import { CANCELLATION_POLICY } from '@urban-assist/utils';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { Banknote, Phone, MessageSquare, AlertOctagon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -18,6 +22,7 @@ import Link from 'next/link';
 import type { ChatMessage } from '@urban-assist/types';
 import { StatusPill } from '../../../../components/status-pill';
 import { StickyActionBar, StickyActionMeta } from '../../../../components/sticky-action-bar';
+import { vatLabel } from '@urban-assist/ui';
 
 type DisplayMessage = Pick<ChatMessage, 'id' | 'booking_id' | 'sender_id' | 'content' | 'created_at'>;
 
@@ -219,7 +224,7 @@ export function BookingDetail({
       if (!res.ok) throw new Error('Retry failed');
       window.location.reload();
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setBusy(false);
     }
@@ -246,7 +251,7 @@ export function BookingDetail({
       }
       window.location.reload();
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setBusy(false);
       setCancelOpen(false);
@@ -274,7 +279,7 @@ export function BookingDetail({
       }
       window.location.reload();
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setBusy(false);
     }
@@ -314,15 +319,15 @@ export function BookingDetail({
             <AlertOctagon className="h-4 w-4" /> We couldn't find a provider right now.
           </div>
           <p className="text-sm text-muted">
-            All eligible providers were busy or unavailable. You can retry matching now or register
-            to receive a notification later.
+            All eligible professionals were busy or unavailable for that window. Try matching again,
+            or pick a different time.
           </p>
+          {/* The second button here was a "Notify me when available" control with no
+              handler and no backing subscription. Removed rather than left to
+              promise an alert that would never arrive. */}
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={retryMatching} disabled={busy}>
-              {busy ? 'Retrying…' : 'Retry Matching'}
-            </Button>
-            <Button variant="ghost" size="sm">
-              Notify me when available
+              {busy ? 'Retrying…' : 'Retry matching'}
             </Button>
           </div>
         </Card>
@@ -332,6 +337,7 @@ export function BookingDetail({
             <Card className="p-0 overflow-hidden h-64 lg:h-96 relative">
               {providerLoc ? (
                 <iframe
+                  title="Map of the job address"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
@@ -372,7 +378,7 @@ export function BookingDetail({
           <span className="font-display text-3xl font-bold tracking-widest mt-1 text-ink">
             {startCode}
           </span>
-          <p className="text-[10px] text-muted mt-2 text-center px-4">
+          <p className="text-[11px] text-muted mt-2 text-center px-4">
             Provide this 4-digit code to the professional upon arrival to start the service.
           </p>
         </Card>
@@ -407,11 +413,18 @@ export function BookingDetail({
                   Book again
                 </Button>
               )}
-              {booking.status !== 'completed' && booking.status !== 'cancelled' && (
-                <Button variant="outline" size="sm">
-                  <Phone className="mr-1 h-4 w-4" /> Call
-                </Button>
-              )}
+              {/* Was a Button with no handler. A call affordance that does nothing
+                  is worse than none — render it only when there is a number. */}
+              {booking.status !== 'completed' &&
+                booking.status !== 'cancelled' &&
+                booking.provider?.phone && (
+                  <a
+                    href={`tel:${booking.provider.phone}`}
+                    className="tap inline-flex items-center gap-1.5 rounded-xl border border-hairline bg-white px-3 py-2 text-xs font-medium text-ink transition hover:bg-bg"
+                  >
+                    <Phone className="h-4 w-4" aria-hidden /> Call
+                  </a>
+                )}
             </div>
           </div>
         ) : (
@@ -450,7 +463,7 @@ export function BookingDetail({
             <span>{pence(booking.price_pence)}</span>
           </li>
           <li className="flex justify-between">
-            <span className="text-muted">VAT (20%)</span>
+            <span className="text-muted">{vatLabel}</span>
             <span>{pence(booking.vat_pence)}</span>
           </li>
           <li className="flex justify-between font-display text-lg">
@@ -481,9 +494,9 @@ export function BookingDetail({
           {booking.provider?.phone && (
             <a
               href={`tel:${booking.provider.phone}`}
-              className="flex items-center gap-1 text-xs font-medium text-accent"
+              className="tap flex items-center gap-1 text-xs font-medium text-accent-deep"
             >
-              <Phone className="h-3.5 w-3.5" /> Call
+              <Phone className="h-3.5 w-3.5" aria-hidden /> Call
             </a>
           )}
         </div>
@@ -507,7 +520,7 @@ export function BookingDetail({
                 >
                   <span>{m.content}</span>
                   <span
-                    className={`mt-0.5 self-end text-[11px] ${mine ? 'text-white/70' : 'text-muted'}`}
+                    className={`mt-0.5 self-end text-[11px] ${mine ? 'text-white/90' : 'text-muted'}`}
                   >
                     {hhmm(m.created_at)}
                   </span>
@@ -530,7 +543,7 @@ export function BookingDetail({
       </Card>
 
       {needsRate && !cashDue && (
-        <StickyActionBar zClassName="z-40" bottomClassName="bottom-[calc(3rem+env(safe-area-inset-bottom))]">
+        <StickyActionBar zClassName="z-40" bottomClassName="above-tabbar">
           <StickyActionMeta label="Feedback" value="Rate your service" />
           <Link href={`/bookings/${booking.id}/rate`}>
             <Button className="min-h-12 px-5">Rate</Button>
@@ -539,7 +552,7 @@ export function BookingDetail({
       )}
 
       {cashDue && (
-        <StickyActionBar zClassName="z-40" bottomClassName="bottom-[calc(3rem+env(safe-area-inset-bottom))]">
+        <StickyActionBar zClassName="z-40" bottomClassName="above-tabbar">
           <StickyActionMeta label="Payment" value="Cash due" />
           <Button className="min-h-12 px-5" onClick={confirmCash}>
             <Banknote className="mr-2 h-4 w-4" /> Confirm cash
@@ -590,46 +603,49 @@ export function BookingDetail({
         </div>
       )}
 
-      {/* Cancellation Modal / Bottom Sheet */}
-      {cancelOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
-          <div className="w-full rounded-t-2xl bg-white p-6 shadow-xl sm:max-w-md sm:rounded-2xl space-y-4">
-            <h3 className="font-display text-lg font-bold text-ink">Cancel Booking</h3>
-            <div className="rounded-xl bg-danger/10 border border-danger/20 p-3 text-xs text-danger leading-relaxed">
-              <strong>Cancellation Policy:</strong> Free cancellation up to 24 hours before the
-              service. Cancellations made within 24 hours will incur a £10.00 fee.
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-ink block">Please select a reason:</span>
-              {['Schedule changed', 'Booked by mistake', 'Found another provider'].map((reason) => (
-                <label
-                  key={reason}
-                  className="flex items-center gap-3 py-2 px-3 border border-hairline rounded-xl cursor-pointer hover:bg-bg/10"
-                >
-                  <input
-                    type="radio"
-                    name="cancel_reason"
-                    checked={cancelReason === reason}
-                    onChange={() => setCancelReason(reason)}
-                    className="accent-danger"
-                  />
-                  <span className="text-sm font-medium text-ink">{reason}</span>
-                </label>
-              ))}
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button variant="ghost" className="flex-1" onClick={() => setCancelOpen(false)}>
-                NEVERMIND
-              </Button>
-              <Button variant="danger" className="flex-1" onClick={cancel} disabled={busy}>
-                {busy ? 'Cancelling…' : 'CONFIRM CANCEL'}
-              </Button>
-            </div>
+      <BottomSheet
+        open={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        title="Cancel this booking?"
+        footer={
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setCancelOpen(false)}>
+              Keep booking
+            </Button>
+            <Button variant="danger" className="flex-1" onClick={cancel} disabled={busy}>
+              {busy && <Spinner />}
+              {busy ? 'Cancelling…' : 'Cancel booking'}
+            </Button>
           </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="rounded-xl border border-hairline bg-bg p-3 text-xs leading-relaxed text-charcoal">
+            <strong className="text-ink">Cancellation policy:</strong> {CANCELLATION_POLICY}
+          </p>
+
+          <fieldset className="space-y-2">
+            <legend className="mb-2 block text-xs font-bold text-ink">
+              Please select a reason
+            </legend>
+            {['Schedule changed', 'Booked by mistake', 'Found another provider'].map((reason) => (
+              <label
+                key={reason}
+                className="tap flex cursor-pointer items-center gap-3 rounded-xl border border-hairline px-3 py-2 hover:bg-bg"
+              >
+                <input
+                  type="radio"
+                  name="cancel_reason"
+                  checked={cancelReason === reason}
+                  onChange={() => setCancelReason(reason)}
+                  className="accent-danger"
+                />
+                <span className="text-sm font-medium text-ink">{reason}</span>
+              </label>
+            ))}
+          </fieldset>
         </div>
-      )}
+      </BottomSheet>
     </div>
   );
 }

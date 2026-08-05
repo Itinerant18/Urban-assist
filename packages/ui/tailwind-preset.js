@@ -20,13 +20,51 @@ module.exports = {
         'footer-muted': 'rgb(var(--footer-muted) / <alpha-value>)',
         'footer-faint': 'rgb(var(--footer-faint) / <alpha-value>)',
         'surface-sunk': 'rgb(var(--surface-sunk) / <alpha-value>)',
+        // AA-safe text variants — use these whenever accent/success/amber
+        // carries text below 18px bold.
+        'accent-deep': 'rgb(var(--accent-deep) / <alpha-value>)',
+        'success-deep': 'rgb(var(--success-deep) / <alpha-value>)',
+        'amber-deep': 'rgb(var(--amber-deep) / <alpha-value>)',
       },
+      transitionDuration: {
+        fast: '150ms',
+        base: '250ms',
+      },
+      transitionTimingFunction: {
+        'out-soft': 'cubic-bezier(0.22, 1, 0.36, 1)',
+      },
+      zIndex: {
+        tabbar: '40',
+        sticky: '45',
+        header: '50',
+        sheet: '60',
+        modal: '60',
+        toast: '70',
+      },
+      keyframes: {
+        'sheet-up': {
+          from: { transform: 'translateY(100%)' },
+          to: { transform: 'translateY(0)' },
+        },
+        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'toast-in': {
+          from: { opacity: '0', transform: 'translateY(0.5rem)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'sheet-up': 'sheet-up 250ms cubic-bezier(0.22, 1, 0.36, 1)',
+        'fade-in': 'fade-in 150ms ease-out',
+        'toast-in': 'toast-in 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+      },
+      // --font-sans / --font-mono are set by next/font in each app's root layout;
+      // the literal family names stay as the fallback for any surface without it.
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Inter', 'system-ui', 'sans-serif'],
-        body: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
-        'mono-utility': ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        sans: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
+        body: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', '"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        'mono-utility': ['var(--font-mono)', '"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
         xl: '14px',

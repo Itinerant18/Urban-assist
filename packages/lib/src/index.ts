@@ -9,6 +9,8 @@ export {
   formatUkPhone,
   UK_POSTCODE_RE,
   OFFER_TTL_SECONDS,
+  OFFER_TTL_LABEL,
+  durationLabel,
   VAT_RATE,
 } from '@urban-assist/utils';
 export { quote } from '@urban-assist/domain/pricing';

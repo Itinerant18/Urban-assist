@@ -6,6 +6,7 @@ import { ukDateTime } from '@urban-assist/lib';
 import { SupportForm } from './support-form';
 import Link from 'next/link';
 import { Search, CalendarClock, CreditCard, ShieldAlert, MessageSquare, Mail, Phone, ArrowLeft, ThumbsUp, Settings } from 'lucide-react';
+import { CANCELLATION_POLICY } from '@urban-assist/utils';
 
 interface Ticket {
   id: string;
@@ -19,7 +20,7 @@ const FAQS = [
   {
     category: 'Booking Issues',
     q: 'How do I reschedule or cancel a booking?',
-    a: 'Open the booking from "Bookings" and use the Cancel button — free any time before the professional is on their way. Card payments are refunded in full. To reschedule, cancel and book a new slot, or message your provider.',
+    a: `Open the booking from "Bookings" and use the Cancel button. ${CANCELLATION_POLICY} To reschedule, cancel and book a new slot, or message your provider.`,
   },
   {
     category: 'Payment & Refunds',
@@ -135,7 +136,7 @@ export default function HelpPage() {
       {/* Common Topics Grid */}
       <section className="space-y-3">
         <h2 className="text-xs font-bold text-muted uppercase tracking-wider pl-0.5">Common Topics</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Card
             onClick={() => setSearchQuery('Booking')}
             className="cursor-pointer border border-hairline p-4 rounded-xl hover:border-accent transition bg-white shadow-card flex items-start gap-3"
@@ -218,16 +219,9 @@ export default function HelpPage() {
       {/* Still Stuck? Contact Support */}
       <section className="space-y-3">
         <h2 className="text-xs font-bold text-muted uppercase tracking-wider pl-0.5">Still Need Help?</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border border-hairline p-4 rounded-xl bg-white shadow-card text-center space-y-2">
-            <MessageSquare className="h-5 w-5 text-accent mx-auto" />
-            <h4 className="font-bold text-sm text-ink">Live Chat</h4>
-            <p className="text-xs text-muted">Average wait time: 2 mins</p>
-            <Button size="sm" className="w-full mt-2">
-              Start Chat
-            </Button>
-          </Card>
-
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Live chat is not built. The card claimed a two-minute wait and its
+              button did nothing — the two options below are the ones that work. */}
           <Card className="border border-hairline p-4 rounded-xl bg-white shadow-card text-center space-y-2">
             <Mail className="h-5 w-5 text-accent mx-auto" />
             <h4 className="font-bold text-sm text-ink">Email Us</h4>
@@ -272,7 +266,7 @@ export default function HelpPage() {
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-ink">{t.category}</div>
                       <p className="mt-1 line-clamp-2 text-xs text-muted leading-relaxed">{t.description}</p>
-                      <div className="mt-2 text-[10px] text-muted font-mono-utility">
+                      <div className="mt-2 text-[11px] text-muted font-mono-utility">
                         Raised {ukDateTime(t.created_at)}
                       </div>
                     </div>

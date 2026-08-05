@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, Badge, EmptyState, RatingStars } from '@urban-assist/ui';
 import { pence, ukDateTime, miles, haversineKm } from '@urban-assist/lib';
 import { Clock, MapPin, ChevronRight } from 'lucide-react';
+import { commissionNote, offerEarnings } from '../../../lib/provider-data';
 
 type Filter = 'live' | 'all';
 
@@ -111,6 +112,7 @@ function OfferRow({
   now: number | null;
 }) {
   const b = offer.booking ?? {};
+  const earnings = offerEarnings(b, offer.commission_bps);
   const left = now === null ? null : secondsLeft(offer.responds_by, now);
   const isLive = offer.status === 'pending' && (left === null || left > 0);
 
@@ -166,13 +168,24 @@ function OfferRow({
           </div>
 
           <div className="text-right shrink-0 space-y-1">
-            <div className="font-display text-lg font-bold text-success">
-              {pence(b.total_pence ?? 0)}
-            </div>
+            {/* Take-home, not the customer's total — the list used to show the
+                VAT-inclusive gross next to the word earnings. */}
+            {earnings ? (
+              <>
+                <div className="font-display text-lg font-bold text-success-deep">
+                  {pence(earnings.net)}
+                </div>
+                <div className="text-[11px] text-muted">
+                  {pence(earnings.gross)} · {commissionNote(earnings.bps)}
+                </div>
+              </>
+            ) : (
+              <div className="font-display text-lg font-bold text-muted">—</div>
+            )}
             {/* left === null pre-mount: the badge still says "Awaiting you", but the
                 countdown itself is withheld until there is a real clock. */}
             {isLive && left !== null && (
-              <div className="flex items-center justify-end gap-1 text-[10px] font-mono-utility text-accent">
+              <div className="flex items-center justify-end gap-1 text-[11px] font-mono-utility text-accent-deep">
                 <Clock className="h-3 w-3" />
                 {Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')}
               </div>

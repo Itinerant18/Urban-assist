@@ -2,12 +2,20 @@
 
 import { useEffect } from 'react';
 
-// Registers this browser for web push once the dashboard mounts.
-// ponytail: prompts on mount — fine for Chromium; Firefox/Safari need a user
-// gesture and will skip. Add an explicit "Enable notifications" button if those
-// browsers matter.
+/**
+ * Re-registers this browser for web push — only when permission was already
+ * granted on a previous, deliberate opt-in.
+ *
+ * It used to call registerForPush() on mount, which fires the browser's
+ * permission prompt with no user gesture: Safari and Firefox refuse it outright,
+ * and Chrome shows a modal the provider never asked for, the most reliable way
+ * to get "Block" clicked forever. The opt-in now lives on an explicit control in
+ * settings; this component only keeps an existing subscription alive (tokens
+ * rotate, and a stale token means missed job offers).
+ */
 export function PushRegistrar() {
   useEffect(() => {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     import('@urban-assist/integrations/firebase/push-client')
       .then((m) => m.registerForPush())
       .catch(() => {});

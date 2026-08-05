@@ -11,6 +11,19 @@ export interface NavItem {
   href: string;
   label: string;
   icon: React.ReactNode;
+  /**
+   * Extra route prefixes this tab owns. Without it every route that isn't itself
+   * a tab destination highlights nothing, and the user loses their place —
+   * `/offers` and `/jobs/:id` belong to Requests, `/settings` to Menu.
+   */
+  match?: string[];
+}
+
+function isActive(item: NavItem, pathname: string | null): boolean {
+  if (!pathname) return false;
+  const owns = (href: string) =>
+    href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/');
+  return owns(item.href) || (item.match?.some(owns) ?? false);
 }
 
 function shouldHideBottomNav(pathname: string | null): boolean {
@@ -120,7 +133,7 @@ function SidebarNav({ items }: { items: NavItem[] }) {
     <nav aria-label="Primary">
       <ul className="space-y-1">
         {items.map((it) => {
-          const active = pathname === it.href || pathname?.startsWith(it.href + '/');
+          const active = isActive(it, pathname);
           return (
             <li key={it.href}>
               <Link
@@ -143,14 +156,15 @@ function SidebarNav({ items }: { items: NavItem[] }) {
 
 function TabLink({ item }: { item: NavItem }) {
   const pathname = usePathname();
-  const active = pathname === item.href || pathname?.startsWith(item.href + '/');
+  const active = isActive(item, pathname);
   return (
     <li className="flex-1">
       <Link
         href={item.href}
         className={cn(
-          'tap flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-semibold tracking-wide',
-          active ? 'text-accent' : 'text-muted',
+          'tap flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-semibold leading-tight tracking-tight',
+          // accent is 4.16:1 — below AA at this size; accent-deep clears it.
+          active ? 'text-accent-deep' : 'text-muted',
         )}
         aria-current={active ? 'page' : undefined}
       >

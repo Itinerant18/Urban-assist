@@ -22,13 +22,23 @@ export default function ComingSoonPage({ searchParams }: Props) {
           : "We're working hard to bring this feature to life. Check back soon!"}
       </p>
 
+      {/* This was a bordered <div> styled as an input with the words "Notify me
+          when available" in it — it looked like a control, took no input and
+          subscribed nobody. Until there is a waitlist, say what is true. */}
       {postcode && (
-        <div className="mt-6 flex w-full max-w-sm items-center gap-2">
-          <div className="flex flex-1 items-center gap-2 rounded-xl border border-input-border bg-white px-4 py-3 text-[14px] text-muted">
-            <Bell className="h-4 w-4 text-accent" />
-            <span>Notify me when available</span>
-          </div>
-        </div>
+        <p className="mt-6 flex w-full max-w-sm items-center justify-center gap-2 rounded-xl border border-input-border bg-white px-4 py-3 text-[14px] text-muted">
+          <Bell className="h-4 w-4 shrink-0 text-accent" aria-hidden />
+          <span>
+            Not covered yet. Email{' '}
+            <a
+              href="mailto:support@urbanassist.co.uk"
+              className="font-medium text-accent-deep underline underline-offset-2"
+            >
+              support
+            </a>{' '}
+            and we&apos;ll tell you when we reach you.
+          </span>
+        </p>
       )}
 
       <Link

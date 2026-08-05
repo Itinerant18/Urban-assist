@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { Button, Card, Field, Input, Badge, ServiceImage } from '@urban-assist/ui';
+import { Button, Card, Field, Input, Badge, ServiceImage, toast, useConfirm } from '@urban-assist/ui';
 import { pence } from '@urban-assist/lib';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { Plus, Trash2, Edit2, Check, X, ToggleLeft, ToggleRight } from 'lucide-react';
@@ -59,6 +59,7 @@ export function ServicesEditor({
 }) {
   const router = useRouter();
   const [mine, setMine] = React.useState<ProviderService[]>(initialMine);
+  const [confirm, confirmDialog] = useConfirm();
   const [adding, setAdding] = React.useState(false);
 
   // Cascading form state for adding new service
@@ -195,19 +196,26 @@ export function ServicesEditor({
       if (error) throw error;
       setMine(mine.map((m) => (m.id === service.id ? { ...m, is_active: nextActive } : m)));
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     }
   }
 
   async function deleteService(id: string) {
-    if (!confirm('Are you sure you want to remove this service?')) return;
+    const ok = await confirm({
+      title: 'Remove this service?',
+      description: 'It stops appearing to customers straight away. Jobs already booked are unaffected.',
+      confirmLabel: 'Remove service',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       const sb = supabase();
       const { error } = await sb.from('provider_services').delete().eq('id', id);
       if (error) throw error;
       setMine(mine.filter((m) => m.id !== id));
+      toast.success('Service removed');
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     }
   }
 
@@ -257,6 +265,7 @@ export function ServicesEditor({
 
   return (
     <div className="space-y-4">
+      {confirmDialog}
       {mine.length === 0 && !adding && (
         <p className="text-sm text-muted">
           No services on your profile yet — add your first one below.
@@ -282,7 +291,7 @@ export function ServicesEditor({
                           <Field label="Price">
                             <div className="flex h-[42px] items-center rounded-xl border border-hairline bg-bg/60 px-3 text-sm text-muted">
                               {pence(m.price_pence)}
-                              <span className="ml-1.5 text-[10px] uppercase tracking-wider">
+                              <span className="ml-1.5 text-[11px] uppercase tracking-wider">
                                 set by Urban Assist
                               </span>
                             </div>

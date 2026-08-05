@@ -6,6 +6,7 @@ import {
 } from '@/lib/catalog';
 import { Footer } from '@/components/footer';
 import { SubcategoryClient } from './subcategory-client';
+import { CANCELLATION_POLICY } from '@urban-assist/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,7 +70,7 @@ function getDefaultFaqs(subcategoryName: string) {
     },
     {
       question: `Can I reschedule or cancel my booking?`,
-      answer: `Yes, you can cancel or reschedule free of charge up to 2 hours before the scheduled arrival time via your Urban Assist account dashboard.`,
+      answer: `Yes. ${CANCELLATION_POLICY} Cancel or reschedule from Bookings in your account.`,
     },
     {
       question: `What if I am not completely satisfied with the result?`,

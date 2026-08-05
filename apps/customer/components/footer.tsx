@@ -3,7 +3,6 @@ import * as React from 'react';
 import Link from 'next/link';
 import { Logo } from '@urban-assist/ui';
 import { Plus, Minus } from 'lucide-react';
-import { StoreBadges } from './store-badges';
 
 const footerLinks = {
   COMPANY: [
@@ -13,9 +12,8 @@ const footerLinks = {
     { label: 'Blog', href: '/coming-soon' },
   ],
   LEGAL: [
-    { label: 'Terms of Use', href: '/coming-soon' },
-    { label: 'Privacy Policy', href: '/coming-soon' },
-    { label: 'Cookie Policy', href: '/coming-soon' },
+    { label: 'Terms of Use', href: '/terms' },
+    { label: 'Privacy Notice', href: '/privacy' },
   ],
   'FOR PROVIDERS': [
     { label: 'Join as a Pro', href: '/coming-soon' },
@@ -56,38 +54,30 @@ export function Footer() {
 
   return (
     <footer className="bg-[#1F3A4D] border-t border-hairline/20">
-      {/* App Download Promo Banner */}
+      {/* Install prompt. There is no native app: the store badges and the QR code
+          that used to sit here both pointed at /coming-soon, and the QR was a
+          hand-drawn SVG that scanned to nothing. This is the install path that
+          actually exists — the PWA manifest. */}
       <div className="mx-auto max-w-page px-6 pt-12">
-        <div className="rounded-2xl bg-[#1A2D3C] border border-[#3A4D5C]/30 p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 justify-between shadow-xl">
+        <div className="flex flex-col items-center justify-between gap-6 rounded-2xl border border-[#3A4D5C]/30 bg-[#1A2D3C] p-6 shadow-xl md:flex-row md:p-8">
           <div className="flex items-center gap-5">
             <PhoneMockup />
             <div className="space-y-2">
-              <span className="font-mono-utility text-[10px] font-bold text-accent uppercase tracking-wider bg-accent/10 px-2.5 py-1 rounded-full">
-                Get the App
+              <span className="rounded-full bg-accent/10 px-2.5 py-1 font-mono-utility text-[11px] font-bold uppercase tracking-wider text-accent">
+                Install
               </span>
-              <h3 className="font-display text-lg md:text-xl font-bold text-[#F5F1EB] leading-tight">
-                GET THE URBAN ASSIST APP
+              <h3 className="font-display text-lg font-bold leading-tight text-[#F5F1EB] md:text-xl">
+                Keep Urban Assist on your home screen
               </h3>
-              <p className="text-xs text-[#9FB1BC] max-w-md leading-relaxed">
-                Book services faster, track providers live, and manage your home with ease.
+              <p className="max-w-md text-xs leading-relaxed text-[#9FB1BC]">
+                Add this site to your home screen for one-tap booking, live provider tracking and
+                your booking history — no app store, no download.
               </p>
-              <StoreBadges className="hidden lg:flex pt-1" />
+              <p className="text-[11px] leading-relaxed text-footer-faint">
+                iPhone: Share → Add to Home Screen. Android: menu → Install app.
+              </p>
             </div>
           </div>
-
-          {/* QR Code (Desktop Only) */}
-          <div className="hidden lg:flex flex-col items-center gap-2 bg-[#10202B] p-4 rounded-xl border border-[#3A4D5C]/40">
-            {/* Custom SVG QR Code Placeholder */}
-            <svg className="h-16 w-16 text-[#F5F1EB]" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8 0h6v6h-6V5zm2 2v2h2V5h-2zM3 13h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v3h-3v-3zm0 5h3v3h-3v-3zm-5-5h3v8h-3v-8z" />
-            </svg>
-            <span className="text-[10px] font-mono-utility text-[#9FB1BC] uppercase tracking-wider font-semibold">
-              Scan to Download
-            </span>
-          </div>
-
-          {/* Mobile Download Buttons */}
-          <StoreBadges className="lg:hidden w-full justify-center pt-2" />
         </div>
       </div>
 

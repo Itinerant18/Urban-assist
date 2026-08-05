@@ -189,7 +189,7 @@ export function BrowseClient({
               onChange={(e) => setMaxPrice(Number(e.target.value))}
               className="w-full accent-accent bg-hairline rounded-lg appearance-none h-1"
             />
-            <div className="flex justify-between text-[10px] text-muted font-mono-utility">
+            <div className="flex justify-between text-[11px] text-muted font-mono-utility">
               <span>£10</span>
               <span>£100</span>
             </div>
@@ -220,8 +220,9 @@ export function BrowseClient({
 
           {/* Distance */}
           {customerLocation && <div className="space-y-2">
-            <label className="text-xs font-bold text-muted uppercase tracking-wider">Distance</label>
+            <label htmlFor="filter-distance" className="text-xs font-bold text-muted uppercase tracking-wider">Distance</label>
             <select
+              id="filter-distance"
               value={maxDistance}
               onChange={(e) => setMaxDistance(Number(e.target.value))}
               className="tap w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
@@ -295,7 +296,7 @@ export function BrowseClient({
 
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="text-[10px] text-muted uppercase font-mono-utility">
+                          <div className="text-[11px] text-muted uppercase font-mono-utility">
                             {s.distanceKm != null ? 'Rate / Distance' : 'Rate'}
                           </div>
                           <div className="text-sm font-extrabold text-ink">
@@ -429,7 +430,7 @@ export function BrowseClient({
                 onChange={(e) => setMaxPrice(Number(e.target.value))}
                 className="w-full accent-accent bg-hairline rounded-lg appearance-none h-1.5"
               />
-              <div className="flex justify-between text-[10px] text-muted font-mono-utility">
+              <div className="flex justify-between text-[11px] text-muted font-mono-utility">
                 <span>£10</span>
                 <span>£100</span>
               </div>

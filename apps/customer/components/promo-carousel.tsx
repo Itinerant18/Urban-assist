@@ -30,7 +30,7 @@ export function PromoCarousel({ promoCode }: PromoCarouselProps) {
           </button>
 
           <div className="max-w-md">
-            <span className="inline-block rounded-full bg-white/30 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.04em] text-ink">
+            <span className="inline-block rounded-full bg-white/30 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.04em] text-ink">
               Limited offer
             </span>
             <h3 className="mt-3 text-[22px] font-extrabold text-ink">

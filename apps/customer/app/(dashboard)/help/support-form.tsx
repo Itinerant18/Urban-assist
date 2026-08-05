@@ -144,7 +144,7 @@ export function SupportForm() {
              {evidenceFile ? evidenceFile.name : 'Attach evidence (Photo/Screenshot)'}
            </Button>
            {evidenceFile && (
-              <p className="text-[10px] text-muted mt-1 ml-1 cursor-pointer hover:underline" onClick={() => setEvidenceFile(null)}>Remove attachment</p>
+              <p className="text-[11px] text-muted mt-1 ml-1 cursor-pointer hover:underline" onClick={() => setEvidenceFile(null)}>Remove attachment</p>
            )}
         </div>
 

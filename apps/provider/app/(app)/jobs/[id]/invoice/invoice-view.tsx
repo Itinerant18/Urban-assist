@@ -58,13 +58,13 @@ export function InvoiceView({
 
         <dl className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <dt className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+            <dt className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
               Customer
             </dt>
             <dd className="text-ink mt-0.5">{booking.customer?.full_name ?? '—'}</dd>
           </div>
           <div>
-            <dt className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+            <dt className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
               Service
             </dt>
             <dd className="text-ink mt-0.5">
@@ -72,13 +72,13 @@ export function InvoiceView({
             </dd>
           </div>
           <div>
-            <dt className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+            <dt className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
               Scheduled
             </dt>
             <dd className="text-ink mt-0.5">{ukDateTime(booking.scheduled_at)}</dd>
           </div>
           <div>
-            <dt className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+            <dt className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
               Completed
             </dt>
             <dd className="text-ink mt-0.5">
@@ -87,14 +87,14 @@ export function InvoiceView({
           </div>
           {booking.sku?.duration_mins && (
             <div>
-              <dt className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+              <dt className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
                 Estimated duration
               </dt>
               <dd className="text-ink mt-0.5">{booking.sku.duration_mins} mins</dd>
             </div>
           )}
           <div className="col-span-2">
-            <dt className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+            <dt className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
               Address
             </dt>
             <dd className="text-ink mt-0.5">
@@ -107,7 +107,7 @@ export function InvoiceView({
 
         {/* What the customer was charged */}
         <section className="space-y-2">
-          <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+          <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
             Customer charge
           </h2>
           <dl className="space-y-1.5 text-sm">
@@ -121,7 +121,7 @@ export function InvoiceView({
               border
             />
           </dl>
-          <p className="text-[10px] text-muted">
+          <p className="text-[11px] text-muted">
             {booking.payment_method === 'cash'
               ? 'Pay after service (cash)'
               : 'Pay now (card)'}
@@ -133,7 +133,7 @@ export function InvoiceView({
 
         {/* What the provider receives */}
         <section className="space-y-2">
-          <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+          <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
             Your earnings
           </h2>
           <dl className="space-y-1.5 text-sm">
@@ -144,14 +144,14 @@ export function InvoiceView({
             />
             <Row label="You receive" value={pence(takeHome)} strong border />
           </dl>
-          <p className="text-[10px] text-muted">
+          <p className="text-[11px] text-muted">
             VAT is collected on the platform&apos;s behalf and is not part of your earnings.
           </p>
         </section>
 
         {booking.notes && (
           <section className="space-y-1">
-            <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+            <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
               Customer notes
             </h2>
             <p className="text-sm text-charcoal whitespace-pre-wrap">{booking.notes}</p>
@@ -160,7 +160,7 @@ export function InvoiceView({
 
         {booking.completion_report && (
           <section className="space-y-1">
-            <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+            <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
               Completion report
             </h2>
             <p className="text-sm text-charcoal whitespace-pre-wrap">

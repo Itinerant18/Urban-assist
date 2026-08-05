@@ -20,7 +20,11 @@ import {
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import type { ChatMessage } from '@urban-assist/types';
-import { canProviderCancel } from '@urban-assist/domain/job-status';
+import {
+  canProviderCancel,
+  bookingStatusLabel,
+  bookingStatusTone,
+} from '@urban-assist/domain/job-status';
 import { postCurrentLocation } from '../../../../lib/post-location';
 
 type DisplayMessage = Pick<ChatMessage, 'id' | 'booking_id' | 'sender_id' | 'content' | 'created_at'>;
@@ -53,7 +57,7 @@ function JobTimeline({ status }: { status: string }) {
               className={`h-1.5 w-full rounded-full ${done ? 'bg-ink' : 'bg-hairline'}`}
               aria-hidden
             />
-            <span className={`text-[9px] leading-tight ${done ? 'text-ink font-medium' : 'text-muted'}`}>
+            <span className={`text-[11px] leading-tight ${done ? 'text-ink font-medium' : 'text-muted'}`}>
               {step === 'on_the_way' ? 'En route' : step.replace(/_/g, ' ')}
             </span>
           </li>
@@ -619,6 +623,7 @@ export default function JobDetailPage() {
       <div className="flex-1 min-h-[35vh] lg:min-h-0 relative bg-bg/50 border-r border-hairline">
         {mapUrl ? (
           <iframe
+            title="Route to the job address"
             src={mapUrl}
             className="w-full h-full border-none"
             loading="lazy"
@@ -640,22 +645,27 @@ export default function JobDetailPage() {
         }`}
       >
         {/* Toggle bar for mobile drawer */}
-        <div
+        {/* A real button: this was a <div onClick>, so keyboard and screen-reader
+            users had no way to open the job details at all. */}
+        <button
+          type="button"
           onClick={() => setDrawerOpen(!drawerOpen)}
-          className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-hairline cursor-pointer bg-bg/20"
+          aria-expanded={drawerOpen}
+          aria-label={drawerOpen ? 'Hide job details' : 'Show job details'}
+          className="tap lg:hidden flex w-full items-center justify-between border-b border-hairline bg-bg/20 px-4 py-3 text-left"
         >
-          <div className="flex items-center gap-2">
-            <Badge tone={booking.status === 'completed' ? 'success' : 'accent'}>
-              {booking.status.replace(/_/g, ' ').toUpperCase()}
+          <span className="flex items-center gap-2">
+            <Badge tone={bookingStatusTone(booking.status)}>
+              {bookingStatusLabel(booking.status)}
             </Badge>
             <span className="font-mono-utility text-xs text-muted">#{booking.short_code}</span>
-          </div>
+          </span>
           {drawerOpen ? (
-            <ChevronDown className="h-4 w-4 text-ink" />
+            <ChevronDown className="h-4 w-4 text-ink" aria-hidden />
           ) : (
-            <ChevronUp className="h-4 w-4 text-ink" />
+            <ChevronUp className="h-4 w-4 text-ink" aria-hidden />
           )}
-        </div>
+        </button>
 
         {/* Content list */}
         <div
@@ -667,8 +677,8 @@ export default function JobDetailPage() {
               <h1 className="font-display text-2xl font-bold text-ink">{booking.category?.name}</h1>
               <p className="font-mono-utility text-xs text-muted">#{booking.short_code}</p>
             </div>
-            <Badge tone={booking.status === 'completed' ? 'success' : booking.status === 'cancelled' ? 'danger' : 'accent'}>
-              {booking.status.replace(/_/g, ' ').toUpperCase()}
+            <Badge tone={bookingStatusTone(booking.status)}>
+              {bookingStatusLabel(booking.status)}
             </Badge>
           </div>
 
@@ -720,7 +730,7 @@ export default function JobDetailPage() {
             <div className="space-y-4">
               {booking.status === 'in_progress' && (
                 <div className="flex flex-col items-center justify-center py-4 bg-accent/5 rounded-2xl border border-accent/15">
-                  <span className="font-mono-utility text-[10px] text-muted flex items-center gap-1">
+                  <span className="font-mono-utility text-[11px] text-muted flex items-center gap-1">
                     <Clock className="h-3 w-3 animate-pulse text-accent" /> In Progress Timer
                   </span>
                   <span className="font-display text-2xl font-bold mt-1 text-ink">
@@ -963,7 +973,7 @@ export default function JobDetailPage() {
                     }`}
                   >
                     <span>{m.content}</span>
-                    <span className="text-[10px] text-muted self-end mt-0.5">
+                    <span className="text-[11px] text-muted self-end mt-0.5">
                       {new Date(m.created_at).toLocaleTimeString('en-GB', {
                         hour: '2-digit',
                         minute: '2-digit',

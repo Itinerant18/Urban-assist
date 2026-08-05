@@ -35,9 +35,31 @@ describe('hasBottomTabs', () => {
     expect(hasBottomTabs('/bookings')).toBe(true);
   });
 
-  it('is false on marketing services and immersive owners', () => {
-    expect(hasBottomTabs('/services')).toBe(false);
+  // Regression: /services* lives in app/(dashboard) and renders AppShell, so it
+  // does have tabs. Claiming otherwise put the Book CTA under the tab bar.
+  it('is true on every /services route', () => {
+    expect(hasBottomTabs('/services')).toBe(true);
+    expect(hasBottomTabs('/services/cleaning')).toBe(true);
+    expect(hasBottomTabs('/services/cleaning/deep-clean')).toBe(true);
+    expect(hasBottomTabs('/services/cleaning/deep-clean/oven')).toBe(true);
+  });
+
+  it('is false where AppShell hides the tab bar', () => {
     expect(hasBottomTabs('/book/x')).toBe(false);
+    expect(hasBottomTabs('/book/success')).toBe(false);
+    expect(hasBottomTabs('/bookings/abc/rate')).toBe(false);
+  });
+
+  it('is false outside the app shell', () => {
+    expect(hasBottomTabs('/privacy')).toBe(false);
+    expect(hasBottomTabs('/terms')).toBe(false);
+    expect(hasBottomTabs('/coming-soon')).toBe(false);
+  });
+});
+
+describe('coming-soon', () => {
+  it('shows no global Book CTA', () => {
+    expect(ownsOwnSticky('/coming-soon')).toBe(true);
   });
 });
 

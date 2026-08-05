@@ -172,9 +172,9 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate font-bold text-sm text-ink">{c.provider.full_name}</span>
-                          {last && <span className="shrink-0 text-[10px] text-muted">{listStamp(last.created_at)}</span>}
+                          {last && <span className="shrink-0 text-[11px] text-muted">{listStamp(last.created_at)}</span>}
                         </div>
-                        <div className="text-[10px] font-semibold text-muted mt-0.5">{c.category?.name}</div>
+                        <div className="text-[11px] font-semibold text-muted mt-0.5">{c.category?.name}</div>
                         <p className="truncate text-xs text-muted mt-1">{last?.content ?? 'Say hi to your provider'}</p>
                       </div>
                     </button>
@@ -200,7 +200,7 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
               </button>
               <div className="text-center min-w-0 flex-1 px-4">
                 <h2 className="font-display text-sm font-bold text-ink truncate">{selected.provider.full_name}</h2>
-                <p className="text-[10px] text-muted truncate">
+                <p className="text-[11px] text-muted truncate">
                   {selected.category?.name} · #{selected.short_code}
                 </p>
               </div>
@@ -226,14 +226,14 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
                 const mine = m.sender_id === userId;
                 return (
                   <React.Fragment key={m.id}>
-                    {showDivider && <div className="py-2 text-center text-[10px] text-muted font-bold">{label}</div>}
+                    {showDivider && <div className="py-2 text-center text-[11px] text-muted font-bold">{label}</div>}
                     <div
                       className={`flex max-w-[80%] flex-col rounded-2xl px-3.5 py-2.5 shadow-sm leading-relaxed ${
                         mine ? 'ml-auto bg-accent text-white' : 'mr-auto bg-white text-ink border border-hairline'
                       }`}
                     >
                       <span>{m.content}</span>
-                      <span className={`mt-1 self-end text-[9px] ${mine ? 'text-white/70' : 'text-muted'}`}>
+                      <span className={`mt-1 self-end text-[11px] ${mine ? 'text-white/90' : 'text-muted'}`}>
                         {hhmm(m.created_at)}
                       </span>
                     </div>
@@ -344,7 +344,7 @@ export function MessagesClient({ conversations, userId }: { conversations: Conve
                         }`}
                       >
                         <span>{m.content}</span>
-                        <span className={`mt-0.5 self-end text-[11px] ${mine ? 'text-white/70' : 'text-muted'}`}>
+                        <span className={`mt-0.5 self-end text-[11px] ${mine ? 'text-white/90' : 'text-muted'}`}>
                           {hhmm(m.created_at)}
                         </span>
                       </div>

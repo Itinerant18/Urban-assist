@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { Card, Button, Badge } from '@urban-assist/ui';
 import { Bell, MapPin, CreditCard, FileText, LifeBuoy, ChevronRight } from 'lucide-react';
+import { OFFER_TTL_LABEL } from '@urban-assist/lib';
 import { postCurrentLocation } from '../../../lib/post-location';
 
 type Permission = 'granted' | 'denied' | 'default' | 'unsupported';
@@ -111,8 +112,8 @@ export function SettingsView({
           )}
         </Row>
         <p className="text-xs text-muted">
-          Job offers expire in 90 seconds. With push off you will only see them while the app is
-          open.
+          Job offers expire in {OFFER_TTL_LABEL}. With push off you will only see them while the app
+          is open.
         </p>
         {pushPerm === 'unsupported' ? (
           <p className="text-xs text-muted">This browser does not support push notifications.</p>
@@ -180,10 +181,10 @@ export function SettingsView({
       </Card>
 
       <div className="pt-2 text-center">
-        <p className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+        <p className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
           Urban Assist Pro
         </p>
-        <p className="text-[10px] text-muted mt-0.5">
+        <p className="text-[11px] text-muted mt-0.5">
           Version {process.env.NEXT_PUBLIC_APP_VERSION ?? '0.1.0'}
         </p>
       </div>

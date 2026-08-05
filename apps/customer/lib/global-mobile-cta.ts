@@ -9,6 +9,8 @@ export function ownsOwnSticky(pathname: string | null): boolean {
   // Public home already owns the primary discovery CTA and bottom navigation.
   if (pathname === '/') return true;
   if (pathname.startsWith('/login')) return true;
+  // Nothing to book from a placeholder page.
+  if (pathname.startsWith('/coming-soon')) return true;
   // Book wizard only — must not match /bookings (prefix collision).
   if (pathname === '/book' || pathname.startsWith('/book/')) return true;
   if (/^\/bookings\/[^/]+\/rate\/?$/.test(pathname)) return true;
@@ -20,15 +22,23 @@ export function ownsOwnSticky(pathname: string | null): boolean {
 }
 
 /**
- * Bottom tab bar present (guest home or logged-in AppShell).
- * Marketing /services/* uses Header+Footer only — no tabs.
+ * Bottom tab bar present.
+ *
+ * Must mirror `AppShell.shouldHideBottomNav` + the customer route groups: every
+ * page inside `app/(dashboard)` renders AppShell and therefore has tabs — that
+ * includes `/services/*`, which this used to deny, which put the Book CTA
+ * underneath the tab bar on all four service routes. Only the pages outside the
+ * group (`/privacy`, `/terms`, `/coming-soon`, `/login`) have no tabs.
  */
+const TABLESS_PREFIXES = ['/privacy', '/terms', '/coming-soon', '/login'];
+
 export function hasBottomTabs(pathname: string | null): boolean {
   if (!pathname) return false;
-  if (ownsOwnSticky(pathname)) return false;
-  if (pathname.startsWith('/services')) return false;
-  if (pathname.startsWith('/privacy') || pathname.startsWith('/terms')) return false;
-  if (pathname.startsWith('/coming-soon')) return false;
+  if (TABLESS_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))) return false;
+  // Mirrors AppShell.shouldHideBottomNav — immersive flows drop the tab bar.
+  if (pathname === '/book' || pathname.startsWith('/book/')) return false;
+  if (pathname.endsWith('/success')) return false;
+  if (/^\/bookings\/[^/]+\/rate\/?$/.test(pathname)) return false;
   return true;
 }
 

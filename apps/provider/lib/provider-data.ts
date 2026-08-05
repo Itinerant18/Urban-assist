@@ -48,10 +48,15 @@ export async function loadServiceCatalog(db: SupabaseClient, providerId: string)
 }
 
 export async function loadProviderDocuments(db: SupabaseClient, providerId: string) {
-  const [{ data: profile }, { data: docs }] = await Promise.all([
-    db.from('profiles').select('*').eq('id', providerId).single(),
-    db.from('provider_documents').select('*').eq('provider_id', providerId),
-  ]);
+  const [{ data: profile, error: profileErr }, { data: docs, error: docsErr }] =
+    await Promise.all([
+      db.from('profiles').select('*').eq('id', providerId).single(),
+      db.from('provider_documents').select('*').eq('provider_id', providerId),
+    ]);
+  if (profileErr) throw profileErr;
+  // A failed document query would read as "you have uploaded nothing", which is
+  // exactly the state that blocks a provider from working.
+  if (docsErr) throw docsErr;
 
   return { profile, docs: docs ?? [] };
 }
@@ -68,23 +73,32 @@ const OFFER_SELECT = `
   )
 `;
 
+/**
+ * Loaders throw on query failure rather than returning `[]`.
+ *
+ * `?? []` made a broken query render the empty state — "no offers waiting" when
+ * the truth was "we could not ask". Throwing routes it to the route's error.tsx,
+ * which says so and offers a retry.
+ */
 export async function loadOffers(db: SupabaseClient, providerId: string) {
-  const { data } = await db
+  const { data, error } = await db
     .from('booking_offers')
     .select(OFFER_SELECT)
     .eq('provider_id', providerId)
     .order('offered_at', { ascending: false })
     .limit(50);
+  if (error) throw error;
   return data ?? [];
 }
 
 export async function loadOffer(db: SupabaseClient, providerId: string, offerId: string) {
-  const { data } = await db
+  const { data, error } = await db
     .from('booking_offers')
     .select(OFFER_SELECT)
     .eq('id', offerId)
     .eq('provider_id', providerId)
     .maybeSingle();
+  if (error) throw error;
   return data;
 }
 
@@ -101,28 +115,75 @@ export async function loadProviderLocation(db: SupabaseClient, providerId: strin
  * Commission basis points per category, mirroring the SQL `commission_bps()`:
  * category rule, else the default (null category) rule, else 0.
  *
- * The function itself is `grant execute ... to service_role` only and
+ * `commission_bps()` is `grant execute ... to service_role` only and
  * commission_rules has RLS enabled with no policies, so a provider cannot read
  * either directly — hence the service-role client. Rates are platform-wide
- * configuration, identical for every provider, so nothing user-scoped leaks.
+ * configuration, identical for every provider, so nothing user-scoped leaks,
+ * which is why the table itself may cross to the client.
  */
-export async function loadCommissionRates(admin: SupabaseClient) {
+export interface CommissionTable {
+  byCategory: Record<string, number>;
+  fallback: number;
+}
+
+export async function loadCommissionTable(admin: SupabaseClient): Promise<CommissionTable> {
   const { data } = await admin.from('commission_rules').select('category_id, rate_bps');
-  const rules = data ?? [];
-  const byCategory = new Map<string, number>();
+  const byCategory: Record<string, number> = {};
   let fallback = 0;
-  for (const r of rules) {
-    if (r.category_id) byCategory.set(r.category_id, r.rate_bps);
+  for (const r of data ?? []) {
+    if (r.category_id) byCategory[r.category_id] = r.rate_bps;
     else fallback = r.rate_bps;
   }
+  return { byCategory, fallback };
+}
+
+export function commissionResolver(table: CommissionTable) {
   return (categoryId?: string | null) =>
-    (categoryId ? byCategory.get(categoryId) : undefined) ?? fallback;
+    (categoryId ? table.byCategory[categoryId] : undefined) ?? table.fallback;
+}
+
+export async function loadCommissionRates(admin: SupabaseClient) {
+  return commissionResolver(await loadCommissionTable(admin));
 }
 
 /** Platform cut and provider take-home for a job, from its gross price in pence. */
 export function splitCommission(pricePence: number, bps: number) {
   const commission = Math.round((pricePence * bps) / 10000);
   return { commission, net: pricePence - commission, bps };
+}
+
+export interface OfferEarnings {
+  /** The commission base — the ex-VAT service price. */
+  gross: number;
+  commission: number;
+  net: number;
+  bps: number;
+}
+
+/**
+ * The single source for "what this job pays me".
+ *
+ * The base is **`price_pence`**, not `total_pence`. `total_pence` is what the
+ * customer pays including VAT; the payout SQL
+ * (`202608030011_payouts_card_only_net.sql`) nets commission off `price_pence`,
+ * so anything computed from the total overstates both the fee and the take-home.
+ *
+ * The three offer surfaces each used to answer this differently — the modal net
+ * off price, the list gross off total, the detail commission off total — so the
+ * same job showed three numbers. Every surface calls this now.
+ *
+ * Returns null when the figure is not knowable; callers must render "—" rather
+ * than a zero, because a missing price is not a free job.
+ */
+export function offerEarnings(booking: any, bps: unknown): OfferEarnings | null {
+  const gross = booking?.price_pence;
+  if (typeof gross !== 'number' || typeof bps !== 'number') return null;
+  return { gross, ...splitCommission(gross, bps) };
+}
+
+/** "after 15% commission" — the subtext that sits under every net figure. */
+export function commissionNote(bps: number): string {
+  return bps > 0 ? `after ${(bps / 100).toFixed(bps % 100 === 0 ? 0 : 1)}% commission` : 'no commission on this job';
 }
 
 /** Booking statuses grouped the way a provider thinks about their day. */
@@ -135,7 +196,7 @@ export const JOB_FILTERS = {
 export type JobFilter = keyof typeof JOB_FILTERS | 'all';
 
 export async function loadJobs(db: SupabaseClient, providerId: string) {
-  const { data } = await db
+  const { data, error } = await db
     .from('bookings')
     .select(
       `id, short_code, scheduled_at, status, price_pence, total_pence, payment_method,
@@ -146,6 +207,7 @@ export async function loadJobs(db: SupabaseClient, providerId: string) {
     .eq('provider_id', providerId)
     .order('scheduled_at', { ascending: false })
     .limit(200);
+  if (error) throw error;
   return data ?? [];
 }
 
@@ -157,10 +219,11 @@ export async function loadJobs(db: SupabaseClient, providerId: string) {
  * admin-read-only, so the absence of an offer is the readable signal.
  */
 export async function loadOfferedBookingIds(db: SupabaseClient, providerId: string) {
-  const { data } = await db
+  const { data, error } = await db
     .from('booking_offers')
     .select('booking_id')
     .eq('provider_id', providerId);
+  if (error) throw error;
   return new Set((data ?? []).map((o: any) => o.booking_id));
 }
 

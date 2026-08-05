@@ -241,7 +241,7 @@ export function DateField({
             {WEEKDAY_LABELS.map((d) => (
               <span
                 key={d}
-                className="py-1 text-center font-mono-utility text-[10px] text-muted"
+                className="py-1 text-center font-mono-utility text-[11px] text-muted"
               >
                 {d}
               </span>
@@ -263,7 +263,9 @@ export function DateField({
                     onChange(cell.iso);
                     setOpen(false);
                   }}
-                  className={`flex h-8 items-center justify-center rounded-lg text-xs transition-colors ${
+                  aria-current={isToday ? 'date' : undefined}
+                  aria-pressed={selected}
+                  className={`flex h-11 min-w-11 items-center justify-center rounded-lg text-sm transition-colors ${
                     selected
                       ? 'bg-ink text-bg font-semibold'
                       : disabled

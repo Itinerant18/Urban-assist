@@ -146,11 +146,11 @@ export function ReferralClient({
                     <tr key={row.id} className="hover:bg-bg/10 transition">
                       <td className="px-5 py-4">
                         <div className="font-semibold">{row.name}</div>
-                        <div className="text-[10px] text-muted">{row.email}</div>
+                        <div className="text-[11px] text-muted">{row.email}</div>
                       </td>
                       <td className="px-5 py-4">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
                             row.status === 'Booked'
                               ? 'bg-success/10 text-success'
                               : 'bg-accent/10 text-accent'

@@ -49,7 +49,7 @@ export function PostcodeGate({
           postcode: data.postcode,
           lat: data.lat,
           lng: data.lng,
-          region: data.admin_ward ?? data.region ?? '',
+          region: data.admin_district ?? data.admin_ward ?? data.region ?? '',
         }),
       );
 

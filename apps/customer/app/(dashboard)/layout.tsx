@@ -1,6 +1,7 @@
 import type { NavItem } from '@urban-assist/ui';
 import { AppShell } from '@urban-assist/ui';
 import { Home, CalendarClock, UserRound, MessageSquare, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { getSupabaseServer } from '@urban-assist/db/server';
@@ -18,11 +19,14 @@ const nav: NavItem[] = [
   { href: '/account', label: 'Account', icon: <UserRound className="h-5 w-5" /> },
 ];
 
-// Browse pages are public and own their full-width layout; everything else is
-// auth-gated (middleware redirects before this layout runs for those routes).
+// Discovery is anonymous: home, the marketing catalogue, search results and
+// provider profiles. Must stay in step with middleware's PROTECTED_PREFIXES —
+// a route missing here still bounces guests to the login card.
 const WIDE_ROUTES = ['/', '/services'];
+const PUBLIC_PREFIXES = ['/services', '/browse', '/providers'];
 const isPublicPath = (pathname: string) =>
-  pathname === '/' || pathname === '/services' || pathname.startsWith('/services/');
+  pathname === '/' ||
+  PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const db = getSupabaseServer();
@@ -38,7 +42,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           nav={nav}
           brand="Urban Assist"
           wideRoutes={WIDE_ROUTES}
-          topNav={<SiteHeader right={<CartLink />} />}
+          topNav={
+            <SiteHeader
+              right={
+                <>
+                  <CartLink />
+                  <Link
+                    href="/login"
+                    className="tap inline-flex items-center rounded-full border border-hairline px-4 text-[13px] font-semibold text-ink transition-colors hover:bg-bg"
+                  >
+                    Sign in
+                  </Link>
+                </>
+              }
+            />
+          }
         >
           {children}
         </AppShell>

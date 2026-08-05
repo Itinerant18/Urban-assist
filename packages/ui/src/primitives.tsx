@@ -196,6 +196,77 @@ export function EmptyState({
   );
 }
 
+// --- Spinner -----------------------------------------------------------
+/** Inline busy indicator for buttons and short waits. Content areas get Skeleton. */
+export function Spinner({ className, label }: { className?: string; label?: string }) {
+  return (
+    <>
+      <svg
+        className={cn('h-4 w-4 animate-spin', className)}
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden
+      >
+        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+        <path
+          d="M21 12a9 9 0 0 0-9-9"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+      </svg>
+      {label && <span className="sr-only">{label}</span>}
+    </>
+  );
+}
+
+// --- ErrorState --------------------------------------------------------
+/**
+ * "We could not load this" — deliberately *not* EmptyState. An empty list and a
+ * failed fetch are different facts and must never look the same.
+ */
+export function ErrorState({
+  title = 'Could not load this',
+  description = 'Something went wrong on our side. Your data is safe.',
+  onRetry,
+  retryHref,
+}: {
+  title?: string;
+  description?: string;
+  onRetry?: () => void;
+  retryHref?: string;
+}) {
+  return (
+    <div
+      role="alert"
+      className="card flex flex-col items-center gap-4 border border-danger/30 bg-white py-10 text-center shadow-card"
+    >
+      <span className="grid h-12 w-12 place-items-center rounded-full bg-danger/10 text-danger">
+        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+        </svg>
+      </span>
+      <div className="space-y-1">
+        <h3 className="font-display text-lg font-bold text-ink">{title}</h3>
+        <p className="mx-auto max-w-sm text-sm text-muted">{description}</p>
+      </div>
+      {onRetry && (
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          Try again
+        </Button>
+      )}
+      {!onRetry && retryHref && (
+        <a
+          href={retryHref}
+          className="tap inline-flex items-center rounded-xl border border-hairline px-4 py-2 text-sm font-medium text-ink hover:bg-bg"
+        >
+          Try again
+        </a>
+      )}
+    </div>
+  );
+}
+
 // --- Skeleton ----------------------------------------------------------
 export function Skeleton({ className }: { className?: string }) {
   return (
@@ -206,5 +277,79 @@ export function Skeleton({ className }: { className?: string }) {
       )}
       aria-hidden
     />
+  );
+}
+
+/**
+ * Route-level placeholder: a title plus card-shaped rows, so the page settles
+ * into its real content instead of popping in from a blank screen.
+ *
+ * `variant` picks the row silhouette — list rows have an avatar/thumb, thread
+ * rows are wider and shorter, tiles are a two-column grid.
+ */
+export function PageSkeleton({
+  rows = 4,
+  variant = 'list',
+  withHeader = true,
+  className,
+}: {
+  rows?: number;
+  variant?: 'list' | 'thread' | 'tile' | 'detail';
+  withHeader?: boolean;
+  className?: string;
+}) {
+  const items = Array.from({ length: rows }, (_, i) => i);
+  return (
+    <div className={cn('space-y-4', className)} role="status" aria-busy="true">
+      <span className="sr-only">Loading…</span>
+      {withHeader && (
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-44" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+      )}
+
+      {variant === 'detail' ? (
+        <div className="space-y-4">
+          <Skeleton className="h-40 w-full rounded-xl" />
+          <div className="card space-y-3 shadow-card">
+            {items.map((i) => (
+              <div key={i} className="flex justify-between gap-6">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : variant === 'tile' ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {items.map((i) => (
+            <div key={i} className="card space-y-3 shadow-card">
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-4 w-3/5" />
+              <Skeleton className="h-4 w-2/5" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((i) => (
+            <div key={i} className="card flex items-center gap-4 shadow-card">
+              <Skeleton
+                className={cn(
+                  'shrink-0',
+                  variant === 'thread' ? 'h-11 w-11 rounded-full' : 'h-12 w-12 rounded-xl',
+                )}
+              />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-2/5" />
+                <Skeleton className="h-3.5 w-3/4" />
+              </div>
+              {variant === 'list' && <Skeleton className="h-5 w-16 shrink-0" />}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

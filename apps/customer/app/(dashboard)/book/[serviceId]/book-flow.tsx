@@ -3,11 +3,22 @@ import * as React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button, Card, Field, Input, Textarea, Badge, RatingStars } from '@urban-assist/ui';
+import {
+  Button,
+  Card,
+  Field,
+  Input,
+  Textarea,
+  Badge,
+  RatingStars,
+  BottomSheet,
+  PriceSummary,
+} from '@urban-assist/ui';
 import { pence, quote } from '@urban-assist/lib';
+import { londonWallTimeToUtc } from '@urban-assist/utils';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { CreditCard, Banknote, MapPin, Plus, CheckCircle2, ChevronLeft } from 'lucide-react';
+import { CreditCard, Banknote, MapPin, Plus, CheckCircle2, ChevronLeft, ChevronUp } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { AddressForm } from '../../../../components/address-form';
 import { StickyActionBar, StickyActionMeta } from '../../../../components/sticky-action-bar';
@@ -17,7 +28,13 @@ import {
   formatSlotSummary,
   listBookingDays,
   listSlotsForDay,
+  slotToIso,
 } from '../../../../lib/booking-slots';
+
+/** Short confirmation buzz. Progressive — absent where unsupported, never relied on. */
+function buzz(ms = 10) {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(ms);
+}
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
 
@@ -42,8 +59,10 @@ interface Service {
 
 const CheckoutSchema = z.object({
   addressId: z.string().min(1, 'Please select or add an address'),
+  // Windows are London wall-clock; validating with `new Date(val)` would compare
+  // the device's reading of that string against now.
   scheduledAt: z.string().refine((val) => {
-    const d = new Date(val);
+    const d = londonWallTimeToUtc(val);
     return !isNaN(d.getTime()) && d.getTime() > Date.now();
   }, 'Choose a future date and time window'),
   paymentMethod: z.enum(['card', 'cash']),
@@ -85,6 +104,8 @@ export function BookFlow({
   const [promoError, setPromoError] = React.useState<string | null>(null);
   const [promoDiscount, setPromoDiscount] = React.useState<{ type: 'percent' | 'fixed'; value: number } | null>(null);
   const [stepError, setStepError] = React.useState<string | null>(null);
+  const [priceOpen, setPriceOpen] = React.useState(false);
+  const [resumed, setResumed] = React.useState(false);
 
   const days = React.useMemo(() => listBookingDays(), []);
 
@@ -119,7 +140,12 @@ export function BookFlow({
       if (!saved?.values) return;
       if (!cardEnabled) saved.values.paymentMethod = 'cash';
       reset(saved.values);
-      if (saved.step === 'schedule' || saved.step === 'confirm') setStep(saved.step);
+      if (saved.step === 'schedule' || saved.step === 'confirm') {
+        setStep(saved.step);
+        // Restoring silently reads as "the app lost my place and put me here" —
+        // say that we kept it.
+        setResumed(true);
+      }
     } catch {
       /* corrupted saved state — start fresh */
     }
@@ -177,7 +203,7 @@ export function BookFlow({
   const [netPence, setNetPence] = React.useState<number | null>(null);
   React.useEffect(() => {
     if (!selectedAddressId || !selectedDate) return;
-    const scheduledIso = new Date(selectedDate).toISOString();
+    const scheduledIso = slotToIso(selectedDate);
     let active = true;
     fetch('/api/quote', {
       method: 'POST',
@@ -251,6 +277,7 @@ export function BookFlow({
       });
       if (payErr) throw new Error(payErr.message ?? 'Payment failed');
       if (paymentIntent?.status === 'succeeded') {
+        buzz();
         router.replace(`/book/success?id=${createdBookingId}`);
       } else {
         throw new Error('Payment was not completed successfully.');
@@ -275,7 +302,7 @@ export function BookFlow({
         body: JSON.stringify({
           provider_service_id: service.id,
           address_id: values.addressId,
-          scheduled_at: new Date(values.scheduledAt).toISOString(),
+          scheduled_at: slotToIso(values.scheduledAt),
           payment_method: values.paymentMethod,
           promo_code: promoDiscount ? values.promoCode : null,
           apply_wallet: applyWallet && walletBalance > 0,
@@ -306,6 +333,7 @@ export function BookFlow({
         setCreatedBookingId(data.booking.id);
         setStep('confirm');
       } else {
+        buzz();
         router.replace(`/book/success?id=${data.booking.id}`);
       }
     } catch (e: any) {
@@ -374,6 +402,67 @@ export function BookFlow({
     return `${addr.label} · ${[addr.line1, addr.postcode].filter(Boolean).join(', ')}`;
   })();
 
+  // One definition, rendered in the desktop aside and in the mobile price sheet.
+  // These were two divergent copies; the promo state is shared, so both stay in
+  // step and only one of them is ever on screen.
+  const priceAdjustments = (
+    <div className="space-y-2">
+      <label htmlFor="promo-code" className="block text-xs font-bold text-ink">
+        Promo code
+      </label>
+      <div className="flex gap-2">
+        <Input
+          id="promo-code"
+          placeholder="e.g. SAVE10"
+          value={promoCodeValue || ''}
+          onChange={(e) => setValue('promoCode', e.target.value.toUpperCase())}
+          className="flex-1 font-mono-utility text-xs uppercase"
+          disabled={!!promoDiscount || Boolean(paymentSecret)}
+          autoComplete="off"
+        />
+        {promoDiscount ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setPromoDiscount(null);
+              setValue('promoCode', '');
+            }}
+            disabled={Boolean(paymentSecret)}
+          >
+            Clear
+          </Button>
+        ) : (
+          <Button type="button" onClick={applyPromo} disabled={!promoCodeValue}>
+            Apply
+          </Button>
+        )}
+      </div>
+      {promoError && (
+        <p role="alert" className="text-[11px] font-medium text-danger">
+          {promoError}
+        </p>
+      )}
+      {promoDiscount && (
+        <p className="flex items-center gap-1 text-[11px] font-medium text-success-deep">
+          <CheckCircle2 className="h-3 w-3" /> Promo applied
+        </p>
+      )}
+      {walletBalance > 0 && (
+        <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-ink">
+          <input
+            type="checkbox"
+            checked={applyWallet}
+            onChange={(e) => setApplyWallet(e.target.checked)}
+            className="h-4 w-4 rounded border-hairline accent-[rgb(var(--accent))]"
+            disabled={Boolean(paymentSecret)}
+          />
+          Apply wallet credit ({pence(walletBalance)} available)
+        </label>
+      )}
+    </div>
+  );
+
   return (
     <div className="mx-auto max-w-6xl py-4 pb-36 lg:py-6 lg:pb-8">
       <div className="mb-5">
@@ -383,6 +472,24 @@ export function BookFlow({
           request, not a guarantee.
         </p>
       </div>
+
+      {resumed && (
+        <div
+          role="status"
+          className="mb-5 flex items-center gap-3 rounded-xl border border-hairline bg-white px-4 py-3 text-sm text-charcoal shadow-card"
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-success-deep" aria-hidden />
+          <span className="flex-1">We saved your progress — you&apos;re back where you left off.</span>
+          <button
+            type="button"
+            onClick={() => setResumed(false)}
+            aria-label="Dismiss"
+            className="tap -my-2 -mr-2 shrink-0 rounded-lg px-2 text-muted hover:text-ink"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Progress strip */}
       <ol className="mb-6 flex items-center gap-1 sm:gap-2" aria-label="Booking progress">
@@ -405,7 +512,7 @@ export function BookFlow({
                   {done ? '✓' : i + 1}
                 </span>
                 <span
-                  className={`truncate text-[10px] font-semibold sm:text-[11px] ${
+                  className={`truncate text-[11px] font-semibold sm:text-[11px] ${
                     current ? 'text-ink' : 'text-muted'
                   }`}
                 >
@@ -443,7 +550,7 @@ export function BookFlow({
               </div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] uppercase tracking-wide text-muted">From</div>
+              <div className="text-[11px] uppercase tracking-wide text-muted">From</div>
               <div className="text-sm font-extrabold text-ink">{pence(service.price_pence)}</div>
             </div>
           </Card>
@@ -491,9 +598,9 @@ export function BookFlow({
                           <button
                             type="button"
                             onClick={() => setAdding(true)}
-                            className="mt-1 flex min-h-11 w-fit items-center gap-2 text-sm font-medium text-accent"
+                            className="mt-1 flex min-h-11 w-fit items-center gap-2 text-sm font-medium text-accent-deep"
                           >
-                            <Plus className="h-4 w-4" /> Add a new address
+                            <Plus className="h-4 w-4" aria-hidden /> Add a new address
                           </button>
                         </div>
                       )}
@@ -544,9 +651,9 @@ export function BookFlow({
                               : 'border-hairline bg-white text-muted'
                           }`}
                         >
-                          <span className="text-[10px] font-semibold uppercase">{day.weekday}</span>
+                          <span className="text-[11px] font-semibold uppercase">{day.weekday}</span>
                           <span className="text-lg font-extrabold leading-none text-ink">{day.dayNum}</span>
-                          <span className="text-[10px]">{day.monthShort}</span>
+                          <span className="text-[11px]">{day.monthShort}</span>
                         </button>
                       );
                     })}
@@ -564,15 +671,24 @@ export function BookFlow({
                           type="button"
                           disabled={slot.disabled}
                           onClick={() => setValue('scheduledAt', slot.value, { shouldValidate: true })}
-                          className={`tap min-h-12 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                          aria-pressed={selected}
+                          className={`tap flex min-h-12 flex-col items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
                             slot.disabled
-                              ? 'cursor-not-allowed border-hairline bg-bg/50 text-muted/50 line-through'
+                              ? 'cursor-not-allowed border-hairline bg-surface-sunk text-muted'
                               : selected
                                 ? 'border-accent bg-accent text-white'
                                 : 'border-hairline bg-white text-ink hover:border-accent/40'
                           }`}
                         >
-                          {slot.rangeLabel}
+                          {/* Unavailable windows carried strike-through at ~2:1 — a
+                              state signalled by colour alone, below any legible
+                              contrast. Say "Passed" as well. */}
+                          <span className={slot.disabled ? 'line-through' : undefined}>
+                            {slot.rangeLabel}
+                          </span>
+                          {slot.disabled && (
+                            <span className="text-[11px] font-medium leading-none">Passed</span>
+                          )}
                         </button>
                       );
                     })}
@@ -712,60 +828,6 @@ export function BookFlow({
                   )}
                 />
 
-                <div className="space-y-2 border-t border-hairline pt-4 lg:hidden">
-                  <label className="block text-xs font-bold text-ink">Promo code</label>
-                  <div className="flex gap-2">
-                    <Controller
-                      control={control}
-                      name="promoCode"
-                      render={({ field }) => (
-                        <Input
-                          placeholder="e.g. SAVE10"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                          className="flex-1 font-mono-utility text-xs uppercase"
-                          disabled={!!promoDiscount || Boolean(paymentSecret)}
-                        />
-                      )}
-                    />
-                    {promoDiscount ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setPromoDiscount(null);
-                          setValue('promoCode', '');
-                        }}
-                        disabled={Boolean(paymentSecret)}
-                      >
-                        Clear
-                      </Button>
-                    ) : (
-                      <Button type="button" onClick={applyPromo} disabled={!promoCodeValue}>
-                        Apply
-                      </Button>
-                    )}
-                  </div>
-                  {promoError && <p className="text-[11px] font-medium text-danger">{promoError}</p>}
-                  {promoDiscount && (
-                    <p className="flex items-center gap-1 text-[11px] font-medium text-success">
-                      <CheckCircle2 className="h-3 w-3" /> Promo applied
-                    </p>
-                  )}
-                  {walletBalance > 0 && (
-                    <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-ink">
-                      <input
-                        type="checkbox"
-                        checked={applyWallet}
-                        onChange={(e) => setApplyWallet(e.target.checked)}
-                        className="h-4 w-4 rounded border-hairline"
-                        disabled={Boolean(paymentSecret)}
-                      />
-                      Apply wallet credit (£{(walletBalance / 100).toFixed(2)} available)
-                    </label>
-                  )}
-                </div>
-
                 {bookingError && <p className="text-center text-sm font-medium text-danger">{bookingError}</p>}
               </section>
             )}
@@ -803,85 +865,18 @@ export function BookFlow({
         </div>
 
         <aside className="hidden space-y-4 lg:sticky lg:top-6 lg:block lg:self-start">
-          <Card className="space-y-4 border border-hairline bg-white p-4 shadow-sm">
+          <Card className="space-y-4 border border-hairline bg-white p-4 shadow-card">
             <h3 className="border-b border-hairline pb-2 font-display text-lg font-bold text-ink">
               Order summary
             </h3>
-            <div className="space-y-2.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted">{service.title}</span>
-                <span className="font-medium text-ink">{pence(q.net_pence)}</span>
-              </div>
-              {q.discount_pence > 0 && (
-                <div className="flex justify-between text-success">
-                  <span>Discount</span>
-                  <span>-{pence(q.discount_pence)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted">VAT (20%)</span>
-                <span className="font-medium text-ink">{pence(q.vat_pence)}</span>
-              </div>
-              <div className="flex items-baseline justify-between border-t border-hairline pt-3">
-                <span className="text-base font-bold text-ink">Total</span>
-                <span className="font-display text-2xl font-extrabold text-ink">{pence(q.total_pence)}</span>
-              </div>
-              <p className="text-right text-[10px] text-muted">VAT included · GBP</p>
-            </div>
-
-            <div className="space-y-2 border-t border-hairline pt-3">
-              <label className="block text-xs font-bold text-ink">Promo code</label>
-              <div className="flex gap-2">
-                <Controller
-                  control={control}
-                  name="promoCode"
-                  render={({ field }) => (
-                    <Input
-                      placeholder="e.g. SAVE10"
-                      value={field.value || ''}
-                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                      className="flex-1 font-mono-utility text-xs uppercase"
-                      disabled={!!promoDiscount || Boolean(paymentSecret)}
-                    />
-                  )}
-                />
-                {promoDiscount ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setPromoDiscount(null);
-                      setValue('promoCode', '');
-                    }}
-                    disabled={Boolean(paymentSecret)}
-                  >
-                    Clear
-                  </Button>
-                ) : (
-                  <Button type="button" onClick={applyPromo} disabled={!promoCodeValue}>
-                    Apply
-                  </Button>
-                )}
-              </div>
-              {promoError && <p className="text-[11px] font-medium text-danger">{promoError}</p>}
-              {promoDiscount && (
-                <p className="flex items-center gap-1 text-[11px] font-medium text-success">
-                  <CheckCircle2 className="h-3 w-3" /> Promo applied
-                </p>
-              )}
-              {walletBalance > 0 && (
-                <label className="mt-2 flex items-center gap-2 text-xs text-ink">
-                  <input
-                    type="checkbox"
-                    checked={applyWallet}
-                    onChange={(e) => setApplyWallet(e.target.checked)}
-                    className="h-4 w-4 rounded border-hairline"
-                    disabled={Boolean(paymentSecret)}
-                  />
-                  Apply wallet (£{(walletBalance / 100).toFixed(2)})
-                </label>
-              )}
-            </div>
+            <PriceSummary
+              itemLabel={service.title}
+              netPence={q.net_pence}
+              vatPence={q.vat_pence}
+              totalPence={q.total_pence}
+              discountPence={q.discount_pence}
+            />
+            <div className="border-t border-hairline pt-3">{priceAdjustments}</div>
           </Card>
         </aside>
       </div>
@@ -897,7 +892,26 @@ export function BookFlow({
           <div className="min-w-[2.75rem]" />
         )}
 
-        <StickyActionMeta label="Total (inc. VAT)" value={pence(q.total_pence)} />
+        {/* Tapping the total opens the same breakdown the desktop aside shows.
+            Mobile used to get a bare number with no way to see what made it up. */}
+        <button
+          type="button"
+          onClick={() => setPriceOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={priceOpen}
+          className="min-w-0 flex-1 rounded-lg px-1 py-1 text-left transition duration-fast hover:bg-bg"
+        >
+          <StickyActionMeta
+            label="Total (inc. VAT)"
+            value={
+              <span className="inline-flex items-center gap-1">
+                {pence(q.total_pence)}
+                <ChevronUp className="h-4 w-4 text-muted" aria-hidden />
+              </span>
+            }
+          />
+          <span className="sr-only">Show price breakdown</span>
+        </button>
 
         {step !== 'confirm' ? (
           <Button type="button" onClick={goNext} className="min-h-12 px-5">
@@ -918,6 +932,24 @@ export function BookFlow({
           </Button>
         )}
       </StickyActionBar>
+
+      <BottomSheet
+        open={priceOpen}
+        onClose={() => setPriceOpen(false)}
+        title="Price breakdown"
+        className="lg:hidden"
+      >
+        <div className="space-y-4">
+          <PriceSummary
+            itemLabel={service.title}
+            netPence={q.net_pence}
+            vatPence={q.vat_pence}
+            totalPence={q.total_pence}
+            discountPence={q.discount_pence}
+          />
+          <div className="border-t border-hairline pt-3">{priceAdjustments}</div>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

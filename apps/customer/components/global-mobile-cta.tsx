@@ -23,11 +23,9 @@ export function GlobalMobileCta() {
       subtitle={cta.subtitle}
       href={cta.href}
       ctaLabel={cta.ctaLabel}
-      zClassName="z-40"
-      // Tab bar ≈ 3rem content + safe-area; sit flush above it
-      bottomClassName={
-        tabs ? 'bottom-[calc(3rem+env(safe-area-inset-bottom))]' : 'bottom-0'
-      }
+      zClassName="z-sticky"
+      // --tabbar-clearance is the single source for tab-bar height (ui/globals.css)
+      bottomClassName={tabs ? 'above-tabbar' : 'bottom-0'}
       safeArea={!tabs}
     />
   );

@@ -5,13 +5,25 @@ import { NotificationBell } from './notification-bell';
 import { PushRegistrar } from './push-registrar';
 import { Briefcase, CalendarDays, Wallet, FileText, UserRound, Settings } from 'lucide-react';
 
+// `match` claims the routes that are not themselves tab destinations. Without it
+// 14 of the 20 in-app routes highlighted nothing at all.
 const nav: NavItem[] = [
-  { href: '/', label: 'Requests', icon: <Briefcase className="h-4 w-4" /> },
+  {
+    href: '/',
+    label: 'Requests',
+    icon: <Briefcase className="h-4 w-4" />,
+    match: ['/offers', '/jobs'],
+  },
   { href: '/schedule', label: 'Schedule', icon: <CalendarDays className="h-4 w-4" /> },
   { href: '/earnings', label: 'Earnings', icon: <Wallet className="h-4 w-4" /> },
   { href: '/services', label: 'My Services', icon: <Settings className="h-4 w-4" /> },
   { href: '/documents', label: 'Documents', icon: <FileText className="h-4 w-4" /> },
-  { href: '/account', label: 'Menu', icon: <UserRound className="h-4 w-4" /> },
+  {
+    href: '/account',
+    label: 'Menu',
+    icon: <UserRound className="h-4 w-4" />,
+    match: ['/notifications', '/performance', '/training', '/settings', '/help', '/profile'],
+  },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

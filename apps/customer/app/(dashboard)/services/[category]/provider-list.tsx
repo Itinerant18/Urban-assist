@@ -332,7 +332,7 @@ export function ProviderList({ initialServices, categorySlug }: ProviderListProp
                     {/* Footer Actions / Price Row */}
                     <div className="pt-4 border-t border-hairline flex items-center justify-between gap-3 mt-4">
                       <div>
-                        <p className="text-[10px] text-muted font-bold font-mono-utility uppercase">Price</p>
+                        <p className="text-[11px] text-muted font-bold font-mono-utility uppercase">Price</p>
                         <p className="text-lg font-extrabold text-ink leading-none mt-0.5">
                           {pence(s.price_pence)}
                         </p>

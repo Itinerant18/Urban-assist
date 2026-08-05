@@ -1,13 +1,25 @@
 import { UK_POSTCODE_RE } from '@urban-assist/utils';
 import { getCached, setCached, postcodeCacheKey, TTL } from '@urban-assist/integrations/redis';
 
+/** One selectable premise from the premium lookup. */
+export interface PostcodeAddress {
+  line1: string;
+  line2: string | null;
+  city: string;
+  /** Single-line rendering for the picker. */
+  formatted: string;
+}
+
 export interface PostcodeResult {
   postcode: string;
   lat: number;
   lng: number;
+  /** Electoral ward — a locality, NOT a postal town. Never write it to `city`. */
   admin_ward: string | null;
+  /** Local authority district — the right answer for "Town / city". */
+  admin_district: string | null;
   region: string | null;
-  addresses?: string[];
+  addresses?: PostcodeAddress[];
 }
 
 export async function lookupPostcode(raw: string): Promise<PostcodeResult | null> {
@@ -29,6 +41,7 @@ export async function lookupPostcode(raw: string): Promise<PostcodeResult | null
     lat: d.latitude,
     lng: d.longitude,
     admin_ward: d.admin_ward ?? null,
+    admin_district: d.admin_district ?? null,
     region: d.region ?? null,
   };
 
@@ -40,9 +53,19 @@ export async function lookupPostcode(raw: string): Promise<PostcodeResult | null
       );
       if (ar.ok) {
         const aj = await ar.json();
-        base.addresses = (aj.addresses ?? []).map((a: any) =>
-          [a.line_1, a.line_2, a.line_3, a.town_or_city].filter(Boolean).join(', '),
-        );
+        // Kept structured so the picker can autofill the individual fields —
+        // a pre-joined string can only be pasted into line 1.
+        base.addresses = (aj.addresses ?? []).map((a: any): PostcodeAddress => {
+          const line1 = [a.line_1, a.line_2].filter(Boolean).join(', ');
+          const line2 = [a.line_3, a.line_4].filter(Boolean).join(', ') || null;
+          const city = a.town_or_city ?? base.admin_district ?? '';
+          return {
+            line1,
+            line2,
+            city,
+            formatted: [line1, line2, city].filter(Boolean).join(', '),
+          };
+        });
       }
     } catch {
       /* premium lookup is optional */

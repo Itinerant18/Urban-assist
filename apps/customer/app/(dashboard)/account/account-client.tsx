@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
-import { Card, Button, Badge, Field, Input } from '@urban-assist/ui';
+import { Card, Button, Badge, Field, Input, Spinner, toast, useConfirm } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { normaliseMobile, pence, ukDate } from '@urban-assist/utils';
 import {
@@ -104,6 +104,33 @@ export function AccountClient({
   const [profileOk, setProfileOk] = React.useState<string | null>(null);
 
   // GDPR action states
+  const [confirm, confirmDialog] = useConfirm();
+  const [pushState, setPushState] = React.useState<
+    'default' | 'granted' | 'denied' | 'unsupported'
+  >('default');
+  const [pushBusy, setPushBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    setPushState(
+      typeof Notification === 'undefined' ? 'unsupported' : (Notification.permission as any),
+    );
+  }, []);
+
+  async function enablePush() {
+    setPushBusy(true);
+    try {
+      const { registerForPush } = await import('@urban-assist/integrations/firebase/push-client');
+      await registerForPush();
+      setPushState(Notification.permission as any);
+      if (Notification.permission === 'granted') toast.success('Push notifications enabled');
+      else toast('Notifications were not enabled');
+    } catch {
+      toast.error('Could not enable notifications on this device');
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
   const [gdprProgress, setGdprProgress] = React.useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = React.useState(false);
 
@@ -279,7 +306,14 @@ export function AccountClient({
   }
 
   async function triggerGdprDeletion() {
-    if (!confirm('Delete your account permanently? This cannot be undone.')) return;
+    const ok = await confirm({
+      title: 'Delete your account permanently?',
+      description:
+        'This erases your profile, addresses and booking history. It cannot be undone, and you will need to register again to use Urban Assist.',
+      confirmLabel: 'Delete permanently',
+      destructive: true,
+    });
+    if (!ok) return;
     setGdprProgress('Deleting your account…');
     try {
       const res = await fetch('/api/account/delete', { method: 'POST' });
@@ -440,7 +474,7 @@ export function AccountClient({
 
       {/* Sticky Bottom CTA for Mobile */}
       {!addingAddress && (
-        <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-hairline z-20">
+        <div className="md:hidden fixed above-tabbar left-0 right-0 p-4 bg-white border-t border-hairline z-sticky">
            <Button className="w-full shadow-lg" onClick={() => setAddingAddress(true)}>
              + ADD NEW ADDRESS
            </Button>
@@ -515,7 +549,7 @@ export function AccountClient({
                 ? `${promo.discount_value}% off`
                 : `${pence(promo.discount_value)} off`}
             </p>
-            <p className="text-[10px] text-muted font-mono-utility mt-1">
+            <p className="text-[11px] text-muted font-mono-utility mt-1">
               {promo.expires_at ? `Expires ${ukDate(promo.expires_at)}` : 'No expiry'}
             </p>
           </li>
@@ -547,7 +581,7 @@ export function AccountClient({
             variant="outline"
             onClick={() => {
               navigator.clipboard.writeText(referralCode);
-              alert('Referral code copied!');
+              toast.success('Referral code copied');
             }}
           >
             Copy Code
@@ -610,6 +644,29 @@ export function AccountClient({
           </li>
         ))}
       </ul>
+
+      {/* Browser push is opt-in behind a real tap: the permission prompt used to
+          fire on page load, which Safari and Firefox ignore outright. */}
+      <div className="space-y-2 border-t border-hairline pt-4">
+        <p className="text-sm font-medium text-ink">Push notifications on this device</p>
+        <p className="text-xs text-muted">
+          Get booking updates even when Urban Assist is closed.
+        </p>
+        {pushState === 'granted' ? (
+          <p className="text-xs font-medium text-success-deep">Enabled on this device.</p>
+        ) : pushState === 'denied' ? (
+          <p className="text-xs text-muted">
+            Blocked in your browser settings — allow notifications for this site to turn them on.
+          </p>
+        ) : pushState === 'unsupported' ? (
+          <p className="text-xs text-muted">This browser does not support push notifications.</p>
+        ) : (
+          <Button size="sm" variant="outline" onClick={enablePush} disabled={pushBusy}>
+            {pushBusy && <Spinner />}
+            {pushBusy ? 'Enabling…' : 'Enable push notifications'}
+          </Button>
+        )}
+      </div>
     </Card>
   );
 
@@ -659,6 +716,7 @@ export function AccountClient({
 
   return (
     <div className="space-y-5 py-2">
+      {confirmDialog}
       {/* Title */}
       <header>
         <h1 className="font-display text-2xl font-bold text-ink">Account Settings</h1>
@@ -696,7 +754,7 @@ export function AccountClient({
               { id: 'profile', label: 'Profile Settings', icon: <User className="h-4 w-4" /> },
               { id: 'addresses', label: 'Manage Addresses', icon: <MapPin className="h-4 w-4" /> },
               { id: 'payments', label: 'Wallet', icon: <CreditCard className="h-4 w-4" /> },
-              { id: 'favorites', label: 'Wishlist & Favorites', icon: <Heart className="h-4 w-4" /> },
+              { id: 'favorites', label: 'Saved & favourites', icon: <Heart className="h-4 w-4" /> },
               { id: 'coupons', label: 'Promos & Coupons', icon: <Tag className="h-4 w-4" /> },
               { id: 'referrals', label: 'Refer a Friend', icon: <Gift className="h-4 w-4" /> },
               { id: 'gdpr', label: 'GDPR Privacy', icon: <Shield className="h-4 w-4" /> },
@@ -775,7 +833,7 @@ export function AccountClient({
 
             {/* Menu Group: Account */}
             <div className="space-y-2">
-              <div className="text-[10px] font-bold text-muted uppercase tracking-wider pl-1">
+              <div className="text-[11px] font-bold text-muted uppercase tracking-wider pl-1">
                 Account
               </div>
               <Card className="divide-y divide-hairline p-0 bg-white border border-hairline rounded-xl shadow-card overflow-hidden">
@@ -808,7 +866,7 @@ export function AccountClient({
 
             {/* Menu Group: Offers & Savings */}
             <div className="space-y-2">
-              <div className="text-[10px] font-bold text-muted uppercase tracking-wider pl-1">
+              <div className="text-[11px] font-bold text-muted uppercase tracking-wider pl-1">
                 Offers & Savings
               </div>
               <Card className="divide-y divide-hairline p-0 bg-white border border-hairline rounded-xl shadow-card overflow-hidden">
@@ -832,12 +890,12 @@ export function AccountClient({
 
             {/* Menu Group: Saved */}
             <div className="space-y-2">
-              <div className="text-[10px] font-bold text-muted uppercase tracking-wider pl-1">
+              <div className="text-[11px] font-bold text-muted uppercase tracking-wider pl-1">
                 Saved
               </div>
               <Card className="divide-y divide-hairline p-0 bg-white border border-hairline rounded-xl shadow-card overflow-hidden">
                 {[
-                  { id: 'favorites', label: 'Wishlist & Favorites', icon: <Heart className="h-4 w-4" /> },
+                  { id: 'favorites', label: 'Saved & favourites', icon: <Heart className="h-4 w-4" /> },
                   { id: 'gdpr', label: 'GDPR Data Controls', icon: <Shield className="h-4 w-4" /> },
                 ].map((item) => (
                   <button

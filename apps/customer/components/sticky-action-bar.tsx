@@ -51,7 +51,7 @@ export function StickyActionMeta({
 }) {
   return (
     <div className="min-w-0 flex-1">
-      <div className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">{label}</div>
+      <div className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">{label}</div>
       <div className="truncate text-lg font-extrabold leading-tight text-ink">{value}</div>
     </div>
   );

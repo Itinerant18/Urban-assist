@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { Card, Button, Badge, Field, Input } from '@urban-assist/ui';
+import { Card, Button, Badge, Field, Input, useConfirm } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { ukDate } from '@urban-assist/lib';
 import { normaliseMobile } from '@urban-assist/utils';
@@ -163,6 +163,7 @@ export default function AccountPage() {
     }
   }
 
+  const [confirm, confirmDialog] = useConfirm();
   const [gdprProgress, setGdprProgress] = React.useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = React.useState(false);
 
@@ -219,7 +220,14 @@ export default function AccountPage() {
   }
 
   async function deleteAccount() {
-    if (!confirm('Delete your account permanently? This cannot be undone.')) return;
+    const ok = await confirm({
+      title: 'Delete your account permanently?',
+      description:
+        'This erases your profile, addresses and booking history. It cannot be undone, and you will need to register again to use Urban Assist.',
+      confirmLabel: 'Delete permanently',
+      destructive: true,
+    });
+    if (!ok) return;
     setGdprProgress('Deleting your account…');
     try {
       const res = await fetch('/api/account/delete', { method: 'POST' });
@@ -243,6 +251,7 @@ export default function AccountPage() {
 
   return (
     <div className="space-y-5 py-2">
+      {confirmDialog}
       <header>
         <p className="font-mono-utility text-muted">Settings</p>
         <h1 className="font-display text-2xl font-bold text-ink">Account</h1>
@@ -398,7 +407,7 @@ export default function AccountPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-xs font-semibold">{r.author?.full_name ?? 'Customer'}</span>
-                    <span className="text-[10px] text-muted ml-2">{ukDate(r.created_at)}</span>
+                    <span className="text-[11px] text-muted ml-2">{ukDate(r.created_at)}</span>
                   </div>
                   <div className="flex items-center gap-0.5 text-xs text-accent">
                     ★ {r.rating.toFixed(1)}

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 import { getCategoryIcon, type Subcategory } from '@/lib/services-data';
+import { CANCELLATION_POLICY } from '@urban-assist/utils';
 
 interface ProviderPreview {
   id: string;
@@ -253,6 +254,7 @@ export function SubcategoryClient({
 
               {/* Price Filter */}
               <select
+                aria-label="Filter by price"
                 value={priceFilter}
                 onChange={(e) => setPriceFilter(e.target.value as any)}
                 className="rounded-xl border border-hairline bg-bg px-3 py-1.5 text-[12px] font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent/20 cursor-pointer"
@@ -272,6 +274,7 @@ export function SubcategoryClient({
               <div className="flex items-center gap-1 text-[12px]">
                 <span className="text-muted hidden sm:inline">Sort by:</span>
                 <select
+                  aria-label="Sort services"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
                   className="rounded-xl border border-hairline bg-bg px-3 py-1.5 text-[12px] font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent/20 cursor-pointer"
@@ -326,7 +329,7 @@ export function SubcategoryClient({
                           />
                         </span>
                         {service.isPopular && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-accent">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-accent">
                             <Flame className="h-3 w-3 fill-current" /> Popular
                           </span>
                         )}
@@ -509,7 +512,7 @@ export function SubcategoryClient({
               </span>
               <h3 className="text-[15px] font-bold text-ink">Free Cancellation</h3>
               <p className="mt-1.5 text-[12px] text-muted leading-relaxed">
-                Plans change. Cancel or reschedule your booking free of charge up to 2 hours before the professional arrives.
+                {CANCELLATION_POLICY}
               </p>
             </div>
           </div>

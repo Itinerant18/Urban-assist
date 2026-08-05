@@ -2,6 +2,7 @@ import * as React from 'react';
 import { redirect } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { ReferralClient } from './referral-client';
+import { pence } from '@urban-assist/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +43,7 @@ export default async function ReferralDashboardPage() {
       email: row.friend?.email || 'Invited Friend',
       name: row.friend?.full_name || 'Invited Friend',
       status: (row.credited_at ? 'Booked' : 'Pending') as 'Booked' | 'Pending',
-      reward: row.credited_at ? `+ £${(row.credit_pence / 100).toFixed(2)}` : '--',
+      reward: row.credited_at ? `+ ${pence(row.credit_pence)}` : '—',
     };
   });
 

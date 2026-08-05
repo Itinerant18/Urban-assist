@@ -107,13 +107,13 @@ export default async function PublicProfilePage() {
 
         <div className="grid grid-cols-2 gap-3 border-t border-hairline pt-3">
           <div>
-            <p className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+            <p className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
               Jobs completed
             </p>
             <p className="font-display text-lg font-bold text-ink">{completedJobs ?? 0}</p>
           </div>
           <div>
-            <p className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+            <p className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
               Experience
             </p>
             <p className="font-display text-lg font-bold text-ink">
@@ -124,7 +124,7 @@ export default async function PublicProfilePage() {
 
         {profile?.bio && (
           <div className="border-t border-hairline pt-3">
-            <p className="font-mono-utility text-[10px] uppercase tracking-wider text-muted mb-1">
+            <p className="font-mono-utility text-[11px] uppercase tracking-wider text-muted mb-1">
               About
             </p>
             <p className="text-sm text-charcoal whitespace-pre-wrap">{profile.bio}</p>
@@ -134,7 +134,7 @@ export default async function PublicProfilePage() {
 
       <section className="space-y-2">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+          <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
             Services listed
           </h2>
           <Link href="/services" className="tap text-xs text-accent hover:underline">
@@ -169,7 +169,7 @@ export default async function PublicProfilePage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="font-mono-utility text-[10px] uppercase tracking-wider text-muted">
+        <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
           Reviews customers can read
         </h2>
         {!reviews?.length ? (
