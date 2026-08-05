@@ -99,7 +99,7 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
                 <span className="font-bold text-ink">{Number(provider.rating_avg ?? 0).toFixed(1)}</span>
                 <span className="text-muted">({provider.rating_count ?? 0} Reviews)</span>
               </div>
-              <p className="text-xs text-muted mt-1 font-semibold text-success">
+              <p className="text-xs mt-1 font-semibold text-success-deep">
                 {Math.round(Number(provider.acceptance_rate ?? 0.98) * 100)}% Acceptance Rate
               </p>
             </div>
@@ -201,7 +201,7 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
               <span className="font-bold text-ink">{Number(provider.rating_avg ?? 0).toFixed(1)}</span>
               <span className="text-muted">({provider.rating_count ?? 0} Reviews)</span>
             </div>
-            <div className="mt-1.5 flex items-center gap-1 text-[11px] text-success font-semibold">
+            <div className="mt-1.5 flex items-center gap-1 text-[11px] text-success-deep font-semibold">
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Background Checked & Verified</span>
             </div>

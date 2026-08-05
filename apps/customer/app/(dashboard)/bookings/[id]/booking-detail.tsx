@@ -14,7 +14,7 @@ import {
   Spinner,
 } from '@urban-assist/ui';
 import { pence, ukDateTime } from '@urban-assist/lib';
-import { CANCELLATION_POLICY } from '@urban-assist/utils';
+import { CANCELLATION_POLICY, londonWallTimeToUtc, utcToLondonWallTime } from '@urban-assist/utils';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { Banknote, Phone, MessageSquare, AlertOctagon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -269,7 +269,7 @@ export function BookingDetail({
       const res = await fetch(`/api/bookings/${booking.id}/reschedule`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ scheduled_at: new Date(reschedAt).toISOString() }),
+        body: JSON.stringify({ scheduled_at: londonWallTimeToUtc(reschedAt).toISOString() }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -473,7 +473,7 @@ export function BookingDetail({
         </ul>
         <div className="text-xs text-muted">
           Paid by {booking.payment_method === 'card' ? 'card' : 'cash'} ·{' '}
-          <span className={payment?.status === 'succeeded' ? 'text-success' : 'text-accent'}>
+          <span className={payment?.status === 'succeeded' ? 'text-success-deep' : 'text-accent-deep'}>
             {payment?.status ?? 'pending'}
           </span>
         </div>
@@ -585,7 +585,7 @@ export function BookingDetail({
               <input
                 type="datetime-local"
                 className="w-full tap rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none"
-                min={new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16)}
+                min={utcToLondonWallTime(new Date(Date.now() + 60 * 60 * 1000))}
                 value={reschedAt}
                 onChange={(e) => setReschedAt(e.target.value)}
               />

@@ -34,8 +34,10 @@ export const providerLocKey = (profileId: string) =>
 export const providerActiveKey = (categoryId: string) =>
   `provider:active:${categoryId}`;
 
+// v2: `addresses` changed from string[] to PostcodeAddress[]; old cached entries
+// deserialise with undefined fields, so the shape change needs a fresh namespace.
 export const postcodeCacheKey = (postcode: string) =>
-  `cache:postcode:${postcode.replace(/\s+/g, '').toUpperCase()}`;
+  `cache:postcode:v2:${postcode.replace(/\s+/g, '').toUpperCase()}`;
 
 // ── Higher-level functions ─────────────────────────────────
 

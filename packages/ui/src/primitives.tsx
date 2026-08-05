@@ -137,13 +137,15 @@ const badgeStyles = cva(
   {
     variants: {
       tone: {
-        accent: 'bg-accent/15 text-[color:rgb(var(--accent))]',
-        success: 'bg-success/15 text-[color:rgb(var(--success))]',
+        // -deep text variants: accent/success/amber pass AA only as fills or
+        // large bold text, and badge text is 11px.
+        accent: 'bg-accent/15 text-accent-deep',
+        success: 'bg-success/15 text-success-deep',
         danger: 'bg-danger/15 text-[color:rgb(var(--danger))]',
         muted: 'bg-hairline/60 text-muted',
         ink: 'bg-ink text-bg',
         /** Amber — in-progress / on-the-way (DESIGN §8) */
-        warning: 'bg-[rgb(var(--amber)/0.18)] text-[rgb(var(--amber))]',
+        warning: 'bg-[rgb(var(--amber)/0.18)] text-amber-deep',
       },
     },
     defaultVariants: { tone: 'muted' },

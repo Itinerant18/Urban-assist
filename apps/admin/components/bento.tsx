@@ -1,5 +1,10 @@
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@urban-assist/ui';
+import {
+  bookingStatusTone,
+  isBookingStatus,
+  type BookingStatusTone,
+} from '@urban-assist/domain/job-status';
 
 /** Responsive bento board grid — 2 / 6 / 12 cols */
 export function BentoGrid({
@@ -111,10 +116,10 @@ export function StatTile({
 export type StatusTone = 'success' | 'pending' | 'danger' | 'accent';
 
 const statusToneClass: Record<StatusTone, string> = {
-  success: 'bg-success/12 text-success',
+  success: 'bg-success/12 text-success-deep',
   pending: 'bg-hairline text-muted',
   danger: 'bg-danger/10 text-danger',
-  accent: 'bg-accent/10 text-accent',
+  accent: 'bg-accent/10 text-accent-deep',
 };
 
 export function StatusChip({
@@ -271,9 +276,23 @@ export function BentoEmpty({
   );
 }
 
+// Booking statuses defer to the shared vocabulary so a booking never wears a
+// different colour in admin than in the customer/provider apps (`assigned` used
+// to read "pending" here vs "accent" everywhere else). The shared map has tones
+// StatusChip lacks; collapse them to the nearest chip tone.
+const BOOKING_TONE_TO_CHIP: Record<BookingStatusTone, StatusTone> = {
+  accent: 'accent',
+  success: 'success',
+  danger: 'danger',
+  muted: 'pending',
+  warning: 'accent',
+  ink: 'pending',
+};
+
 /** Map common admin status strings to chip tones */
 export function statusToneFrom(status: string | null | undefined): StatusTone {
   const s = (status ?? '').toLowerCase();
+  if (isBookingStatus(s)) return BOOKING_TONE_TO_CHIP[bookingStatusTone(s)];
   if (
     ['approved', 'active', 'completed', 'paid', 'verified', 'resolved', 'success'].some((k) =>
       s.includes(k),

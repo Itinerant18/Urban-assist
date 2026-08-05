@@ -63,7 +63,7 @@ export function Footer() {
           <div className="flex items-center gap-5">
             <PhoneMockup />
             <div className="space-y-2">
-              <span className="rounded-full bg-accent/10 px-2.5 py-1 font-mono-utility text-[11px] font-bold uppercase tracking-wider text-accent">
+              <span className="rounded-full bg-accent/10 px-2.5 py-1 font-mono-utility text-[11px] font-bold uppercase tracking-wider text-accent-deep">
                 Install
               </span>
               <h3 className="font-display text-lg font-bold leading-tight text-[#F5F1EB] md:text-xl">

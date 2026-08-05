@@ -293,7 +293,7 @@ export default function AccountPage() {
                 (fullName || 'U')[0].toUpperCase()
               )}
             </div>
-            <label className="cursor-pointer text-xs font-semibold text-accent hover:underline">
+            <label className="cursor-pointer text-xs font-semibold text-accent-deep hover:underline">
               {avatarBusy ? 'Uploading…' : 'Change photo'}
               <input
                 type="file"
@@ -328,7 +328,7 @@ export default function AccountPage() {
             <Input disabled value={user.email} />
           </Field>
           {profileError && <p className="text-xs text-danger">{profileError}</p>}
-          {profileOk && <p className="text-xs text-success">{profileOk}</p>}
+          {profileOk && <p className="text-xs text-success-deep">{profileOk}</p>}
           <Button type="submit" disabled={profileBusy}>
             {profileBusy ? 'Saving…' : 'Save profile'}
           </Button>
@@ -369,7 +369,7 @@ export default function AccountPage() {
             />
           </Field>
           {ticketError && <p className="text-xs text-danger">{ticketError}</p>}
-          {ticketOk && <p className="text-xs text-success">{ticketOk}</p>}
+          {ticketOk && <p className="text-xs text-success-deep">{ticketOk}</p>}
           <Button type="submit" disabled={ticketBusy}>
             {ticketBusy ? 'Submitting…' : 'Raise ticket'}
           </Button>
@@ -409,7 +409,7 @@ export default function AccountPage() {
                     <span className="text-xs font-semibold">{r.author?.full_name ?? 'Customer'}</span>
                     <span className="text-[11px] text-muted ml-2">{ukDate(r.created_at)}</span>
                   </div>
-                  <div className="flex items-center gap-0.5 text-xs text-accent">
+                  <div className="flex items-center gap-0.5 text-xs text-accent-deep">
                     ★ {r.rating.toFixed(1)}
                   </div>
                 </div>

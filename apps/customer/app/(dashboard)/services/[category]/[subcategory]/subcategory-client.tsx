@@ -329,7 +329,7 @@ export function SubcategoryClient({
                           />
                         </span>
                         {service.isPopular && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-accent">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-accent-deep">
                             <Flame className="h-3 w-3 fill-current" /> Popular
                           </span>
                         )}
@@ -441,7 +441,7 @@ export function SubcategoryClient({
 
                       <div className="mt-3 border-t border-hairline pt-2.5">
                         <p className="text-[12px] font-bold text-ink truncate">{p.title}</p>
-                        <p className="text-[11px] font-semibold text-accent mt-0.5">
+                        <p className="text-[11px] font-semibold text-accent-deep mt-0.5">
                           From {pence(p.price_pence)}
                         </p>
                       </div>
@@ -477,7 +477,7 @@ export function SubcategoryClient({
         {/* ── SECTION 6: TRUST PILLARS ──────────────────────────── */}
         <section className="mb-14 rounded-3xl border border-input-border bg-white p-6 shadow-sm lg:p-8">
           <div className="text-center max-w-xl mx-auto mb-8">
-            <span className="inline-block rounded-full bg-accent/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-accent">
+            <span className="inline-block rounded-full bg-accent/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-accent-deep">
               Urban Assist Guarantee
             </span>
             <h2 className="mt-2 text-[22px] font-extrabold text-ink lg:text-[26px]">
@@ -573,7 +573,7 @@ export function SubcategoryClient({
               </h2>
               <Link
                 href={`/services/${category.slug}`}
-                className="text-[12px] font-bold text-accent hover:text-accent-hover transition"
+                className="text-[12px] font-bold text-accent-deep hover:text-accent-deep-hover transition"
               >
                 View all {category.name.toLowerCase()} →
               </Link>

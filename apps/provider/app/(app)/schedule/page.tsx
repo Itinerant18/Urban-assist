@@ -493,7 +493,7 @@ export default function SchedulePage() {
               )}
               {scheduleError && <p className="mb-2 text-xs text-danger" role="alert">{scheduleError}</p>}
               {saved && !scheduleError && (
-                <p className="mb-2 flex items-center gap-1.5 text-xs text-success" role="status">
+                <p className="mb-2 flex items-center gap-1.5 text-xs text-success-deep" role="status">
                   <Check className="h-3.5 w-3.5" aria-hidden /> Weekly hours saved
                 </p>
               )}
@@ -575,7 +575,7 @@ export default function SchedulePage() {
               )}
               {timeOffError && <p className="text-xs text-danger" role="alert">{timeOffError}</p>}
               {timeOffSaved && !timeOffError && (
-                <p className="flex items-center gap-1.5 text-xs text-success" role="status">
+                <p className="flex items-center gap-1.5 text-xs text-success-deep" role="status">
                   <Check className="h-3.5 w-3.5" aria-hidden /> Time off added
                 </p>
               )}

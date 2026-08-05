@@ -107,7 +107,7 @@ export function PerformanceView({
                 <p className="text-xs text-muted">Required modules for your services.</p>
               )}
             </div>
-            <Link href="/training" className="tap text-xs font-semibold text-accent underline">
+            <Link href="/training" className="tap text-xs font-semibold text-accent-deep underline">
               Open
             </Link>
           </div>
@@ -274,7 +274,7 @@ function UpskillingCard({ stats }: { stats: PerformanceStats }) {
           <p className="text-xs text-charcoal">
             Based on your recent metrics, <strong>{suggestion}</strong> would help most.
           </p>
-          <Link href="/training" className="tap inline-block text-xs text-accent underline">
+          <Link href="/training" className="tap inline-block text-xs text-accent-deep underline">
             Browse training
           </Link>
         </div>

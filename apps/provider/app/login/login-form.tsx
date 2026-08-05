@@ -216,7 +216,7 @@ export function LoginForm() {
               <p className="text-xs text-muted">Sent to {e164}</p>
             </div>
             {err && <p className="text-xs text-danger font-semibold">{err}</p>}
-            {notice && <p className="text-xs text-success font-semibold">{notice}</p>}
+            {notice && <p className="text-xs text-success-deep font-semibold">{notice}</p>}
             <button
               type="submit"
               disabled={busy || otp.length < 6}

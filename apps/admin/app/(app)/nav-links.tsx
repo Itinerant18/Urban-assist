@@ -85,7 +85,7 @@ export function DesktopNav({ kycPending }: { kycPending: number }) {
     <nav aria-label="Admin primary navigation" className="space-y-1">
       {navSections.map((section) => (
         <div key={section.label}>
-          <p className="text-[10px] uppercase tracking-wider text-muted px-2 mt-4 mb-1 first:mt-0">
+          <p className="text-[11px] uppercase tracking-wider text-muted px-2 mt-4 mb-1 first:mt-0">
             {section.label}
           </p>
           <div className="space-y-0.5">
@@ -106,7 +106,7 @@ export function DesktopNav({ kycPending }: { kycPending: number }) {
                   />
                   <span className="flex-1">{label}</span>
                   {href === '/kyc' && kycPending > 0 && (
-                    <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+                    <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[11px] font-bold text-accent">
                       {kycPending}
                     </span>
                   )}
@@ -137,13 +137,13 @@ export function MobileNav({ kycPending }: { kycPending: number }) {
           <li key={href}>
             <Link
               href={href}
-              className={`tap relative flex flex-col items-center justify-center gap-0.5 px-3 text-[10px] font-mono ${
+              className={`tap relative flex flex-col items-center justify-center gap-0.5 px-3 text-[11px] font-mono ${
                 active ? 'text-accent' : 'text-muted hover:text-ink'
               }`}
             >
               <Icon className="h-5 w-5" />
               {href === '/kyc' && kycPending > 0 && (
-                <span className="absolute -top-1 right-0.5 rounded-full bg-accent px-1 text-[9px] font-bold leading-4 text-white">
+                <span className="absolute -top-1 right-0.5 rounded-full bg-accent px-1 text-[11px] font-bold leading-4 text-white">
                   {kycPending}
                 </span>
               )}

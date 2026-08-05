@@ -171,7 +171,7 @@ export default function StaffRolesPage() {
                 <td className="px-5 py-4">
                   <div className="flex flex-wrap gap-1.5">
                     {member.roles.map((role) => (
-                      <span key={role} className="rounded-md bg-hairline/50 px-2 py-1 text-[10px] font-semibold uppercase text-ink">
+                      <span key={role} className="rounded-md bg-hairline/50 px-2 py-1 text-[11px] font-semibold uppercase text-ink">
                         {ROLE_OPTIONS.find((option) => option.code === role)?.label ?? role}
                       </span>
                     ))}

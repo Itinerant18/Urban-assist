@@ -50,7 +50,7 @@ export default async function KYCReviewDetail({ params }: { params: { providerId
         </Link>
         <div>
           <h1 className="font-bold text-ink text-sm">KYC: {profile.full_name}</h1>
-          <p className="text-[10px] text-muted">{profile.email}</p>
+          <p className="text-[11px] text-muted">{profile.email}</p>
         </div>
       </div>
 
@@ -72,7 +72,7 @@ export default async function KYCReviewDetail({ params }: { params: { providerId
                 }`}
               >
                 <div className="text-xs truncate">{q.full_name || 'Unnamed'}</div>
-                <div className={`text-[10px] truncate ${q.id === profile.id ? 'text-bg/85' : 'text-muted'}`}>
+                <div className={`text-[11px] truncate ${q.id === profile.id ? 'text-bg/85' : 'text-muted'}`}>
                   {q.email}
                 </div>
               </Link>

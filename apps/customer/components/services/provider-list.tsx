@@ -59,7 +59,7 @@ export function ProviderList({ providers }: { providers: ProviderService[] }) {
                         {Number(p.provider.rating_avg).toFixed(1)} ({p.provider.rating_count})
                       </span>
                     ) : (
-                      <span className="font-semibold text-success">New</span>
+                      <span className="font-semibold text-success-deep">New</span>
                     )}
                     <span>· {p.duration_mins} min</span>
                   </div>

@@ -94,12 +94,12 @@ export function AssignmentPanel({ bookingId }: { bookingId: string }) {
             <span className="flex flex-wrap items-center gap-2 font-semibold text-ink">
               {provider.full_name || provider.email || provider.provider_id.slice(0, 8)}
               {provider.is_preferred ? (
-                <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-accent">
+                <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-accent">
                   Preferred
                 </span>
               ) : null}
               {provider.training_eligible === false ? (
-                <span className="rounded-full bg-danger/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-danger">
+                <span className="rounded-full bg-danger/10 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-danger">
                   Training
                 </span>
               ) : null}

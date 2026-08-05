@@ -102,7 +102,7 @@ export default async function AuditLogPage({
                     <span className="font-medium text-ink">
                       {actorNames.get(r.actor_user_id) ?? r.actor_user_id.slice(0, 8)}
                     </span>
-                    <span className="ml-2 text-[10px] text-muted font-mono">{r.actor_role_code}</span>
+                    <span className="ml-2 text-[11px] text-muted font-mono">{r.actor_role_code}</span>
                   </td>
                   <td className="px-5 py-3 font-mono text-xs font-semibold text-ink">{r.action_type}</td>
                   <td className="px-5 py-3 text-xs text-muted">{r.entity_type}</td>

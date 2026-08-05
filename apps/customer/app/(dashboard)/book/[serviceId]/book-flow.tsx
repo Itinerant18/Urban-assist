@@ -404,15 +404,17 @@ export function BookFlow({
 
   // One definition, rendered in the desktop aside and in the mobile price sheet.
   // These were two divergent copies; the promo state is shared, so both stay in
-  // step and only one of them is ever on screen.
-  const priceAdjustments = (
+  // step and only one of them is ever on screen. The input id is parameterised
+  // because BOTH copies are always in the DOM (the sheet mounts closed) — a
+  // duplicate id made the sheet's label focus the hidden aside input.
+  const priceAdjustments = (promoId: string) => (
     <div className="space-y-2">
-      <label htmlFor="promo-code" className="block text-xs font-bold text-ink">
+      <label htmlFor={promoId} className="block text-xs font-bold text-ink">
         Promo code
       </label>
       <div className="flex gap-2">
         <Input
-          id="promo-code"
+          id={promoId}
           placeholder="e.g. SAVE10"
           value={promoCodeValue || ''}
           onChange={(e) => setValue('promoCode', e.target.value.toUpperCase())}
@@ -876,7 +878,7 @@ export function BookFlow({
               totalPence={q.total_pence}
               discountPence={q.discount_pence}
             />
-            <div className="border-t border-hairline pt-3">{priceAdjustments}</div>
+            <div className="border-t border-hairline pt-3">{priceAdjustments('promo-code')}</div>
           </Card>
         </aside>
       </div>
@@ -947,7 +949,7 @@ export function BookFlow({
             totalPence={q.total_pence}
             discountPence={q.discount_pence}
           />
-          <div className="border-t border-hairline pt-3">{priceAdjustments}</div>
+          <div className="border-t border-hairline pt-3">{priceAdjustments('promo-code-sheet')}</div>
         </div>
       </BottomSheet>
     </div>

@@ -106,7 +106,7 @@ export default async function RatingsPage({
                       }`}
                     >
                       {'★'.repeat(r.rating)}
-                      <span className="text-hairline">{'★'.repeat(5 - r.rating)}</span>
+                      <span className="text-muted/50">{'★'.repeat(5 - r.rating)}</span>
                     </span>
                     {isLow ? <StatusChip tone="danger">Low rating</StatusChip> : null}
                   </div>

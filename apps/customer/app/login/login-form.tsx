@@ -192,7 +192,7 @@ export function LoginForm() {
               <button
                 type="button"
                 onClick={() => setShowReferralCode((shown) => !shown)}
-                className="text-xs font-semibold text-accent hover:underline"
+                className="text-xs font-semibold text-accent-deep hover:underline"
                 aria-expanded={showReferralCode}
               >
                 Have a referral code?
@@ -251,7 +251,7 @@ export function LoginForm() {
                 type="button"
                 onClick={() => handleSendOtp()}
                 disabled={loading || cooldown > 0}
-                className="text-xs font-semibold text-accent hover:underline disabled:opacity-50"
+                className="text-xs font-semibold text-accent-deep hover:underline disabled:opacity-50"
               >
                 {cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
               </button>

@@ -127,7 +127,9 @@ export interface CommissionTable {
 }
 
 export async function loadCommissionTable(admin: SupabaseClient): Promise<CommissionTable> {
-  const { data } = await admin.from('commission_rules').select('category_id, rate_bps');
+  // A missed error here would render as 0% commission — "you keep everything" — so throw.
+  const { data, error } = await admin.from('commission_rules').select('category_id, rate_bps');
+  if (error) throw error;
   const byCategory: Record<string, number> = {};
   let fallback = 0;
   for (const r of data ?? []) {

@@ -252,7 +252,7 @@ export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps
             {governmentIdDoc ? (
               <div className="flex items-center justify-between border border-hairline bg-success/5 p-3 rounded-xl">
                 <div className="min-w-0 flex-1">
-                  <span className="font-bold text-xs text-success block truncate">
+                  <span className="font-bold text-xs text-success-deep block truncate">
                     ✓ ID Uploaded
                   </span>
                   <span className="text-[11px] text-muted block mt-0.5 truncate">
@@ -298,7 +298,7 @@ export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps
             {selfieDoc ? (
               <div className="flex items-center justify-between border border-hairline bg-success/5 p-3 rounded-xl">
                 <div className="min-w-0 flex-1">
-                  <span className="font-bold text-xs text-success block truncate">
+                  <span className="font-bold text-xs text-success-deep block truncate">
                     ✓ Selfie Uploaded
                   </span>
                   <span className="text-[11px] text-muted block mt-0.5 truncate">
@@ -404,7 +404,7 @@ export function OnboardingClient({ profile, initialDocs }: OnboardingClientProps
       </Card>
 
       {err && <p className="text-xs font-semibold text-danger pl-0.5">{err}</p>}
-      {ok && <p className="text-xs font-semibold text-success pl-0.5">{ok}</p>}
+      {ok && <p className="text-xs font-semibold text-success-deep pl-0.5">{ok}</p>}
 
       {/* Actions */}
       <div className="pt-2 flex justify-between items-center">

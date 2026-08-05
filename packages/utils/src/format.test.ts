@@ -31,6 +31,18 @@ describe('London wall-clock ↔ UTC', () => {
     // 23:30 UTC on 9 Aug is already 10 Aug in London (BST).
     expect(londonDateKey(new Date('2026-08-09T23:30:00Z'))).toBe('2026-08-10');
   });
+
+  // The two DST edge hours. No booking slot lands on them (SLOT_HOURS start at
+  // 08:00), but the resolution is deliberate and this pins it.
+  it('maps the nonexistent spring-forward hour onto BST (01:30 → 02:30 BST)', () => {
+    // Clocks jump 01:00 GMT → 02:00 BST on 29 Mar 2026; 01:30 wall never happens.
+    expect(londonWallTimeToUtc('2026-03-29T01:30').toISOString()).toBe('2026-03-29T01:30:00.000Z');
+  });
+
+  it('resolves the ambiguous fall-back hour to the later, GMT occurrence', () => {
+    // 01:30 happens twice on 25 Oct 2026 (BST then GMT); we take GMT.
+    expect(londonWallTimeToUtc('2026-10-25T01:30').toISOString()).toBe('2026-10-25T01:30:00.000Z');
+  });
 });
 
 describe('durationLabel', () => {

@@ -186,3 +186,13 @@ describe('computePerformance', () => {
     expect(s.acceptanceRate).toBeNull();
   });
 });
+
+describe('loadCommissionTable', () => {
+  it('throws on a failed query instead of defaulting to 0% commission', async () => {
+    const { loadCommissionTable } = await import('./provider-data');
+    const admin = {
+      from: () => ({ select: async () => ({ data: null, error: new Error('boom') }) }),
+    } as never;
+    await expect(loadCommissionTable(admin)).rejects.toThrow('boom');
+  });
+});

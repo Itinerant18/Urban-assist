@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect, notFound } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { Card, Button } from '@urban-assist/ui';
-import { pence } from '@urban-assist/lib';
+import { pence, ukDateTime } from '@urban-assist/lib';
 import { CheckCircle2, Calendar, MapPin, CreditCard, Receipt } from 'lucide-react';
 import { StatusPill } from '../../../../components/status-pill';
 import { StickyActionBar } from '../../../../components/sticky-action-bar';
@@ -74,10 +74,7 @@ export default async function BookingSuccessPage({ searchParams }: { searchParam
             <div>
               <span className="text-muted block text-xs">Date & Time</span>
               <span className="font-bold text-ink">
-                {new Date(booking.scheduled_at).toLocaleString('en-GB', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                })}
+                {ukDateTime(booking.scheduled_at)}
               </span>
             </div>
           </li>

@@ -76,7 +76,7 @@ export default function AdminLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="card w-full max-w-sm">
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
           Restricted operations
         </p>
         <h1 className="font-display text-xl font-bold text-ink">Urban Assist Admin</h1>
@@ -114,7 +114,7 @@ export default function AdminLoginPage() {
                 {/* Supabase returns an inline SVG data URL for TOTP enrollment. */}
                 <img src={mfa.qrCode} alt="Authenticator enrollment QR code" className="mx-auto h-44 w-44" />
                 {mfa.secret && (
-                  <p className="mt-3 break-all font-mono-utility text-[10px] text-muted">
+                  <p className="mt-3 break-all font-mono-utility text-[11px] text-muted">
                     Manual key: {mfa.secret}
                   </p>
                 )}

@@ -26,6 +26,11 @@ export interface OverlayProps {
   dismissible?: boolean;
 }
 
+// Module-level count, not per-overlay save/restore: a confirm opened from inside
+// a sheet used to capture 'hidden' as "previous" and restore it on close, leaving
+// the page unscrollable. Lock on first open, release on last close.
+let scrollLocks = 0;
+
 function useDialog(open: boolean, onClose: () => void, dismissible: boolean) {
   const ref = React.useRef<HTMLDialogElement>(null);
 
@@ -38,10 +43,9 @@ function useDialog(open: boolean, onClose: () => void, dismissible: boolean) {
 
   React.useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    if (++scrollLocks === 1) document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = prev;
+      if (--scrollLocks === 0) document.body.style.overflow = '';
     };
   }, [open]);
 

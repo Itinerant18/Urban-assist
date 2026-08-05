@@ -141,7 +141,7 @@ export default function NotificationsPage() {
                     <p className="text-xs text-muted">{n.payload.body}</p>
                   )}
                   {n.payload?.link && (
-                    <Link href={n.payload.link} className="text-xs text-accent hover:underline block mt-1">
+                    <Link href={n.payload.link} className="text-xs text-accent-deep hover:underline block mt-1">
                       View details
                     </Link>
                   )}

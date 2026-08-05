@@ -47,6 +47,10 @@ export function AddressForm({
     setErr(null);
     setCandidates(null);
     setPicked(null);
+    // Clear coords from any previous lookup — a failed lookup for a new postcode
+    // must not save the old postcode's lat/lng (provider matching is radius-based).
+    setLat(null);
+    setLng(null);
     try {
       const r = await fetch(`/api/postcode/${encodeURIComponent(pc)}`);
       if (!r.ok) throw new Error('We could not find that postcode. Check it and try again.');

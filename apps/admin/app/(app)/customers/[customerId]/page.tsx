@@ -1,3 +1,4 @@
+import { bookingStatusLabel } from '@urban-assist/domain/job-status';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -414,7 +415,7 @@ export default async function CustomerDetailPage({
               </div>
               <div className="flex shrink-0 items-center gap-3">
                 <StatusChip tone={statusToneFrom(b.status)}>
-                  {b.status.replace(/_/g, ' ')}
+                  {bookingStatusLabel(b.status)}
                 </StatusChip>
                 <span className="font-mono text-sm font-semibold text-ink">
                   {gbp(b.total_pence ?? 0)}

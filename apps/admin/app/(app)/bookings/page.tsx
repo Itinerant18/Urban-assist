@@ -1,3 +1,4 @@
+import { bookingStatusLabel } from '@urban-assist/domain/job-status';
 import { Briefcase, ChevronRight } from 'lucide-react';
 import { requireAdminRole } from '../../../lib/admin-auth';
 import { AssignmentPanel } from './assignment-panel';
@@ -110,7 +111,7 @@ export default async function BookingsPage({
                 'disputed',
               ].map((status) => (
                 <option key={status} value={status}>
-                  {status.replaceAll('_', ' ')}
+                  {bookingStatusLabel(status)}
                 </option>
               ))}
             </Select>
@@ -196,9 +197,9 @@ export default async function BookingsPage({
                     <p className="mt-1 text-sm font-semibold text-ink">{b.category_name ?? 'Uncategorised'}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <StatusChip tone={statusToneFrom(b.status)}>{b.status.replaceAll('_', ' ')}</StatusChip>
+                    <StatusChip tone={statusToneFrom(b.status)}>{bookingStatusLabel(b.status)}</StatusChip>
                     {b.preferred_provider_id ? (
-                      <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                      <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-accent">
                         Pref · {b.preference_outcome}
                       </span>
                     ) : null}
@@ -240,10 +241,10 @@ export default async function BookingsPage({
                     {b.short_code ?? b.id.slice(0, 8)}
                   </span>
                   <StatusChip tone={statusToneFrom(b.status)}>
-                    {b.status.replaceAll('_', ' ')}
+                    {bookingStatusLabel(b.status)}
                   </StatusChip>
                   {b.preferred_provider_id ? (
-                    <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                    <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-accent">
                       Pref · {b.preference_outcome}
                     </span>
                   ) : null}

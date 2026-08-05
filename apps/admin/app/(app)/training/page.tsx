@@ -193,7 +193,7 @@ export default async function AdminTrainingPage({
         </TableTile>
       ) : (
         <TableTile>
-          <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_5.5rem_4.5rem_6rem_7rem_1.5rem] gap-3 border-b border-hairline px-5 py-2 font-mono text-[10px] uppercase tracking-wider text-muted sm:grid">
+          <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_5.5rem_4.5rem_6rem_7rem_1.5rem] gap-3 border-b border-hairline px-5 py-2 font-mono text-[11px] uppercase tracking-wider text-muted sm:grid">
             <span>Provider</span>
             <span>Category</span>
             <span>Modules</span>

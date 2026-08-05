@@ -38,9 +38,9 @@ export function ServiceCard({ service, categorySlug, subcategorySlug, icon }: Se
         
         {/* Footer with price and badge */}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[12px] font-bold text-ink">From <span className="text-accent font-extrabold">{pence(service.minPricePence)}</span></span>
+          <span className="text-[12px] font-bold text-ink">From <span className="text-accent-deep font-extrabold">{pence(service.minPricePence)}</span></span>
           {service.isPopular && (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-accent/10 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-accent shrink-0">
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-accent/10 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-accent-deep shrink-0">
               ⭐ Popular
             </span>
           )}

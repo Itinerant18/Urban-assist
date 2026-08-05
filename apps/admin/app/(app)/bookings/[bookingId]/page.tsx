@@ -1,3 +1,4 @@
+import { bookingStatusLabel } from '@urban-assist/domain/job-status';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireAdminRole } from '../../../../lib/admin-auth';
@@ -79,7 +80,7 @@ export default async function BookingDetailPage({
         action={
           <div className="flex items-center gap-3">
             <StatusChip tone={statusToneFrom(booking.status)}>
-              {booking.status.replaceAll('_', ' ')}
+              {bookingStatusLabel(booking.status)}
             </StatusChip>
             {canAssign && (
               <Link

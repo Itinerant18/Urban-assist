@@ -44,6 +44,7 @@ const DISMISS_MS = 4500;
 
 export function Toaster() {
   const [items, setItems] = React.useState<ToastItem[]>([]);
+  const ref = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const onToast = (t: ToastItem) => {
@@ -56,9 +57,23 @@ export function Toaster() {
     };
   }, []);
 
+  // Manual popover so toasts share the browser top layer with <dialog> — a plain
+  // z-index (any z-index) renders *behind* an open showModal() dialog, which is
+  // exactly where "Service removed" fired from a confirm used to end up. Re-shown
+  // per toast so the stack hops above any dialog opened since. Browsers without
+  // the Popover API fall back to the always-visible fixed div.
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof el.showPopover !== 'function') return;
+    if (el.matches(':popover-open')) el.hidePopover();
+    if (items.length > 0) el.showPopover();
+  }, [items]);
+
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 z-toast flex flex-col items-center gap-2 px-4 above-tabbar lg:bottom-6"
+      ref={ref}
+      popover="manual"
+      className="pointer-events-none fixed inset-x-0 bottom-auto top-[calc(env(safe-area-inset-top)+0.75rem)] z-toast m-0 flex w-full max-w-none flex-col items-center gap-2 overflow-visible border-0 bg-transparent p-0 px-4 lg:bottom-6 lg:top-auto"
       aria-live="polite"
       role="status"
     >

@@ -199,7 +199,7 @@ export default function NotificationsPage() {
                   {notification.payload?.link && (
                     <Link
                       href={notification.payload.link}
-                      className="mt-1 block text-xs text-accent hover:underline"
+                      className="mt-1 block text-xs text-accent-deep hover:underline"
                     >
                       View details
                     </Link>

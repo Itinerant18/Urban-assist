@@ -166,12 +166,12 @@ export function AssignmentWorkspace({ booking, candidates }: AssignmentWorkspace
                           {provider.full_name ?? provider.email ?? provider.provider_id.slice(0, 8)}
                         </span>
                         {provider.is_preferred ? (
-                          <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                          <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-accent">
                             Preferred
                           </span>
                         ) : null}
                         {!trainingOk ? (
-                          <span className="shrink-0 rounded-full bg-danger/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-danger">
+                          <span className="shrink-0 rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-danger">
                             Training incomplete
                           </span>
                         ) : null}
@@ -227,7 +227,7 @@ export function AssignmentWorkspace({ booking, candidates }: AssignmentWorkspace
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <span>
-      <span className="block text-[10px] uppercase tracking-wide text-muted">{label}</span>
+      <span className="block text-[11px] uppercase tracking-wide text-muted">{label}</span>
       <span className="mt-1 block text-xs font-medium text-ink">{value}</span>
     </span>
   );

@@ -81,7 +81,7 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
           <div className="border-t border-hairline px-2 py-3">
             <p className="truncate text-xs font-medium text-ink">{identityName}</p>
             <p className="truncate text-[11px] text-muted">{identityEmail}</p>
-            <p className="truncate text-[10px] capitalize text-muted">{identityRole}</p>
+            <p className="truncate text-[11px] capitalize text-muted">{identityRole}</p>
             <Link
               href="/settings/account"
               className="mt-2 inline-block text-[11px] font-medium text-accent hover:underline"

@@ -384,7 +384,7 @@ export function BrowseClient({
                 setMaxDistance(25);
                 setShowFiltersMobile(false);
               }}
-              className="text-xs font-semibold text-accent hover:text-accent-hover"
+              className="text-xs font-semibold text-accent-deep hover:text-accent-deep-hover"
             >
               Reset All
             </button>

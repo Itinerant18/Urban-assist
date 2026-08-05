@@ -286,7 +286,8 @@ function MobileFooter() {
   ];
 
   return (
-    <footer className="bg-ink pb-[calc(5.25rem+env(safe-area-inset-bottom))] text-white lg:hidden">
+    // bottom padding = tab-bar clearance + 1.75rem breathing room, derived not hardcoded
+    <footer className="bg-ink pb-[calc(var(--tabbar-clearance)+1.75rem+env(safe-area-inset-bottom))] text-white lg:hidden">
       <div className="px-4 py-7">
         <div className="mb-5 flex items-center gap-2.5">
           <Logo inverted />

@@ -146,7 +146,7 @@ export default async function SupportTicketDetailPage({ params }: { params: { id
         </Link>
         <div>
           <h1 className="font-bold text-ink text-sm">Ticket #{ticket.id.slice(0, 8)}</h1>
-          <p className="text-[10px] text-muted">{ticket.category}</p>
+          <p className="text-[11px] text-muted">{ticket.category}</p>
         </div>
       </div>
 
@@ -168,7 +168,7 @@ export default async function SupportTicketDetailPage({ params }: { params: { id
                 }`}
               >
                 <div className="text-xs truncate">{q.category}</div>
-                <div className={`text-[10px] uppercase font-mono-utility mt-1 ${q.id === ticket.id ? 'text-bg/85 font-semibold' : 'text-accent'}`}>
+                <div className={`text-[11px] uppercase font-mono-utility mt-1 ${q.id === ticket.id ? 'text-bg/85 font-semibold' : 'text-accent'}`}>
                   {q.status}
                 </div>
               </Link>

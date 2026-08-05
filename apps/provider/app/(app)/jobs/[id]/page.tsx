@@ -605,7 +605,7 @@ export default function JobDetailPage() {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const completionReport = parseCompletionReport(booking.completion_report);
+  const completionReport = parseCompletionReport(booking?.completion_report);
 
   // Directions routing embed map URL
   const jobLat = booking?.address?.lat;
@@ -823,7 +823,7 @@ export default function JobDetailPage() {
                       )}
                     </div>
                   </Field>
-                  {uploadProgress && <p className="text-xs text-accent">{uploadProgress}</p>}
+                  {uploadProgress && <p className="text-xs text-accent-deep">{uploadProgress}</p>}
                   <Button size="block" type="submit" disabled={busy}>
                     <CheckCircle2 className="mr-1.5 h-4 w-4" /> Complete and Submit Job
                   </Button>

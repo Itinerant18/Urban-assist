@@ -1,3 +1,5 @@
+import { bookingStatusLabel } from '@urban-assist/domain/job-status';
+
 const LIQUIDITY_HOURS = [8, 10, 12, 14];
 
 export function buildLiquidityData(
@@ -55,7 +57,7 @@ export function buildBookingStatusBreakdown(
     .filter((status) => alwaysShow.has(status) || (counts.get(status) ?? 0) > 0)
     .map((status) => ({
       status,
-      label: status.replaceAll('_', ' '),
+      label: bookingStatusLabel(status),
       count: counts.get(status) ?? 0,
     }));
 }

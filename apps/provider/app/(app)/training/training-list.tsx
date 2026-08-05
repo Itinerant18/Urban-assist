@@ -213,7 +213,7 @@ function Section({
                           href={item.content_url}
                           target="_blank"
                           rel="noreferrer noopener"
-                          className="tap flex items-center gap-1 text-xs text-accent hover:underline"
+                          className="tap flex items-center gap-1 text-xs text-accent-deep hover:underline"
                         >
                           Open <ExternalLink className="h-3 w-3" />
                         </a>
@@ -225,7 +225,7 @@ function Section({
                       )}
                       <Link
                         href={`/training/${item.id}`}
-                        className="tap ml-auto inline-flex items-center gap-0.5 text-xs font-semibold text-accent"
+                        className="tap ml-auto inline-flex items-center gap-0.5 text-xs font-semibold text-accent-deep"
                       >
                         Details <ChevronRight className="h-3.5 w-3.5" />
                       </Link>

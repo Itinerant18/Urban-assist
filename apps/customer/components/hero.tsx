@@ -51,7 +51,7 @@ export function Hero({ categories, promoCode }: HeroProps) {
                       <span className="text-[12px] font-semibold leading-tight text-ink">
                         {cat.name}
                       </span>
-                      <span className="text-[11px] font-medium text-success">
+                      <span className="text-[11px] font-medium text-success-deep">
                         From {pence(cat.minPricePence)}
                       </span>
                     </a>

@@ -114,7 +114,7 @@ export default async function ServiceDetailPage({
                     {pence(service.minPricePence)} - {pence(service.maxPricePence)}
                   </span>
                   {service.isPopular && (
-                    <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-accent">Popular</span>
+                    <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-accent-deep">Popular</span>
                   )}
                 </div>
               </div>

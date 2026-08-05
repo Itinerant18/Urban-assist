@@ -168,7 +168,7 @@ export default async function AnalyticsPage() {
           ) : (
             <>
               <TrendBars values={daily.map((d) => d.bookings)} />
-              <div className="mt-2 flex justify-between font-mono text-[10px] text-muted">
+              <div className="mt-2 flex justify-between font-mono text-[11px] text-muted">
                 <span>{daily[0]?.label}</span>
                 <span>{daily[daily.length - 1]?.label}</span>
               </div>
@@ -190,7 +190,7 @@ export default async function AnalyticsPage() {
           ) : (
             <>
               <TrendBars values={daily.map((d) => d.gmvPence)} tone="ink" />
-              <div className="mt-2 flex justify-between font-mono text-[10px] text-muted">
+              <div className="mt-2 flex justify-between font-mono text-[11px] text-muted">
                 <span>{daily[0]?.label}</span>
                 <span>{daily[daily.length - 1]?.label}</span>
               </div>

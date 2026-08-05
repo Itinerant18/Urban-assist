@@ -132,7 +132,7 @@ export default async function AdminProviderTrainingPage({
                   {mod.description && (
                     <p className="text-xs text-muted leading-relaxed">{mod.description}</p>
                   )}
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-muted">
                     {done
                       ? `Done ${new Date(mod.completedAt!).toLocaleDateString('en-GB')}${
                           mod.score != null ? ` · score ${mod.score}` : ''

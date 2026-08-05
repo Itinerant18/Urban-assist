@@ -216,7 +216,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                           </span>
                         </div>
                       )}
-                      <span className="rounded-lg border border-accent text-accent px-4 py-1.5 text-xs font-bold transition group-hover:bg-accent group-hover:text-white">
+                      <span className="rounded-lg border border-accent text-accent-deep px-4 py-1.5 text-xs font-bold transition group-hover:bg-accent group-hover:text-white">
                         Book now
                       </span>
                     </div>
@@ -244,7 +244,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                             {tile.badge.label}
                           </span>
                         )}
-                        <span className="text-[11px] font-medium text-success">Popular Choice</span>
+                        <span className="text-[11px] font-medium text-success-deep">Popular Choice</span>
                       </div>
                       <h3 className="text-[16px] font-bold leading-tight text-ink group-hover:text-accent transition-colors flex items-center justify-between gap-2">
                         {tile.name}
@@ -262,7 +262,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                           From {pence(tile.category.minPricePence)}
                         </span>
                       )}
-                      <span className="text-xs font-bold text-accent group-hover:text-accent-hover flex items-center gap-1">
+                      <span className="text-xs font-bold text-accent-deep group-hover:text-accent-deep-hover flex items-center gap-1">
                         View details <ArrowRight className="h-3 w-3" />
                       </span>
                     </div>
@@ -339,7 +339,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                     </span>
                   </div>
                   {tile.category && (
-                    <p className="mt-1 text-[11px] font-medium text-success">
+                    <p className="mt-1 text-[11px] font-medium text-success-deep">
                       From {pence(tile.category.minPricePence)}
                     </p>
                   )}

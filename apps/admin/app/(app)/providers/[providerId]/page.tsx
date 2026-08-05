@@ -158,7 +158,7 @@ export default async function ProviderDetailPage({ params }: { params: { provide
                 {notes.map((note: any) => (
                   <div key={note.id} className="border-l-2 border-hairline pl-3 py-1">
                     <p className="whitespace-pre-wrap text-xs text-ink">{note.note}</p>
-                    <p className="mt-1 text-[10px] text-muted font-mono">
+                    <p className="mt-1 text-[11px] text-muted font-mono">
                       {note.admin?.full_name || note.admin?.email || 'Admin'} ·{' '}
                       {new Date(note.created_at).toLocaleString('en-GB')}
                     </p>

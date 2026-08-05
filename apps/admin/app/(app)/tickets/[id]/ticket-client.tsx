@@ -272,7 +272,7 @@ export function TicketClient({
                     )}
                   </span>
                   <div>
-                    <span className="text-[10px] text-muted font-mono-utility block">
+                    <span className="text-[11px] text-muted font-mono-utility block">
                       {new Date(ev.timestamp).toLocaleString('en-GB')}
                     </span>
                     <span className="text-xs font-semibold text-ink mt-0.5 block capitalize">
@@ -289,7 +289,7 @@ export function TicketClient({
                         {ev.metadata.reason ? ` · ${ev.metadata.reason}` : ''}
                       </p>
                     )}
-                    <span className="text-[10px] text-muted mt-1 block">By: {ev.actor}</span>
+                    <span className="text-[11px] text-muted mt-1 block">By: {ev.actor}</span>
                   </div>
                 </div>
               ))
@@ -335,7 +335,7 @@ export function TicketClient({
 
           {booking && (
             <Card className="p-4 border border-hairline rounded-xl space-y-2">
-              <span className="text-[10px] font-bold text-muted uppercase font-mono-utility block">Refund Customer</span>
+              <span className="text-[11px] font-bold text-muted uppercase font-mono-utility block">Refund Customer</span>
               {!canRefund ? (
                 <p className="text-xs text-muted">
                   {payment?.status === 'refunded'
@@ -441,7 +441,7 @@ export function TicketClient({
           )}
 
           <Card className="p-4 border border-hairline rounded-xl space-y-2">
-            <span className="text-[10px] font-bold text-muted uppercase font-mono-utility block">Wallet Credit</span>
+            <span className="text-[11px] font-bold text-muted uppercase font-mono-utility block">Wallet Credit</span>
             {showCreditForm ? (
               <div className="space-y-3 pt-1">
                 <Field label="Amount (£)">
@@ -504,7 +504,7 @@ export function TicketClient({
 
           {provider && (
             <Card className="p-4 border border-hairline rounded-xl space-y-2">
-              <span className="text-[10px] font-bold text-muted uppercase font-mono-utility block">Penalize Provider</span>
+              <span className="text-[11px] font-bold text-muted uppercase font-mono-utility block">Penalize Provider</span>
               <p className="text-xs text-muted">Register a formal penalty warning strike for the provider.</p>
 
               {showPenaltyForm ? (
@@ -554,7 +554,7 @@ export function TicketClient({
                   type="button"
                   disabled={busy}
                   onClick={() => applyMacro(macro.body)}
-                  className="rounded-lg border border-hairline bg-bg/40 px-2 py-1 text-[10px] font-semibold text-ink hover:bg-hairline/40 disabled:opacity-50"
+                  className="rounded-lg border border-hairline bg-bg/40 px-2 py-1 text-[11px] font-semibold text-ink hover:bg-hairline/40 disabled:opacity-50"
                 >
                   {macro.label}
                 </button>

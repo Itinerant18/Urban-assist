@@ -187,7 +187,7 @@ export function CatalogClient({ categories = SERVICE_CATEGORIES }: CatalogClient
                               )}
                             </div>
                             <div className="min-w-0">
-                              <h4 className="font-bold text-ink text-xs line-clamp-2 leading-snug group-hover:text-accent transition-colors">
+                              <h4 className="font-bold text-ink text-xs line-clamp-2 leading-snug group-hover:text-accent-deep transition-colors">
                                 {sub.name}
                               </h4>
                               <p className="text-[11px] text-muted line-clamp-1 mt-1">

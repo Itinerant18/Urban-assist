@@ -1,3 +1,4 @@
+import { bookingStatusLabel } from '@urban-assist/domain/job-status';
 import Link from 'next/link';
 import { CalendarDays, ChevronRight } from 'lucide-react';
 import { Button, Input, Select } from '@urban-assist/ui';
@@ -326,7 +327,7 @@ export default async function SchedulingPage({
                               </p>
                             </div>
                             <StatusChip tone={statusToneFrom(b.status)}>
-                              {b.status.replace(/_/g, ' ')}
+                              {bookingStatusLabel(b.status)}
                             </StatusChip>
                             <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden />
                           </Link>

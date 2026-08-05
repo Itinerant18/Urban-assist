@@ -166,7 +166,7 @@ The primary view showing active status, scheduling, earnings, and dynamic offer 
 
 ### Visual Specifications
 *   **Status Switcher:** Neon Green button label for `ONLINE` state (with indicator pulse), and muted gray for `OFFLINE` state.
-*   **Job Offer Countdown:** The offer header displays a remaining seconds indicator (starts at 90s). The countdown card incorporates a decreasing amber progress bar mapping the remaining timeline.
+*   **Job Offer Countdown:** The offer header displays a remaining-time indicator (counts down from OFFER_TTL_SECONDS — currently 10 minutes). The countdown card incorporates a decreasing amber progress bar mapping the remaining timeline.
 *   **Navigation:** Mobile bottom-bar navigation: `Dashboard` (active), `Earnings`, `Schedule`, `Account`.
 
 ---

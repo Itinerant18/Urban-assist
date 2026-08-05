@@ -355,7 +355,7 @@ export function AccountClient({
               (fullName || 'U')[0].toUpperCase()
             )}
           </div>
-          <label className="cursor-pointer text-xs font-semibold text-accent hover:underline">
+          <label className="cursor-pointer text-xs font-semibold text-accent-deep hover:underline">
             {avatarBusy ? 'Uploading…' : 'Change photo'}
             <input
               type="file"
@@ -391,7 +391,7 @@ export function AccountClient({
           />
         </Field>
         {profileError && <p className="text-xs text-danger font-medium">{profileError}</p>}
-        {profileOk && <p className="text-xs text-success font-medium">{profileOk}</p>}
+        {profileOk && <p className="text-xs text-success-deep font-medium">{profileOk}</p>}
         <Button type="submit" disabled={profileBusy}>
           {profileBusy ? 'Saving…' : 'Save profile'}
         </Button>
@@ -405,7 +405,7 @@ export function AccountClient({
         <h2 className="font-display text-lg flex items-center gap-2">
           <MapPin className="h-5 w-5 text-muted" /> Saved Addresses
         </h2>
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           {!addingAddress && (
             <Button variant="outline" onClick={() => setAddingAddress(true)} className="flex items-center gap-1.5 text-xs">
               <Plus className="h-4 w-4" /> ADD NEW ADDRESS
@@ -474,7 +474,7 @@ export function AccountClient({
 
       {/* Sticky Bottom CTA for Mobile */}
       {!addingAddress && (
-        <div className="md:hidden fixed above-tabbar left-0 right-0 p-4 bg-white border-t border-hairline z-sticky">
+        <div className="lg:hidden fixed above-tabbar left-0 right-0 p-4 bg-white border-t border-hairline z-sticky">
            <Button className="w-full shadow-lg" onClick={() => setAddingAddress(true)}>
              + ADD NEW ADDRESS
            </Button>
@@ -687,7 +687,7 @@ export function AccountClient({
           Delete Account
         </Button>
       </div>
-      {gdprProgress && <p className="text-xs text-accent font-semibold mt-2">{gdprProgress}</p>}
+      {gdprProgress && <p className="text-xs text-accent-deep font-semibold mt-2">{gdprProgress}</p>}
     </Card>
   );
 
@@ -825,7 +825,7 @@ export function AccountClient({
               </div>
               <button
                 onClick={() => setActiveMobileView('profile')}
-                className="text-xs font-bold text-accent hover:text-accent-hover"
+                className="text-xs font-bold text-accent-deep hover:text-accent-deep-hover"
               >
                 Edit
               </button>

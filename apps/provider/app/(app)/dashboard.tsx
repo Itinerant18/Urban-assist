@@ -216,7 +216,7 @@ export function Dashboard({
       <section>
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="font-display text-lg">Today&apos;s schedule</h2>
-          <Link href="/jobs" className="tap text-xs text-accent hover:underline">
+          <Link href="/jobs" className="tap text-xs text-accent-deep hover:underline">
             All jobs →
           </Link>
         </div>

@@ -14,11 +14,13 @@ describe('buildBookingStatusBreakdown', () => {
         { status: 'disputed' },
       ]),
     ).toEqual([
-      { status: 'pending_match', label: 'pending match', count: 0 },
-      { status: 'assigned', label: 'assigned', count: 0 },
-      { status: 'in_progress', label: 'in progress', count: 0 },
-      { status: 'completed', label: 'completed', count: 2 },
-      { status: 'disputed', label: 'disputed', count: 1 },
+      // Labels come from the shared booking-status vocabulary, same as the
+      // customer and provider apps — not raw status strings.
+      { status: 'pending_match', label: 'Matching', count: 0 },
+      { status: 'assigned', label: 'Scheduled', count: 0 },
+      { status: 'in_progress', label: 'In progress', count: 0 },
+      { status: 'completed', label: 'Completed', count: 2 },
+      { status: 'disputed', label: 'Disputed', count: 1 },
     ]);
   });
 });

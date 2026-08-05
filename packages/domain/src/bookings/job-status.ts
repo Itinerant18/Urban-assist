@@ -61,3 +61,8 @@ export function bookingStatusLabel(status: string): string {
 export function bookingStatusTone(status: string): BookingStatusTone {
   return STATUS_TONES[status] ?? 'muted';
 }
+
+/** True when the string is part of the booking lifecycle vocabulary above. */
+export function isBookingStatus(status: string): boolean {
+  return status in STATUS_TONES;
+}

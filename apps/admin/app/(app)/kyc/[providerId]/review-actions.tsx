@@ -167,16 +167,16 @@ export function ReviewActions({
           {activeDoc && (
             <Card className="p-4 border border-hairline bg-bg/10 rounded-xl space-y-3">
               <div>
-                <span className="text-[10px] text-muted uppercase font-mono-utility">Document Type</span>
+                <span className="text-[11px] text-muted uppercase font-mono-utility">Document Type</span>
                 <p className="text-sm font-bold text-ink mt-0.5">{activeDoc.doc_type.replace(/_/g, ' ').toUpperCase()}</p>
               </div>
               <div>
-                <span className="text-[10px] text-muted uppercase font-mono-utility">Uploaded At</span>
+                <span className="text-[11px] text-muted uppercase font-mono-utility">Uploaded At</span>
                 <p className="text-xs text-ink mt-0.5">{new Date(activeDoc.uploaded_at).toLocaleString('en-GB')}</p>
               </div>
               {activeDoc.expires_at && (
                 <div>
-                  <span className="text-[10px] text-muted uppercase font-mono-utility">Expires At</span>
+                  <span className="text-[11px] text-muted uppercase font-mono-utility">Expires At</span>
                   <p className="text-xs text-ink mt-0.5">{new Date(activeDoc.expires_at).toLocaleDateString('en-GB')}</p>
                 </div>
               )}

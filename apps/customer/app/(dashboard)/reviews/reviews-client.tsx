@@ -77,7 +77,7 @@ export function ReviewsClient({ reviews }: { reviews: CustomerReview[] }) {
             <button
               type="button"
               onClick={() => setShowBreakdown((value) => !value)}
-              className="flex w-full items-center justify-between text-xs font-bold text-accent lg:pointer-events-none"
+              className="flex w-full items-center justify-between text-xs font-bold text-accent-deep lg:pointer-events-none"
             >
               <span>Score distribution</span>
               {showBreakdown ? <ChevronUp className="h-4 w-4 lg:hidden" /> : <ChevronDown className="h-4 w-4 lg:hidden" />}

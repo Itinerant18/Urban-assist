@@ -137,7 +137,7 @@ export default async function PublicProfilePage() {
           <h2 className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">
             Services listed
           </h2>
-          <Link href="/services" className="tap text-xs text-accent hover:underline">
+          <Link href="/services" className="tap text-xs text-accent-deep hover:underline">
             Edit →
           </Link>
         </div>
@@ -189,7 +189,7 @@ export default async function PublicProfilePage() {
             ))}
           </ul>
         )}
-        <Link href="/performance" className="tap inline-block text-xs text-accent hover:underline">
+        <Link href="/performance" className="tap inline-block text-xs text-accent-deep hover:underline">
           See all reviews and metrics →
         </Link>
       </section>

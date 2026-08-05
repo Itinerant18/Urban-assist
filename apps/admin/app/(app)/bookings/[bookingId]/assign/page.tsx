@@ -101,7 +101,7 @@ export default async function AssignBookingPage({
 function Context({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-white p-4">
-      <p className="text-[10px] uppercase tracking-wide text-muted">{label}</p>
+      <p className="text-[11px] uppercase tracking-wide text-muted">{label}</p>
       <p className="mt-1 text-sm font-medium text-ink">{value || '—'}</p>
     </div>
   );

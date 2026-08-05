@@ -203,7 +203,7 @@ export default async function PromotionsPage() {
         </TableTile>
       ) : (
         <TableTile>
-          <div className="hidden border-b border-hairline bg-bg/40 px-5 py-2 font-mono-utility text-[10px] font-bold uppercase tracking-wide text-muted sm:grid sm:grid-cols-12 sm:gap-2">
+          <div className="hidden border-b border-hairline bg-bg/40 px-5 py-2 font-mono-utility text-[11px] font-bold uppercase tracking-wide text-muted sm:grid sm:grid-cols-12 sm:gap-2">
             <span className="sm:col-span-3">Code</span>
             <span className="sm:col-span-2 text-right">Redemptions</span>
             <span className="sm:col-span-2 text-right">Bookings</span>
@@ -241,12 +241,12 @@ export default async function PromotionsPage() {
                     {p.max_redemptions != null ? `/${p.max_redemptions}` : ''}
                   </p>
                   {util != null && (
-                    <p className="text-[10px] text-muted">{util}% of cap</p>
+                    <p className="text-[11px] text-muted">{util}% of cap</p>
                   )}
                 </div>
                 <div className="sm:col-span-2 sm:text-right">
                   <p className="font-mono text-sm font-semibold text-ink">{stats?.bookings ?? 0}</p>
-                  <p className="text-[10px] text-muted">
+                  <p className="text-[11px] text-muted">
                     {stats?.completed ?? 0} done · {stats?.cancelled ?? 0} cancel
                   </p>
                 </div>

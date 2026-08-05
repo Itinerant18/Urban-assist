@@ -113,7 +113,11 @@ export default function EarningsPage() {
   const [splits, setSplits] = React.useState<
     Record<string, { net_pence: number; commission_pence: number; bps: number }>
   >({});
-  React.useEffect(() => {
+  // Balance failure is its own state, not loadError: bookings and payouts that
+  // loaded fine should stay on screen with an inline retry, not a full-page error.
+  const [balanceError, setBalanceError] = React.useState(false);
+  const loadBalance = React.useCallback(() => {
+    setBalanceError(false);
     fetch('/api/earnings/balance', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('balance fetch failed'))))
       .then((data) => {
@@ -121,8 +125,9 @@ export default function EarningsPage() {
         else throw new Error('balance missing from response');
         if (data?.splits) setSplits(data.splits);
       })
-      .catch(() => setLoadError(true));
+      .catch(() => setBalanceError(true));
   }, []);
+  React.useEffect(loadBalance, [loadBalance]);
 
   async function requestInstantPayout() {
     if (balancePending === null || balancePending <= 0) return;
@@ -218,13 +223,23 @@ export default function EarningsPage() {
               <div className="font-display text-4xl font-bold mt-1 text-ink">
                 {balancePending === null ? '—' : pence(balancePending)}
               </div>
-              <p className="text-xs text-muted mt-1 max-w-[260px]">
-                Card jobs only — cash jobs are paid to you on site and never enter the balance.
-              </p>
+              {balanceError ? (
+                <p className="mt-1 text-xs text-danger" role="alert">
+                  We could not load your balance — this is a display problem, not a change to it.{' '}
+                  <button type="button" onClick={loadBalance} className="tap underline">
+                    Retry
+                  </button>
+                </p>
+              ) : (
+                <p className="text-xs text-muted mt-1 max-w-[260px]">
+                  Card jobs only — cash jobs are paid to you on site and never enter the balance.
+                </p>
+              )}
             </div>
           </div>
           
-          <div className="mt-6 md:mt-0 hidden md:flex md:flex-col md:items-end md:gap-2">
+          {/* lg, not md: the tab bar (and with it the mobile withdraw bar) hides at lg */}
+          <div className="mt-6 lg:mt-0 hidden lg:flex lg:flex-col lg:items-end lg:gap-2">
             {hasStripe ? (
               <>
                 <Button onClick={requestInstantPayout} disabled={stripeBusy || balancePending === null || balancePending <= 0}>
@@ -354,7 +369,7 @@ export default function EarningsPage() {
       </div>
 
       {/* Sticky Bottom CTA for Mobile */}
-      <div className="md:hidden fixed above-tabbar left-0 right-0 p-4 bg-white border-t border-hairline z-sticky">
+      <div className="lg:hidden fixed above-tabbar left-0 right-0 p-4 bg-white border-t border-hairline z-sticky">
          {hasStripe ? (
            <Button
               className="w-full shadow-lg"
