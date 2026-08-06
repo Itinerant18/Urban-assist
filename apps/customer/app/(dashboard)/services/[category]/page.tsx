@@ -45,7 +45,6 @@ export default async function CategoryPage({ params }: { params: { category: str
     profiles: Array.isArray(s.profiles) ? s.profiles[0] : s.profiles,
   })) as any[];
 
-  const CatIcon = taxonomyCategory ? getCategoryIcon(taxonomyCategory.icon) : null;
   const subcategories = taxonomyCategory?.subcategories ?? [];
 
   return (
@@ -69,11 +68,10 @@ export default async function CategoryPage({ params }: { params: { category: str
               `<slug>-loop.mp4`) and it becomes a real loop. */}
           <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-4">
-              {CatIcon && (
-                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl" style={{ background: `${taxonomyCategory?.color ?? '#1F3A4D'}18` }}>
-                  <CatIcon className="h-6 w-6" style={{ color: taxonomyCategory?.color ?? '#1F3A4D' }} />
-                </span>
-              )}
+              <span className="h-14 w-14 shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/images/services/${category.slug}.webp`} alt="" className="h-full w-full object-contain" />
+              </span>
               <div>
                 <h1 className="text-[26px] font-extrabold text-ink lg:text-[32px] tracking-tight">{category.name}</h1>
                 <p className="mt-1 text-[14px] text-muted leading-relaxed max-w-2xl">{category.description}</p>

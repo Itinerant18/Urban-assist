@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Star, Plus, Minus } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 import { useCart } from '../cart-context';
+import { ReviewAvatar } from '../review-avatar';
 import { Button } from '@urban-assist/ui';
 
 interface ProviderService {
@@ -38,13 +39,12 @@ export function ProviderList({ providers }: { providers: ProviderService[] }) {
                   isAdded ? 'border-accent' : 'border-hairline'
                 }`}
               >
-                {/* Avatar */}
-                <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-hairline">
-                  {p.provider?.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.provider.avatar_url} alt="" className="h-full w-full object-cover" />
-                  ) : null}
-                </div>
+                {/* Avatar — initials fallback beats a blank grey circle */}
+                <ReviewAvatar
+                  name={p.provider?.full_name ?? 'Professional'}
+                  src={p.provider?.avatar_url}
+                  className="h-11 w-11 text-[13px]"
+                />
 
                 {/* Details */}
                 <div className="min-w-0 flex-1">
