@@ -16,8 +16,8 @@ One class per slot, Urban-Company style — never mix.
 | Icon | `<slug>.svg` | square illustration; true vectors only (photo-style art → webp) | small square tiles |
 | Card | `<slug>-card.webp` | 4:3, 800×600, scene (worker-in-home photo style), subject in 8% safe margins, no text | service cards, home grid |
 | Banner | `<slug>-banner.webp` | 21:9, 1680×720, wide environmental scene, left third clear for overlay text | category + subcategory heroes |
-| Poster | `<slug>-loop.webp` | 16:9, 1280×720, first-frame-style still | video-loop slots (before any mp4 exists) |
-| Video | `<slug>-loop.mp4` | ≤2MB, 720p H.264, muted, 10–20s loop | video-loop slots |
+| Poster | `media/loops/<slug>-loop-poster.webp` | 16:9, 1280×720, first-frame-style still | video-loop slots (before any mp4 exists) |
+| Video | `media/loops/<slug>-loop.mp4` | ≤2MB, 720p H.264, muted, 10–20s loop | video-loop slots |
 | Before/after | `<slug>-before.webp` / `<slug>-after.webp` | identical framing, 4:3 | before/after slider (cleaning, gardening, painting) |
 | Avatar | `people/avatar-01..08.webp` | 256px square, diverse faces, warm light | testimonials, reviews |
 | How-it-works | `steps/step-1..3.webp` | square spot illustrations, brand palette | How-it-works sections |

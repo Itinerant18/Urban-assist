@@ -49,11 +49,14 @@ export interface HomepageData {
 }
 
 /* ── Static fallback data (demo, DB empty) ──────────────── */
+// Fallback reviews carry the local avatar slots (images/people/avatar-0N.webp)
+// so the designer's files light up testimonials immediately; a missing file
+// degrades to the initials circle via ReviewAvatar's mount probe.
 
 const FALLBACK_REVIEWS: HomepageReview[] = [
-  { id: 'r1', authorName: 'Sarah M.', location: 'London', rating: 5, comment: 'The cleaning service was outstanding. Professional, punctual, and they left my flat spotless.' },
-  { id: 'r2', authorName: 'James K.', location: 'Manchester', rating: 5, comment: 'Had my washing machine repaired within 2 hours of booking. Fair price too.' },
-  { id: 'r3', authorName: 'Priya R.', location: 'Birmingham', rating: 4, comment: 'Great service for AC installation. Slight delay but they communicated well.' },
+  { id: 'r1', authorName: 'Sarah M.', location: 'London', rating: 5, comment: 'The cleaning service was outstanding. Professional, punctual, and they left my flat spotless.', avatarUrl: '/images/people/avatar-01.webp' },
+  { id: 'r2', authorName: 'James K.', location: 'Manchester', rating: 5, comment: 'Had my washing machine repaired within 2 hours of booking. Fair price too.', avatarUrl: '/images/people/avatar-02.webp' },
+  { id: 'r3', authorName: 'Priya R.', location: 'Birmingham', rating: 4, comment: 'Great service for AC installation. Slight delay but they communicated well.', avatarUrl: '/images/people/avatar-03.webp' },
 ];
 
 const FALLBACK_TRENDING: HomepageService[] = [

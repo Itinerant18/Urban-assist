@@ -65,7 +65,8 @@ export default async function CategoryPage({ params }: { params: { category: str
 
           {/* Category hero: title block + banner-art slot on lg. Video-ready:
               ServiceImage renders the designed fallback beneath a transparent
-              <video>; drop `<slug>-card.webp` + `<slug>-loop.mp4` and it loops. */}
+              <video>; drop `media/loops/<slug>-loop-poster.webp` (+ later the
+              `<slug>-loop.mp4`) and it becomes a real loop. */}
           <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-4">
               {CatIcon && (
@@ -84,7 +85,6 @@ export default async function CategoryPage({ params }: { params: { category: str
                 <ServiceImage slug={category.slug} caption={`${category.name} services`} variant="card" priority stripeType="B" />
                 <VideoLoop
                   src={`/media/loops/${category.slug}-loop`}
-                  poster={`/images/services/${category.slug}-card.webp`}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
               </div>

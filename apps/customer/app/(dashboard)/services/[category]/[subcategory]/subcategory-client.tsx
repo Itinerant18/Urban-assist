@@ -199,9 +199,12 @@ export function SubcategoryClient({
                   priority
                   stripeType="B"
                 />
+                {/* Video-ready: ServiceImage renders the designed fallback
+                    beneath a transparent <video>; drop
+                    `media/loops/<slug>-loop-poster.webp` (+ later
+                    `<slug>-loop.mp4`) and this slot becomes a real loop. */}
                 <VideoLoop
                   src={`/media/loops/${category.slug}-loop`}
-                  poster={`/images/services/${category.slug}-banner.webp`}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
               </div>

@@ -125,7 +125,8 @@ export default async function ServiceDetailPage({
 
               {/* Hero media column: card-class art; video-ready — ServiceImage
                   renders the designed fallback beneath a transparent <video>;
-                  drop `<slug>-card.webp` + `<slug>-loop.mp4` and it loops. */}
+                  drop `media/loops/<slug>-loop-poster.webp` (+ `<slug>-loop.mp4`)
+                  and this slot becomes a real loop with zero code change. */}
               <div className="hidden w-full shrink-0 overflow-hidden rounded-2xl bg-bg lg:block lg:w-80">
                 <div className="relative aspect-[4/3]">
                   <ServiceImage
@@ -137,7 +138,6 @@ export default async function ServiceDetailPage({
                   />
                   <VideoLoop
                     src={`/media/loops/${category.slug}-loop`}
-                    poster={`/images/services/${category.slug}-card.webp`}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                 </div>
