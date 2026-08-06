@@ -1,7 +1,6 @@
 import { Grid3X3, ArrowRight } from 'lucide-react';
 import { ServiceImage } from '@urban-assist/ui';
 import type { HomepageCategory } from '../lib/homepage-data';
-import { getCategoryIcon } from '../lib/homepage-data';
 import { pence } from '@urban-assist/lib';
 
 interface CategoryGridProps {
@@ -179,7 +178,6 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {tiles.map((tile) => {
-            const Icon = getCategoryIcon(tile.icon);
 
             if (tile.type === 'feature') {
               return (
@@ -206,8 +204,9 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                         <h3 className="text-[18px] font-extrabold leading-tight text-ink group-hover:text-accent transition-colors">
                           {tile.name}
                         </h3>
-                        <span className="flex-shrink-0 grid h-9 w-9 place-items-center rounded-lg bg-ink/5 group-hover:bg-accent/10 transition-colors">
-                          <Icon className="h-5 w-5 text-ink group-hover:text-accent transition-colors" />
+                        <span className="flex-shrink-0 h-9 w-9">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={`/images/services/${tile.slug}.webp`} alt="" loading="lazy" className="h-full w-full object-contain" />
                         </span>
                       </div>
                       <p className="mt-2 text-[12px] leading-relaxed text-muted line-clamp-2 sm:line-clamp-none">
@@ -255,8 +254,9 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                       </div>
                       <h3 className="text-[16px] font-bold leading-tight text-ink group-hover:text-accent transition-colors flex items-center justify-between gap-2">
                         {tile.name}
-                        <span className="sm:hidden flex-shrink-0 grid h-7 w-7 place-items-center rounded-lg bg-ink/5">
-                          <Icon className="h-4 w-4 text-ink" />
+                        <span className="sm:hidden flex-shrink-0 h-7 w-7">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={`/images/services/${tile.slug}.webp`} alt="" loading="lazy" className="h-full w-full object-contain" />
                         </span>
                       </h3>
                       <p className="mt-1 text-[12px] leading-relaxed text-muted line-clamp-2">
@@ -276,8 +276,9 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                   </div>
                   <div className="relative aspect-[3/1] sm:aspect-auto sm:h-auto sm:w-2/5 overflow-hidden border-t sm:border-t-0 sm:border-l border-hairline shrink-0">
                     <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} variant="card" />
-                    <span className="hidden sm:grid absolute bottom-4 right-4 h-8 w-8 place-items-center rounded-lg bg-white shadow-sm border border-input-border group-hover:border-accent transition">
-                      <Icon className="h-4 w-4 text-ink group-hover:text-accent" />
+                    <span className="hidden sm:block absolute bottom-4 right-4 h-9 w-9 rounded-full bg-white shadow-sm border border-input-border group-hover:border-accent transition p-0.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/images/services/${tile.slug}.webp`} alt="" loading="lazy" className="h-full w-full object-contain" />
                     </span>
                   </div>
                 </a>
@@ -341,8 +342,9 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                     <h3 className="text-[14px] font-bold leading-tight text-ink group-hover:text-accent transition-colors">
                       {tile.name}
                     </h3>
-                    <span className="flex-shrink-0 grid h-7 w-7 place-items-center rounded-lg bg-ink/5 group-hover:bg-accent/10 transition-colors">
-                      <Icon className="h-4 w-4 text-ink group-hover:text-accent transition-colors" />
+                    <span className="flex-shrink-0 h-7 w-7">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/images/services/${tile.slug}.webp`} alt="" loading="lazy" className="h-full w-full object-contain" />
                     </span>
                   </div>
                   {tile.category && (
