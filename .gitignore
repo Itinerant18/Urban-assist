@@ -82,3 +82,4 @@ check*.js
 !.env.local.example
 supabase/.branches/
 __pycache__/
+{*.png
