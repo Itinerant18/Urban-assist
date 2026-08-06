@@ -11,6 +11,7 @@ Everything goes into **one folder** in the repo:
 
 ```
 apps/customer/public/images/services/     ← all category art (icons, cards, banners, before/after)
+apps/customer/public/images/services/subs/ ← subcategory icons (48 files, see §3h)
 apps/customer/public/images/steps/        ← how-it-works step illustrations
 apps/customer/public/images/people/       ← reviewer/testimonial avatars
 apps/customer/public/media/loops/         ← video loops + their poster stills
@@ -105,6 +106,47 @@ For testimonials and review lists. Until these exist the app shows tasteful init
 | Size | Square — 256 × 256 px, ≤ 15 KB each |
 | Content | Diverse, warm-lit, UK-plausible faces (AI-generated is fine — must NOT be real identifiable people unless licensed), neutral background, genuine relaxed expressions. No stock-photo gloss |
 
+### 3h. Subcategory icons — `subs/<sub-slug>.webp`
+
+One icon per subcategory (48 files). Shown in the "Browse by type" grid, subcategory heroes, sibling tiles, sticky sub-header, and on service cards that inherit their subcategory's icon. Until a file exists, the app renders the subcategory's current lucide glyph — identical to today, no broken images, so you can deliver in any order.
+
+| Property | Spec |
+| --- | --- |
+| File name | `home-cleaning.webp`, `kitchen-cleaning.webp`, … (full slug list below — 48 files) |
+| Size | Square — 512 × 512 px, ≤ 20 KB each (webp, quality ~70) |
+| Background | **Transparent** — the app renders each icon on its own tinted tile (the tint is the category colour at ~10% opacity) |
+| Composition | Same illustration language as the category badges (§3a), one clear subject, **centred with ~15% padding** — it renders at 16–64 px, so bold simple shapes that stay legible at small sizes |
+| Style anchor | Match the existing category badge illustrations: same palette (`#1F3A4D` navy, `#C1622E` terracotta, `#6B8F6B` sage, `#D9A441` amber), same rendering style |
+
+Full list (kebab-case, named after the subcategory slug):
+
+| Slug | Name | | Slug | Name |
+|---|---|---|---|---|
+| `home-cleaning` | Home Cleaning | | `rats-mice` | Rats & Mice |
+| `kitchen-cleaning` | Kitchen Cleaning | | `wasps` | Wasps |
+| `bathroom-cleaning` | Bathroom Cleaning | | `ants` | Ants |
+| `carpet-upholstery` | Carpet & Upholstery | | `cockroaches` | Cockroaches |
+| `window-cleaning` | Window Cleaning | | `bed-bugs` | Bed Bugs |
+| `plumbing-repairs` | Plumbing Repairs | | `fleas` | Fleas |
+| `plumbing-installations` | Plumbing Installations | | `birds` | Birds |
+| `emergency-plumbing` | Emergency Plumbing | | `appliance-repair` | Appliance Repair |
+| `electrical-repairs` | Electrical Repairs | | `appliance-installation` | Appliance Installation |
+| `electrical-installations` | Electrical Installations | | `boiler` | Boiler Services |
+| `electrical-testing` | Testing & Certification | | `heating-services` | Central Heating |
+| `furniture-assembly` | Furniture Assembly | | `gas-services` | Gas Safety |
+| `wall-mounting` | Wall Mounting | | `ac-installation` | AC Installation |
+| `general-handyman` | General Repairs | | `ac-repair` | AC Repair |
+| `interior-painting` | Interior Painting | | `ac-servicing` | AC Servicing |
+| `exterior-painting` | Exterior Painting | | `ac-gas-recharge` | AC Gas Recharge |
+| `carpentry-furniture` | Custom Furniture | | `roof-repair` | Roof Repair |
+| `carpentry-doors` | Doors | | `roof-replacement` | Roof Replacement |
+| `carpentry-flooring` | Flooring | | `chimney-gutter` | Chimney & Guttering |
+| `garden-maintenance` | Garden Maintenance | | `lockout-service` | Lockout Service |
+| `landscaping` | Landscaping | | `lock-replacement` | Lock Replacement |
+| `trees` | Tree Surgery | | `door-repair-locksmith` | Door Repair |
+| `house-move` | House Move | | `security-upgrade` | Security Upgrade |
+| `packing-services` | Packing | | `man-van` | Man & Van |
+
 ---
 
 ## 4. Style guide (must match)
@@ -131,8 +173,9 @@ For testimonials and review lists. Until these exist the app shows tasteful init
 
 1. **14 × card art** (`-card.webp`) — biggest visible upgrade, every funnel page uses them.
 2. **14 × banner art** (`-banner.webp`) — category/subcategory heroes.
-3. **3 × loop posters, then mp4s** for cleaning/plumbing/electrical.
-4. **3 × before/after pairs** (cleaning, gardening, painting).
-5. **3 × step illustrations + 8 × avatars.**
+3. **48 × subcategory icons** (`subs/<slug>.webp`) — every "Browse by type" grid and subcategory page.
+4. **3 × loop posters, then mp4s** for cleaning/plumbing/electrical.
+5. **3 × before/after pairs** (cleaning, gardening, painting).
+6. **3 × step illustrations + 8 × avatars.**
 
-Total: ~45 images + 3 short videos. Deliver in any order within a tier — everything falls back gracefully until it arrives.
+Total: ~93 images + 3 short videos. Deliver in any order within a tier — everything falls back gracefully until it arrives.

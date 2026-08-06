@@ -7,7 +7,7 @@ import { Footer } from '@/components/footer';
 import { ProviderList } from './provider-list';
 import { Suspense } from 'react';
 import { getCategoryBySlug } from '@/lib/catalog';
-import { getCategoryIcon } from '@/lib/services-data';
+import { SubcategoryIcon } from '@/components/subcategory-icon';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,11 +94,16 @@ export default async function CategoryPage({ params }: { params: { category: str
             <h2 className="text-[18px] font-extrabold text-ink mb-4">Browse by type</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {subcategories.map((sub) => {
-                const SubIcon = getCategoryIcon(sub.icon);
                 return (
                   <Link key={sub.id} href={`/services/${params.category}/${sub.slug}`} className="group flex flex-col items-center gap-3 rounded-2xl border border-input-border bg-white p-5 text-center shadow-sm transition-all hover:border-accent hover:shadow-md hover:-translate-y-0.5">
                     <span className="grid h-12 w-12 place-items-center rounded-xl transition-colors group-hover:bg-accent/10" style={{ background: `${taxonomyCategory?.color ?? '#1F3A4D'}12` }}>
-                      <SubIcon className="h-5 w-5 transition-colors group-hover:text-accent" style={{ color: taxonomyCategory?.color ?? '#1F3A4D' }} />
+                      <SubcategoryIcon
+                        subSlug={sub.slug}
+                        fallbackIcon={sub.icon}
+                        imgClassName="h-6 w-6 object-contain"
+                        iconClassName="h-5 w-5 transition-colors group-hover:text-accent"
+                        iconStyle={{ color: taxonomyCategory?.color ?? '#1F3A4D' }}
+                      />
                     </span>
                     <div>
                       <p className="text-[13px] font-bold leading-tight text-ink group-hover:text-accent transition-colors">{sub.name}</p>

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { SERVICE_CATEGORIES, categoryIcons, type Category } from '@/lib/services-data';
 import { Card, ServiceImage } from '@urban-assist/ui';
+import { SubcategoryIcon } from '@/components/subcategory-icon';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 
@@ -181,7 +182,11 @@ export function CatalogClient({ categories = SERVICE_CATEGORIES }: CatalogClient
                         <Link key={sub.id} href={`/services/${cat.slug}/${sub.slug}`}>
                           <Card className="aspect-square flex flex-col items-center justify-center p-4 gap-3 bg-white border border-hairline hover:border-accent/40 hover:bg-accent/5 hover:-translate-y-1 transition-all cursor-pointer group shadow-sm text-center">
                             <span className="relative grid h-16 w-16 place-items-center rounded-2xl bg-bg transition-colors group-hover:bg-accent/10">
-                              <ServiceImage slug={cat.slug} caption="" />
+                              <SubcategoryIcon
+                                subSlug={sub.slug}
+                                imgClassName="absolute inset-0 h-full w-full object-contain p-1"
+                                fallbackNode={<ServiceImage slug={cat.slug} caption="" />}
+                              />
                             </span>
                             <div className="min-w-0">
                               <h4 className="font-bold text-ink text-xs line-clamp-2 leading-snug group-hover:text-accent-deep transition-colors">

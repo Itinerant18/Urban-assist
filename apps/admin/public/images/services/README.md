@@ -21,6 +21,7 @@ One class per slot, Urban-Company style — never mix.
 | Before/after | `<slug>-before.webp` / `<slug>-after.webp` | identical framing, 4:3 | before/after slider (cleaning, gardening, painting) |
 | Avatar | `people/avatar-01..08.webp` | 256px square, diverse faces, warm light | testimonials, reviews |
 | How-it-works | `steps/step-1..3.webp` | square spot illustrations, brand palette | How-it-works sections |
+| Subcategory icon | `subs/<sub-slug>.webp` | 512px square, transparent bg, ~15% padding, badge style; see `subs/README.md` for the 48-slug list | "Browse by type" grids, subcategory heroes, sibling tiles, service cards |
 
 Format rules:
 

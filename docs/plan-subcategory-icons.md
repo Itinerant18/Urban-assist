@@ -72,7 +72,7 @@ SKIP `featured-services.tsx`, `mobile-home.tsx`, `category-section.tsx`, `catego
 In `docs/design-asset-guide.md`, insert a new section **"3h. Subcategory icons — `subs/<sub-slug>.webp`"** after 3g, with:
 
 | Property | Spec |
-|---|---|
+| --- | --- |
 | Files | `images/services/subs/<sub-slug>.webp` — one per subcategory (~48 files) |
 | Ratio / size | Square — 480 × 480 px, ≤ 30 KB |
 | Style | SAME circular-badge language as the 14 category icons (blue ring, dimensional objects, white bg) — a subcategory icon is a more specific scene of its parent (e.g. `kitchen-cleaning` = sink + sponge badge vs the generic cleaning caddy) |

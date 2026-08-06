@@ -5,8 +5,8 @@ import { getSupabaseServer } from '@urban-assist/db/server';
 import { pence } from '@urban-assist/lib';
 import { ServiceImage, VideoLoop } from '@urban-assist/ui';
 import { getCategoryBySlug, getServiceBySlug } from '@/lib/catalog';
-import { getCategoryIcon } from '@/lib/services-data';
 import { Footer } from '@/components/footer';
+import { SubcategoryIcon } from '@/components/subcategory-icon';
 import { ServiceCard } from '@/components/services/service-card';
 import { ProviderList } from '@/components/services/provider-list';
 import { HowItWorks } from '@/components/how-it-works';
@@ -70,7 +70,6 @@ export default async function ServiceDetailPage({
 
   if (!service || !category || !subcategory) notFound();
 
-  const Icon = getCategoryIcon(service.icon ?? subcategory.icon);
   const providers = await fetchProviders(params.category, service.name, service.id);
   const related = subcategory.services.filter((s) => s.slug !== service.slug).slice(0, 3);
   const catColor = category.color ?? '#1F3A4D';
@@ -104,7 +103,13 @@ export default async function ServiceDetailPage({
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
               <div className="flex min-w-0 flex-1 items-start gap-4">
                 <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl" style={{ background: `${catColor}14` }}>
-                  <Icon className="h-6 w-6" style={{ color: catColor }} />
+                  <SubcategoryIcon
+                    subSlug={subcategory.slug}
+                    fallbackIcon={service.icon ?? subcategory.icon}
+                    imgClassName="h-7 w-7 object-contain"
+                    iconClassName="h-6 w-6"
+                    iconStyle={{ color: catColor }}
+                  />
                 </span>
                 <div>
                   <h1 className="text-[26px] font-extrabold leading-tight text-ink">{service.name}</h1>

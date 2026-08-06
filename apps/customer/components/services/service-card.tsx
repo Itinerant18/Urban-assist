@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { pence } from '@urban-assist/lib';
-import { getCategoryIcon, type ServiceItem } from '../../lib/services-data';
+import type { ServiceItem } from '../../lib/services-data';
+import { SubcategoryIcon } from '../subcategory-icon';
 
 interface ServiceCardProps {
   service: ServiceItem;
@@ -11,7 +12,6 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service, categorySlug, subcategorySlug, icon }: ServiceCardProps) {
-  const Icon = getCategoryIcon(service.icon ?? icon ?? 'sparkles');
   const href = subcategorySlug
     ? `/services/${categorySlug}/${subcategorySlug}/${service.slug}`
     : `/services/${categorySlug}/${service.slug}`;
@@ -22,7 +22,12 @@ export function ServiceCard({ service, categorySlug, subcategorySlug, icon }: Se
     >
       {/* Top: Square Image/Icon Area - Compact */}
       <div className="relative aspect-[16/9] sm:aspect-square w-full flex items-center justify-center bg-gradient-to-br from-accent/10 to-accent/5 transition-all group-hover:from-accent/20 group-hover:to-accent/10">
-        <Icon className="h-16 w-16 text-accent transition-transform group-hover:scale-105" />
+        <SubcategoryIcon
+          subSlug={subcategorySlug}
+          fallbackIcon={service.icon ?? icon ?? 'sparkles'}
+          imgClassName="h-16 w-16 object-contain transition-transform group-hover:scale-105"
+          iconClassName="h-16 w-16 text-accent transition-transform group-hover:scale-105"
+        />
       </div>
       
       {/* Bottom: Content Area - Compact */}

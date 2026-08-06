@@ -19,7 +19,8 @@ import {
 } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 import { Reveal, BeforeAfter, ServiceImage, VideoLoop } from '@urban-assist/ui';
-import { getCategoryIcon, type Subcategory } from '@/lib/services-data';
+import type { Subcategory } from '@/lib/services-data';
+import { SubcategoryIcon } from '@/components/subcategory-icon';
 import { CANCELLATION_POLICY } from '@urban-assist/utils';
 
 // Transformation categories get a before/after slider — a proven conversion
@@ -70,7 +71,6 @@ export function SubcategoryClient({
   const [openFaqIndex, setOpenFaqIndex] = React.useState<number | null>(0);
 
   const catColor = category.color ?? '#1F3A4D';
-  const SubIcon = getCategoryIcon(subcategory.icon ?? category.icon);
 
   // ── Sticky Header Scroll Listener ──────────────────────────────
   React.useEffect(() => {
@@ -131,7 +131,13 @@ export function SubcategoryClient({
               className="grid h-9 w-9 place-items-center rounded-xl"
               style={{ background: `${catColor}18` }}
             >
-              <SubIcon className="h-4 w-4" style={{ color: catColor }} />
+              <SubcategoryIcon
+                subSlug={subcategory.slug}
+                fallbackIcon={subcategory.icon ?? category.icon}
+                imgClassName="h-5 w-5 object-contain"
+                iconClassName="h-4 w-4"
+                iconStyle={{ color: catColor }}
+              />
             </span>
             <div>
               <p className="text-[14px] font-extrabold text-ink leading-tight">
@@ -216,7 +222,13 @@ export function SubcategoryClient({
                   className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl shadow-inner"
                   style={{ background: `${catColor}18` }}
                 >
-                  <SubIcon className="h-8 w-8" style={{ color: catColor }} />
+                  <SubcategoryIcon
+                    subSlug={subcategory.slug}
+                    fallbackIcon={subcategory.icon ?? category.icon}
+                    imgClassName="h-9 w-9 object-contain"
+                    iconClassName="h-8 w-8"
+                    iconStyle={{ color: catColor }}
+                  />
                 </span>
                 <div>
                   <h1 className="text-[28px] font-extrabold text-ink lg:text-[34px] tracking-tight leading-none">
@@ -631,7 +643,6 @@ export function SubcategoryClient({
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {siblingSubcategories.map((sibling) => {
-                const SiblingIcon = getCategoryIcon(sibling.icon ?? category.icon);
                 return (
                   <Link
                     key={sibling.id}
@@ -643,7 +654,13 @@ export function SubcategoryClient({
                         className="grid h-10 w-10 place-items-center rounded-xl transition-colors group-hover:bg-accent/10"
                         style={{ background: `${catColor}14` }}
                       >
-                        <SiblingIcon className="h-5 w-5" style={{ color: catColor }} />
+                        <SubcategoryIcon
+                          subSlug={sibling.slug}
+                          fallbackIcon={sibling.icon ?? category.icon}
+                          imgClassName="h-6 w-6 object-contain"
+                          iconClassName="h-5 w-5"
+                          iconStyle={{ color: catColor }}
+                        />
                       </span>
                       <ArrowRight className="h-4 w-4 text-muted opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all" />
                     </div>
