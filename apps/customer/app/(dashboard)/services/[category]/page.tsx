@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { getSupabaseServer } from '@urban-assist/db/server';
+import { ServiceImage, VideoLoop } from '@urban-assist/ui';
 import { Footer } from '@/components/footer';
 import { ProviderList } from './provider-list';
 import { Suspense } from 'react';
@@ -62,17 +63,33 @@ export default async function CategoryPage({ params }: { params: { category: str
           <ArrowLeft className="h-4 w-4" /> All services
         </Link>
 
-        <div className="mb-8 mt-3 flex items-center gap-4">
-          {CatIcon && (
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl" style={{ background: `${taxonomyCategory?.color ?? '#1F3A4D'}18` }}>
-              <CatIcon className="h-6 w-6" style={{ color: taxonomyCategory?.color ?? '#1F3A4D' }} />
-            </span>
-          )}
-          <div>
-            <h1 className="text-[26px] font-extrabold text-ink lg:text-[32px] tracking-tight">{category.name}</h1>
-            <p className="mt-1 text-[14px] text-muted leading-relaxed max-w-2xl">{category.description}</p>
+          {/* Category hero: title block + banner-art slot on lg. Video-ready:
+              ServiceImage renders the designed fallback beneath a transparent
+              <video>; drop `<slug>-card.webp` + `<slug>-loop.mp4` and it loops. */}
+          <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-center">
+            <div className="flex min-w-0 flex-1 items-center gap-4">
+              {CatIcon && (
+                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl" style={{ background: `${taxonomyCategory?.color ?? '#1F3A4D'}18` }}>
+                  <CatIcon className="h-6 w-6" style={{ color: taxonomyCategory?.color ?? '#1F3A4D' }} />
+                </span>
+              )}
+              <div>
+                <h1 className="text-[26px] font-extrabold text-ink lg:text-[32px] tracking-tight">{category.name}</h1>
+                <p className="mt-1 text-[14px] text-muted leading-relaxed max-w-2xl">{category.description}</p>
+              </div>
+            </div>
+
+            <div className="hidden w-full shrink-0 overflow-hidden rounded-2xl bg-bg lg:block lg:w-96">
+              <div className="relative aspect-[16/10]">
+                <ServiceImage slug={category.slug} caption={`${category.name} services`} variant="card" priority stripeType="B" />
+                <VideoLoop
+                  src={`/media/loops/${category.slug}-loop`}
+                  poster={`/images/services/${category.slug}-card.webp`}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              </div>
+            </div>
           </div>
-        </div>
 
         {subcategories.length > 0 && (
           <section className="mb-12">

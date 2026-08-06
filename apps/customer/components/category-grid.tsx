@@ -36,7 +36,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
   // Art dropped into public/images/services/ whose file name differs from the slug
   const art: Record<string, string> = {
     [cleaning.slug]: 'home-cleaning-big',
-    [plumbing.slug]: 'Plumbing-solution',
+    [plumbing.slug]: 'plumbing-solution',
     [electrical.slug]: 'electrical-repair',
   };
 
@@ -189,8 +189,8 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                   className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col h-full justify-between ${tile.spanClass}`}
                   style={{ borderColor: '#ECE6D9' }}
                 >
-                  <div className="relative h-36 sm:h-52 overflow-hidden">
-                    <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} />
+                  <div className="relative aspect-[2/1] overflow-hidden">
+                    <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} variant="card" />
                     {tile.badge && (
                       <span
                         className="absolute top-4 left-4 rounded px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.04em] text-white"
@@ -274,8 +274,8 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                       </span>
                     </div>
                   </div>
-                  <div className="relative h-28 sm:h-auto sm:w-2/5 overflow-hidden border-t sm:border-t-0 sm:border-l border-hairline shrink-0">
-                    <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} />
+                  <div className="relative aspect-[3/1] sm:aspect-auto sm:h-auto sm:w-2/5 overflow-hidden border-t sm:border-t-0 sm:border-l border-hairline shrink-0">
+                    <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} variant="card" />
                     <span className="hidden sm:grid absolute bottom-4 right-4 h-8 w-8 place-items-center rounded-lg bg-white shadow-sm border border-input-border group-hover:border-accent transition">
                       <Icon className="h-4 w-4 text-ink group-hover:text-accent" />
                     </span>
@@ -292,8 +292,8 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                   className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col justify-between ${tile.spanClass}`}
                   style={{ borderColor: '#ECE6D9' }}
                 >
-                  <div className="relative h-28 sm:h-32 overflow-hidden">
-                    <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} />
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} variant="card" />
                     <span
                       className="absolute top-3 left-3 rounded px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-white"
                       style={{ background: tile.badge.bg }}
@@ -325,8 +325,8 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                 className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col justify-between ${tile.spanClass}`}
                 style={{ borderColor: '#ECE6D9' }}
               >
-                <div className="relative h-28 sm:h-32 overflow-hidden">
-                  <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} />
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} variant="card" />
                   {tile.badge && (
                     <span
                       className="absolute top-3 left-3 rounded px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-white"

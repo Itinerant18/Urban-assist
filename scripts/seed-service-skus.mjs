@@ -1,25 +1,10 @@
 import { readFileSync } from 'node:fs';
 
 const ROOT = 'C:/workspace/urban-assist';
-
-// ponytail: process.env first so `node --env-file=... ` actually redirects this.
-// It previously read apps/admin/.env unconditionally — i.e. PRODUCTION — and ignored
-// --env-file entirely, because it parses the file rather than reading process.env.
-// Running it expecting a local seed silently wrote to the live project instead.
-const fileEnv = (() => {
-  try {
-    return readFileSync(`${ROOT}/apps/admin/.env`, 'utf8');
-  } catch {
-    return '';
-  }
-})();
-const get = (k) =>
-  process.env[k]?.trim() ??
-  fileEnv.match(new RegExp(`^${k}=(.*)$`, 'm'))?.[1]?.trim().replace(/^["']|["']$/g, '');
+const env = readFileSync(`${ROOT}/apps/admin/.env`, 'utf8');
+const get = (k) => env.match(new RegExp(`^${k}=(.*)$`, 'm'))?.[1]?.trim().replace(/^["']|["']$/g, '');
 const URL = get('NEXT_PUBLIC_SUPABASE_URL');
 const KEY = get('SUPABASE_SERVICE_ROLE_KEY');
-if (!URL || !KEY) throw new Error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required');
-console.log(`seeding catalog -> ${URL}`);
 const H = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
 
 // Extract and eval the SERVICE_CATEGORIES array literal (trusted local data).

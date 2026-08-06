@@ -2,9 +2,9 @@ import * as React from 'react';
 import Link from 'next/link';
 import { redirect, notFound } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { Card, Button } from '@urban-assist/ui';
+import { Card, Button, SuccessCheck } from '@urban-assist/ui';
 import { pence, ukDateTime } from '@urban-assist/lib';
-import { CheckCircle2, Calendar, MapPin, CreditCard, Receipt } from 'lucide-react';
+import { Calendar, MapPin, CreditCard, Receipt } from 'lucide-react';
 import { StatusPill } from '../../../../components/status-pill';
 import { StickyActionBar } from '../../../../components/sticky-action-bar';
 
@@ -38,9 +38,7 @@ export default async function BookingSuccessPage({ searchParams }: { searchParam
   return (
     <div className="space-y-6 py-6 pb-24 lg:pb-6 max-w-xl mx-auto text-center">
       <div className="flex justify-center">
-        <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-success/10 border border-success/20">
-          <CheckCircle2 className="h-10 w-10 text-success" />
-        </div>
+        <SuccessCheck size={80} />
       </div>
 
       <div className="space-y-2">

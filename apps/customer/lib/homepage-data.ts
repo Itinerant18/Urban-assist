@@ -25,6 +25,7 @@ export interface HomepageReview {
   location: string;
   rating: number;
   comment: string;
+  avatarUrl?: string;
 }
 
 export interface HomepageService {
@@ -99,11 +100,11 @@ async function fetchReviews(): Promise<HomepageReview[]> {
       const authorIds = [...new Set(data.map((r) => r.author_id))];
       const { data: profiles } = await db
         .from('profiles')
-        .select('id, full_name, city')
+        .select('id, full_name, city, avatar_url')
         .in('id', authorIds);
 
       const profileMap = new Map(
-        (profiles ?? []).map((p) => [p.id, { name: p.full_name, city: p.city ?? 'UK' }]),
+        (profiles ?? []).map((p) => [p.id, { name: p.full_name, city: p.city ?? 'UK', avatarUrl: p.avatar_url ?? undefined }]),
       );
 
       return data.map((r) => {
@@ -114,6 +115,7 @@ async function fetchReviews(): Promise<HomepageReview[]> {
           location: author?.city ?? 'UK',
           rating: r.rating,
           comment: r.comment ?? '',
+          avatarUrl: author?.avatarUrl,
         };
       });
     }

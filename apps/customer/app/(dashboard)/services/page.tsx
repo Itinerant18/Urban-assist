@@ -2,6 +2,7 @@ import { Footer } from '@/components/footer';
 import { CatalogClient } from './catalog-client';
 import { Suspense } from 'react';
 import { getCatalogTree } from '@/lib/catalog';
+import { ShieldCheck, BadgePoundSterling, CalendarCheck } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,12 @@ export const metadata = {
   title: 'All Services · Urban Assist',
   description: 'Browse every home service category, room and job Urban Assist covers.',
 };
+
+const TRUST_CHIPS = [
+  { icon: ShieldCheck, label: 'ID & DBS verified professionals' },
+  { icon: BadgePoundSterling, label: 'Fixed upfront pricing' },
+  { icon: CalendarCheck, label: 'Free cancellation' },
+];
 
 export default async function AllServicesPage() {
   const categories = await getCatalogTree();
@@ -22,6 +29,14 @@ export default async function AllServicesPage() {
           <p className="mt-2 max-w-2xl text-[15px] text-muted leading-relaxed">
             Discover every home service category we cover. From cleaning to repairs, find trusted professionals in your area.
           </p>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {TRUST_CHIPS.map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-1.5 rounded-full border border-hairline bg-white px-3 py-1.5 text-[12px] font-semibold text-ink shadow-sm">
+                <Icon className="h-3.5 w-3.5 text-success" aria-hidden="true" />
+                {label}
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Dense Catalog & Directory Client */}

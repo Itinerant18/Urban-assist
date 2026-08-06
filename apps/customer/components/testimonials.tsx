@@ -1,4 +1,5 @@
 import type { HomepageReview } from '../lib/homepage-data';
+import { ReviewAvatar } from './review-avatar';
 
 interface TestimonialsProps {
   reviews: HomepageReview[];
@@ -27,9 +28,12 @@ export function Testimonials({ reviews }: TestimonialsProps) {
                 {stars(r.rating)}
               </div>
               <p className="mt-3 text-[13px] leading-relaxed text-ink">{r.comment}</p>
-              <div className="mt-4 border-t border-hairline pt-3">
-                <span className="text-[14px] font-bold text-ink">{r.authorName}</span>
-                <span className="ml-2 text-[12px] text-muted">{r.location}</span>
+              <div className="mt-4 flex items-center gap-3 border-t border-hairline pt-3">
+                <ReviewAvatar name={r.authorName} src={r.avatarUrl} />
+                <div className="min-w-0">
+                  <span className="block text-[14px] font-bold text-ink">{r.authorName}</span>
+                  <span className="text-[12px] text-muted">{r.location}</span>
+                </div>
               </div>
             </div>
           ))}

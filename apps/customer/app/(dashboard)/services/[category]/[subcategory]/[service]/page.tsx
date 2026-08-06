@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Clock } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle2, XCircle, ShieldCheck, BadgePoundSterling, CalendarCheck } from 'lucide-react';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { pence } from '@urban-assist/lib';
+import { ServiceImage, VideoLoop } from '@urban-assist/ui';
 import { getCategoryBySlug, getServiceBySlug } from '@/lib/catalog';
 import { getCategoryIcon } from '@/lib/services-data';
 import { Footer } from '@/components/footer';
 import { ServiceCard } from '@/components/services/service-card';
 import { ProviderList } from '@/components/services/provider-list';
+import { HowItWorks } from '@/components/how-it-works';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,23 +101,45 @@ export default async function ServiceDetailPage({
         <div className="mt-4 flex flex-col gap-8 lg:flex-row">
           {/* Main column */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-start gap-4">
-              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl" style={{ background: `${catColor}14` }}>
-                <Icon className="h-6 w-6" style={{ color: catColor }} />
-              </span>
-              <div>
-                <h1 className="text-[26px] font-extrabold leading-tight text-ink">{service.name}</h1>
-                <p className="mt-1 text-[14px] text-muted">{service.description}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-[13px]">
-                  <span className="flex items-center gap-1 text-muted">
-                    <Clock className="h-3.5 w-3.5" /> ~{Math.round(service.durationMins / 60 * 10) / 10}h
-                  </span>
-                  <span className="font-extrabold text-ink">
-                    {pence(service.minPricePence)} - {pence(service.maxPricePence)}
-                  </span>
-                  {service.isPopular && (
-                    <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-accent-deep">Popular</span>
-                  )}
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+              <div className="flex min-w-0 flex-1 items-start gap-4">
+                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl" style={{ background: `${catColor}14` }}>
+                  <Icon className="h-6 w-6" style={{ color: catColor }} />
+                </span>
+                <div>
+                  <h1 className="text-[26px] font-extrabold leading-tight text-ink">{service.name}</h1>
+                  <p className="mt-1 text-[14px] text-muted">{service.description}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-[13px]">
+                    <span className="flex items-center gap-1 text-muted">
+                      <Clock className="h-3.5 w-3.5" /> ~{Math.round(service.durationMins / 60 * 10) / 10}h
+                    </span>
+                    <span className="font-extrabold text-ink">
+                      {pence(service.minPricePence)} - {pence(service.maxPricePence)}
+                    </span>
+                    {service.isPopular && (
+                      <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-accent-deep">Popular</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Hero media column: card-class art; video-ready — ServiceImage
+                  renders the designed fallback beneath a transparent <video>;
+                  drop `<slug>-card.webp` + `<slug>-loop.mp4` and it loops. */}
+              <div className="hidden w-full shrink-0 overflow-hidden rounded-2xl bg-bg lg:block lg:w-80">
+                <div className="relative aspect-[4/3]">
+                  <ServiceImage
+                    slug={category.slug}
+                    caption={`${category.name} service`}
+                    variant="card"
+                    priority
+                    stripeType="B"
+                  />
+                  <VideoLoop
+                    src={`/media/loops/${category.slug}-loop`}
+                    poster={`/images/services/${category.slug}-card.webp`}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
                 </div>
               </div>
             </div>
@@ -125,9 +149,12 @@ export default async function ServiceDetailPage({
                 {service.inclusions && service.inclusions.length > 0 ? (
                   <div>
                     <h2 className="text-[15px] font-extrabold text-ink">What&apos;s included</h2>
-                    <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] text-ink">
+                    <ul className="mt-2 space-y-2">
                       {service.inclusions.map((item) => (
-                        <li key={item}>{item}</li>
+                        <li key={item} className="flex items-start gap-2.5 text-[13px] text-ink">
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+                          <span className="leading-relaxed">{item}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -135,9 +162,12 @@ export default async function ServiceDetailPage({
                 {service.exclusions && service.exclusions.length > 0 ? (
                   <div>
                     <h2 className="text-[15px] font-extrabold text-ink">What&apos;s not included</h2>
-                    <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] text-muted">
+                    <ul className="mt-2 space-y-2">
                       {service.exclusions.map((item) => (
-                        <li key={item}>{item}</li>
+                        <li key={item} className="flex items-start gap-2.5 text-[13px] text-muted">
+                          <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger" aria-hidden="true" />
+                          <span className="leading-relaxed">{item}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -187,10 +217,28 @@ export default async function ServiceDetailPage({
               >
                 Book now
               </Link>
+
+              {/* Trust badges — calm social proof, capped (no counters/FOMO). */}
+              <ul className="mt-4 space-y-2 border-t border-hairline pt-4">
+                <li className="flex items-center gap-2.5 text-[12px] font-semibold text-ink">
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+                  ID & DBS verified professionals
+                </li>
+                <li className="flex items-center gap-2.5 text-[12px] font-semibold text-ink">
+                  <BadgePoundSterling className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+                  Fixed upfront price, no call-out fees
+                </li>
+                <li className="flex items-center gap-2.5 text-[12px] font-semibold text-ink">
+                  <CalendarCheck className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+                  Free cancellation &amp; rescheduling
+                </li>
+              </ul>
             </div>
           </aside>
         </div>
       </main>
+
+      <HowItWorks />
 
       <Footer />
     </>

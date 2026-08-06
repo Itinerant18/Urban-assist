@@ -18,8 +18,13 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
+import { Reveal, BeforeAfter, ServiceImage, VideoLoop } from '@urban-assist/ui';
 import { getCategoryIcon, type Subcategory } from '@/lib/services-data';
 import { CANCELLATION_POLICY } from '@urban-assist/utils';
+
+// Transformation categories get a before/after slider — a proven conversion
+// pattern for services where the result is visual.
+const TRANSFORM_CATEGORIES = new Set(['cleaning', 'gardening', 'painting']);
 
 interface ProviderPreview {
   id: string;
@@ -181,51 +186,74 @@ export function SubcategoryClient({
         {/* ── SECTION 2: SUBCATEGORY HERO ───────────────────────── */}
         <section className="mb-8 rounded-3xl border border-input-border bg-white p-6 shadow-sm lg:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4">
-              <span
-                className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl shadow-inner"
-                style={{ background: `${catColor}18` }}
-              >
-                <SubIcon className="h-8 w-8" style={{ color: catColor }} />
-              </span>
-              <div>
-                <h1 className="text-[28px] font-extrabold text-ink lg:text-[34px] tracking-tight leading-none">
-                  {subcategory.name}
-                </h1>
-                <p className="mt-2 text-[14px] text-muted leading-relaxed max-w-2xl">
-                  {subcategory.description}
-                </p>
-
-                {/* Social Proof Bar */}
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-[13px] text-muted">
-                  <div className="flex items-center gap-1 font-extrabold text-ink bg-amber-500/10 px-2.5 py-1 rounded-lg">
-                    <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                    <span>4.8</span>
-                    <span className="text-muted font-normal text-xs">(2,400+ reviews)</span>
-                  </div>
-                  <span className="hidden sm:inline">•</span>
-                  <span className="font-medium">2,400+ completed bookings</span>
-                  <span className="hidden sm:inline">•</span>
-                  <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-                    <ShieldCheck className="h-4 w-4" /> Verified local professionals
-                  </span>
-                </div>
+            {/* Banner art: top band on mobile, side column on lg+. Video-ready:
+                ServiceImage renders the designed fallback beneath a transparent
+                <video>; drop `<slug>-banner.webp` poster + `<slug>-loop.mp4`
+                and this slot becomes a real loop with zero code change. */}
+            <div className="order-first w-full shrink-0 overflow-hidden rounded-2xl bg-bg lg:order-last lg:w-[42%] lg:self-center lg:rounded-3xl">
+              <div className="relative aspect-[21/9] lg:aspect-[16/10]">
+                <ServiceImage
+                  slug={category.slug}
+                  caption={`${category.name} services`}
+                  variant="banner"
+                  priority
+                  stripeType="B"
+                />
+                <VideoLoop
+                  src={`/media/loops/${category.slug}-loop`}
+                  poster={`/images/services/${category.slug}-banner.webp`}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
               </div>
             </div>
 
-            {/* Key Chips */}
-            <div className="flex flex-wrap lg:flex-col gap-2.5 pt-4 lg:pt-0 border-t lg:border-t-0 border-hairline shrink-0">
-              <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2 text-[12px] font-semibold text-ink border border-hairline">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                <span>ID & Background Verified</span>
+            <div className="flex min-w-0 flex-1 flex-col items-start gap-4">
+              <div className="flex items-start gap-4">
+                <span
+                  className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl shadow-inner"
+                  style={{ background: `${catColor}18` }}
+                >
+                  <SubIcon className="h-8 w-8" style={{ color: catColor }} />
+                </span>
+                <div>
+                  <h1 className="text-[28px] font-extrabold text-ink lg:text-[34px] tracking-tight leading-none">
+                    {subcategory.name}
+                  </h1>
+                  <p className="mt-2 text-[14px] text-muted leading-relaxed max-w-2xl">
+                    {subcategory.description}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2 text-[12px] font-semibold text-ink border border-hairline">
-                <Tag className="h-4 w-4 text-accent" />
-                <span>Upfront transparent pricing</span>
+
+              {/* Social Proof Bar */}
+              <div className="flex flex-wrap items-center gap-3 text-[13px] text-muted">
+                <div className="flex items-center gap-1 font-extrabold text-ink bg-amber-500/10 px-2.5 py-1 rounded-lg">
+                  <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
+                  <span>4.8</span>
+                  <span className="text-muted font-normal text-xs">(2,400+ reviews)</span>
+                </div>
+                <span className="hidden sm:inline">•</span>
+                <span className="font-medium">2,400+ completed bookings</span>
+                <span className="hidden sm:inline">•</span>
+                <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                  <ShieldCheck className="h-4 w-4" /> Verified local professionals
+                </span>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2 text-[12px] font-semibold text-ink border border-hairline">
-                <Calendar className="h-4 w-4 text-amber-600" />
-                <span>Same-day slot availability</span>
+
+              {/* Key Chips */}
+              <div className="flex flex-wrap lg:flex-col gap-2.5 pt-1 border-t lg:border-t-0 border-hairline">
+                <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2 text-[12px] font-semibold text-ink border border-hairline">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span>ID & Background Verified</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2 text-[12px] font-semibold text-ink border border-hairline">
+                  <Tag className="h-4 w-4 text-accent" />
+                  <span>Upfront transparent pricing</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2 text-[12px] font-semibold text-ink border border-hairline">
+                  <Calendar className="h-4 w-4 text-amber-600" />
+                  <span>Same-day slot availability</span>
+                </div>
               </div>
             </div>
           </div>
@@ -309,7 +337,6 @@ export function SubcategoryClient({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredServices.map((service) => {
-                const ServiceIcon = getCategoryIcon(service.icon ?? subcategory.icon);
                 const detailUrl = `/services/${category.slug}/${subcategory.slug}/${service.slug}`;
                 return (
                   <div
@@ -317,19 +344,12 @@ export function SubcategoryClient({
                     className="group flex flex-col justify-between rounded-2xl border border-input-border bg-white p-5 shadow-sm transition-all hover:border-accent hover:shadow-md hover:-translate-y-0.5"
                   >
                     <div>
-                      {/* Top bar: Icon & Popular badge */}
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <span
-                          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-colors group-hover:bg-accent/10"
-                          style={{ background: `${catColor}12` }}
-                        >
-                          <ServiceIcon
-                            className="h-5 w-5 transition-colors group-hover:text-accent"
-                            style={{ color: catColor }}
-                          />
-                        </span>
+                      {/* Media header: card-class art (category-level), falls
+                          back to icon-on-tile then stripes until it lands. */}
+                      <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-xl bg-bg">
+                        <ServiceImage slug={category.slug} caption="" variant="card" />
                         {service.isPopular && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-accent-deep">
+                          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white shadow-sm">
                             <Flame className="h-3 w-3 fill-current" /> Popular
                           </span>
                         )}
@@ -384,6 +404,21 @@ export function SubcategoryClient({
             </div>
           )}
         </section>
+
+        {/* ── SECTION 4b: BEFORE/AFTER (transformation categories) ── */}
+        {TRANSFORM_CATEGORIES.has(category.slug) && (
+          <section className="mb-14">
+            <div className="mx-auto max-w-2xl text-center mb-6">
+              <h2 className="text-[22px] font-extrabold text-ink lg:text-[26px]">
+                The {category.name.toLowerCase()} difference
+              </h2>
+              <p className="mt-1 text-[13px] text-muted">
+                Drag the slider to see the kind of result our professionals deliver.
+              </p>
+            </div>
+            <BeforeAfter slug={category.slug} className="mx-auto max-w-xl" />
+          </section>
+        )}
 
         {/* ── SECTION 5: PROVIDER PREVIEW STRIP ─────────────────── */}
         {providers.length > 0 && (
@@ -486,35 +521,39 @@ export function SubcategoryClient({
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="flex flex-col items-center text-center p-4 rounded-2xl bg-bg/50 border border-hairline">
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500/10 text-emerald-600 mb-3">
-                <ShieldCheck className="h-6 w-6" />
-              </span>
-              <h3 className="text-[15px] font-bold text-ink">Verified & DBS Checked</h3>
-              <p className="mt-1.5 text-[12px] text-muted leading-relaxed">
-                Every professional undergo strict identity verification, reference checks, and DBS background screening.
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-4 rounded-2xl bg-bg/50 border border-hairline">
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent/10 text-accent mb-3">
-                <Tag className="h-6 w-6" />
-              </span>
-              <h3 className="text-[15px] font-bold text-ink">Fixed Upfront Pricing</h3>
-              <p className="mt-1.5 text-[12px] text-muted leading-relaxed">
-                No hidden call-out fees or unexpected charges. Prices are confirmed transparently before you confirm.
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-4 rounded-2xl bg-bg/50 border border-hairline">
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-500/10 text-amber-600 mb-3">
-                <Calendar className="h-6 w-6" />
-              </span>
-              <h3 className="text-[15px] font-bold text-ink">Free Cancellation</h3>
-              <p className="mt-1.5 text-[12px] text-muted leading-relaxed">
-                {CANCELLATION_POLICY}
-              </p>
-            </div>
+            {[
+              {
+                icon: ShieldCheck,
+                tint: 'bg-emerald-500/10 text-emerald-600',
+                title: 'Verified & DBS Checked',
+                body: 'Every professional undergo strict identity verification, reference checks, and DBS background screening.',
+              },
+              {
+                icon: Tag,
+                tint: 'bg-accent/10 text-accent',
+                title: 'Fixed Upfront Pricing',
+                body: 'No hidden call-out fees or unexpected charges. Prices are confirmed transparently before you confirm.',
+              },
+              {
+                icon: Calendar,
+                tint: 'bg-amber-500/10 text-amber-600',
+                title: 'Free Cancellation',
+                body: CANCELLATION_POLICY,
+              },
+            ].map((pillar, i) => {
+              const PillarIcon = pillar.icon;
+              return (
+                <Reveal key={pillar.title} index={i}>
+                  <div className="flex h-full flex-col items-center text-center p-4 rounded-2xl bg-bg/50 border border-hairline">
+                    <span className={`grid h-12 w-12 place-items-center rounded-2xl ${pillar.tint} mb-3`}>
+                      <PillarIcon className="h-6 w-6" />
+                    </span>
+                    <h3 className="text-[15px] font-bold text-ink">{pillar.title}</h3>
+                    <p className="mt-1.5 text-[12px] text-muted leading-relaxed">{pillar.body}</p>
+                  </div>
+                </Reveal>
+              );
+            })}
           </div>
         </section>
 
@@ -552,11 +591,19 @@ export function SubcategoryClient({
                         <ChevronDown className="h-4 w-4 text-muted shrink-0" />
                       )}
                     </button>
-                    {isOpen && (
-                      <div className="px-4 pb-4 pt-1 text-[13px] text-muted leading-relaxed border-t border-hairline/50 bg-bg/30">
-                        {faq.answer}
+                    {/* Animated open/close: grid-rows 0fr→1fr keeps height
+                        transitionable; blanket covers reduced motion. */}
+                    <div
+                      className={`grid transition-[grid-template-rows] duration-base ease-out-soft ${
+                        isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                      }`}
+                    >
+                      <div className="min-h-0 overflow-hidden">
+                        <div className="px-4 pb-4 pt-1 text-[13px] text-muted leading-relaxed border-t border-hairline/50 bg-bg/30">
+                          {faq.answer}
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}

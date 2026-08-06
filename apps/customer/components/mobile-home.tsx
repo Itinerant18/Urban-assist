@@ -24,6 +24,7 @@ import type {
 } from '../lib/homepage-data';
 import { getCategoryIcon } from '../lib/homepage-data';
 import { PostcodeGate } from './postcode-gate';
+import { ReviewAvatar } from './review-avatar';
 
 interface MobileHomeProps {
   data: HomepageData;
@@ -248,8 +249,11 @@ function CustomerProof({ reviews }: { reviews: HomepageReview[] }) {
         <blockquote className="mt-3 text-[14px] leading-6 text-white text-pretty">
           “{review.comment}”
         </blockquote>
-        <p className="mt-4 text-[12px] font-semibold text-footer-muted">
-          {review.authorName} · {review.location}
+        <p className="mt-4 flex items-center gap-2.5 text-[12px] font-semibold text-footer-muted">
+          <ReviewAvatar name={review.authorName} src={review.avatarUrl} className="h-7 w-7 text-[10px]" />
+          <span>
+            {review.authorName} · {review.location}
+          </span>
         </p>
       </div>
     </section>

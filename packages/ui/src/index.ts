@@ -9,3 +9,7 @@ export * from './app-shell';
 export * from './rating';
 export * from './logo';
 export * from './service-image';
+export * from './reveal';
+export * from './success-check';
+export * from './video-loop';
+export * from './before-after';

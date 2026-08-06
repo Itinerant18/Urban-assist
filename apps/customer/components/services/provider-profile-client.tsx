@@ -83,9 +83,17 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
       <div className="hidden lg:grid grid-cols-[280px,1fr] gap-8 items-start">
         {/* Left Side: Stats and Bio */}
         <aside className="space-y-6">
-          <Card className="border border-hairline bg-white p-5 rounded-xl shadow-card text-center space-y-4">
+          <Card className="border border-hairline bg-white p-0 rounded-xl shadow-card text-center space-y-4 overflow-hidden">
+            {/* Cover band — photo-style slot; stripes stand in until cover art
+                lands. Avatar overlaps the seam. */}
+            <div
+              className="h-20 w-full"
+              style={{ background: 'repeating-linear-gradient(135deg, #E9F0E9 0 10px, #DEE9DE 10px 20px)' }}
+              aria-hidden="true"
+            />
+            <div className="px-5 pb-5 space-y-4 -mt-8">
             {/* Photo */}
-            <div className="h-28 w-28 rounded-full overflow-hidden bg-hairline mx-auto">
+            <div className="h-28 w-28 rounded-full overflow-hidden ring-4 ring-white bg-hairline mx-auto shadow-sm">
               {provider.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={provider.avatar_url} alt="" className="h-full w-full object-cover" />
@@ -116,6 +124,7 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
                 <ShieldCheck className="h-4 w-4 text-success" />
                 <span>Background Checked</span>
               </div>
+            </div>
             </div>
           </Card>
 
@@ -187,8 +196,14 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
       {/* MOBILE STACKED VIEW */}
       <div className="lg:hidden space-y-5">
         {/* Header Profile card */}
-        <Card className="border border-hairline bg-white p-4 rounded-xl shadow-card flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full overflow-hidden bg-hairline shrink-0">
+        <Card className="border border-hairline bg-white rounded-xl shadow-card overflow-hidden">
+          <div
+            className="h-14 w-full"
+            style={{ background: 'repeating-linear-gradient(135deg, #E9F0E9 0 10px, #DEE9DE 10px 20px)' }}
+            aria-hidden="true"
+          />
+          <div className="p-4 pt-0 flex items-end gap-4">
+          <div className="h-16 w-16 rounded-full overflow-hidden ring-4 ring-white bg-hairline shrink-0 -mt-4 shadow-sm">
             {provider.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={provider.avatar_url} alt="" className="h-full w-full object-cover" />
@@ -205,6 +220,7 @@ export function ProviderProfileClient({ provider, services, reviews = [] }: Prov
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Background Checked & Verified</span>
             </div>
+          </div>
           </div>
         </Card>
 

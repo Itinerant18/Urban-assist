@@ -51,11 +51,29 @@ module.exports = {
           from: { opacity: '0', transform: 'translateY(0.5rem)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
+        // Stroke-draw for the booking-success check. The path length is
+        // normalised with pathLength="100", so the offset is always 100→0.
+        'draw-circle': {
+          from: { 'stroke-dashoffset': '100' },
+          to: { 'stroke-dashoffset': '0' },
+        },
+        'draw-check': {
+          from: { 'stroke-dashoffset': '100' },
+          to: { 'stroke-dashoffset': '0' },
+        },
+        'pop-in': {
+          '0%': { opacity: '0', transform: 'scale(0.94)' },
+          '60%': { opacity: '1', transform: 'scale(1.02)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
       },
       animation: {
         'sheet-up': 'sheet-up 250ms cubic-bezier(0.22, 1, 0.36, 1)',
         'fade-in': 'fade-in 150ms ease-out',
         'toast-in': 'toast-in 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+        'draw-circle': 'draw-circle 500ms cubic-bezier(0.22, 1, 0.36, 1) 150ms forwards',
+        'draw-check': 'draw-check 320ms cubic-bezier(0.22, 1, 0.36, 1) 520ms forwards',
+        'pop-in': 'pop-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both',
       },
       // --font-sans / --font-mono are set by next/font in each app's root layout;
       // the literal family names stay as the fallback for any surface without it.

@@ -81,3 +81,4 @@ check*.js
 !.env.example
 !.env.local.example
 supabase/.branches/
+__pycache__/
