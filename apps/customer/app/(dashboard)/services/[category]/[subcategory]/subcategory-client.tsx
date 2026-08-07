@@ -69,17 +69,33 @@ export function SubcategoryClient({
   const [sortBy, setSortBy] = React.useState<'popular' | 'price_low' | 'price_high' | 'duration'>('popular');
   const [priceFilter, setPriceFilter] = React.useState<'all' | 'under25' | '25to50' | 'over50'>('all');
   const [openFaqIndex, setOpenFaqIndex] = React.useState<number | null>(0);
+  const heroRef = React.useRef<HTMLElement | null>(null);
 
   const catColor = category.color ?? '#1F3A4D';
 
-  // ── Sticky Header Scroll Listener ──────────────────────────────
+  // Sticky sub-header appears once the hero scrolls out. IO on the hero, not a
+  // scroll listener — scroll handlers run every frame and are banned here.
   React.useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 260);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    const el = heroRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setIsScrolled(!entry.isIntersecting),
+      { rootMargin: '-60px 0px 0px 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
+
+  // Real social proof only: aggregate what the marketplace actually has.
+  // No providers with reviews → no numbers shown.
+  const ratingCount = providers.reduce((s, p) => s + (p.provider?.rating_count ?? 0), 0);
+  const ratingAvg =
+    ratingCount > 0
+      ? providers.reduce(
+          (s, p) => s + (p.provider?.rating_avg ?? 0) * (p.provider?.rating_count ?? 0),
+          0,
+        ) / ratingCount
+      : null;
 
   // ── Service Filtering & Sorting ────────────────────────────────
   const filteredServices = React.useMemo(() => {
@@ -144,16 +160,15 @@ export function SubcategoryClient({
                 {subcategory.name}
               </p>
               <div className="flex items-center gap-2 text-[11px] text-muted">
-                <span className="flex items-center gap-0.5 font-bold text-amber-600">
-                  <Star className="h-3 w-3 fill-current" /> 4.8
-                </span>
-                <span>•</span>
-                <span>2,400+ bookings</span>
+                {ratingAvg !== null && (
+                  <span className="flex items-center gap-0.5 font-bold text-amber-deep">
+                    <Star className="h-3 w-3 fill-current" /> {ratingAvg.toFixed(1)}
+                  </span>
+                )}
                 {providers.length > 0 && (
-                  <>
-                    <span>•</span>
-                    <span className="text-emerald-700 font-semibold">{providers.length} pros nearby</span>
-                  </>
+                  <span className="text-success-deep font-semibold">
+                    {providers.length} pro{providers.length !== 1 ? 's' : ''} nearby
+                  </span>
                 )}
               </div>
             </div>
@@ -190,7 +205,7 @@ export function SubcategoryClient({
         </Link>
 
         {/* ── SECTION 2: SUBCATEGORY HERO ───────────────────────── */}
-        <section className="mb-8 rounded-3xl border border-input-border bg-white p-6 shadow-sm lg:p-8">
+        <section ref={heroRef} className="mb-8 rounded-3xl border border-input-border bg-white p-6 shadow-sm lg:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             {/* Banner art: top band on mobile, side column on lg+. Video-ready:
                 ServiceImage renders the designed fallback beneath a transparent
@@ -240,17 +255,18 @@ export function SubcategoryClient({
                 </div>
               </div>
 
-              {/* Social Proof Bar */}
+              {/* Social proof: real marketplace aggregates only, never invented. */}
               <div className="flex flex-wrap items-center gap-3 text-[13px] text-muted">
-                <div className="flex items-center gap-1 font-extrabold text-ink bg-amber-500/10 px-2.5 py-1 rounded-lg">
-                  <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                  <span>4.8</span>
-                  <span className="text-muted font-normal text-xs">(2,400+ reviews)</span>
-                </div>
-                <span className="hidden sm:inline">•</span>
-                <span className="font-medium">2,400+ completed bookings</span>
-                <span className="hidden sm:inline">•</span>
-                <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                {ratingAvg !== null && (
+                  <div className="flex items-center gap-1 font-extrabold text-ink bg-amber/10 px-2.5 py-1 rounded-lg">
+                    <Star className="h-4 w-4 fill-amber text-amber" />
+                    <span>{ratingAvg.toFixed(1)}</span>
+                    <span className="text-muted font-normal text-xs">
+                      ({ratingCount} review{ratingCount !== 1 ? 's' : ''})
+                    </span>
+                  </div>
+                )}
+                <span className="flex items-center gap-1 text-success-deep font-semibold">
                   <ShieldCheck className="h-4 w-4" /> Verified local professionals
                 </span>
               </div>
@@ -258,7 +274,7 @@ export function SubcategoryClient({
               {/* Key Chips */}
               <div className="flex flex-wrap lg:flex-col gap-2.5 pt-1 border-t lg:border-t-0 border-hairline">
                 <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2 text-[12px] font-semibold text-ink border border-hairline">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <CheckCircle2 className="h-4 w-4 text-success-deep" />
                   <span>ID & Background Verified</span>
                 </div>
                 <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2 text-[12px] font-semibold text-ink border border-hairline">
@@ -266,7 +282,7 @@ export function SubcategoryClient({
                   <span>Upfront transparent pricing</span>
                 </div>
                 <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2 text-[12px] font-semibold text-ink border border-hairline">
-                  <Calendar className="h-4 w-4 text-amber-600" />
+                  <Calendar className="h-4 w-4 text-amber-deep" />
                   <span>Same-day slot availability</span>
                 </div>
               </div>
@@ -356,41 +372,56 @@ export function SubcategoryClient({
                 return (
                   <div
                     key={service.id}
-                    className="group flex flex-col justify-between rounded-2xl border border-input-border bg-white p-5 shadow-sm transition-all hover:border-accent hover:shadow-md hover:-translate-y-0.5"
+                    className="group flex flex-col justify-between rounded-2xl border border-input-border bg-white p-4 shadow-sm transition-all hover:border-accent hover:shadow-md sm:p-5 sm:hover:-translate-y-0.5"
                   >
-                    <div>
-                      {/* Media header: card-class art (category-level), falls
-                          back to icon-on-tile then stripes until it lands. */}
-                      <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-xl bg-bg">
+                    {/* UC-style on mobile: text left, media right. From sm up the
+                        card goes vertical with the media on top. */}
+                    <div className="flex flex-row-reverse gap-4 sm:flex-col sm:gap-0">
+                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-bg sm:mb-3 sm:h-auto sm:w-full sm:aspect-[4/3]">
                         <ServiceImage slug={category.slug} caption="" variant="card" />
                         {service.isPopular && (
-                          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white shadow-sm">
+                          <span className="absolute left-2 top-2 hidden items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white shadow-sm sm:inline-flex">
                             <Flame className="h-3 w-3 fill-current" /> Popular
                           </span>
                         )}
                       </div>
 
-                      {/* Title & Description */}
-                      <Link href={detailUrl} className="block group-hover:text-accent transition-colors">
-                        <h3 className="text-[16px] font-extrabold leading-tight text-ink">
-                          {service.name}
-                        </h3>
-                      </Link>
-                      <p className="mt-1.5 text-[12px] text-muted line-clamp-2 leading-relaxed">
-                        {service.description}
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        {service.isPopular && (
+                          <span className="mb-1 inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wide text-accent-deep sm:hidden">
+                            <Flame className="h-3 w-3 fill-current" /> Popular
+                          </span>
+                        )}
+                        <Link href={detailUrl} className="block transition-colors group-hover:text-accent">
+                          <h3 className="text-[15px] font-extrabold leading-tight text-ink sm:text-[16px]">
+                            {service.name}
+                          </h3>
+                        </Link>
+                        <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-muted">
+                          {service.description}
+                        </p>
+                        <div className="mt-2 flex items-center gap-3 text-[12px] text-muted sm:hidden">
+                          <span className="flex items-center gap-1 font-medium">
+                            <Clock className="h-3.5 w-3.5" />
+                            ~{Math.round((service.durationMins / 60) * 10) / 10} hrs
+                          </span>
+                          <span className="font-mono-utility text-[13px] font-extrabold text-ink">
+                            {pence(service.minPricePence)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Footer Info & Action */}
-                    <div className="mt-5 pt-3 border-t border-hairline">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-1 text-[12px] text-muted font-medium">
+                    <div className="mt-4 border-t border-hairline pt-3 sm:mt-5">
+                      <div className="mb-3 hidden items-center justify-between sm:flex">
+                        <div className="flex items-center gap-1 text-[12px] font-medium text-muted">
                           <Clock className="h-3.5 w-3.5 text-muted" />
                           <span>~{Math.round((service.durationMins / 60) * 10) / 10} hours</span>
                         </div>
                         <div className="text-right">
                           <span className="text-[11px] text-muted">From </span>
-                          <span className="text-[16px] font-extrabold text-ink">
+                          <span className="font-mono-utility text-[16px] font-extrabold text-ink">
                             {pence(service.minPricePence)}
                           </span>
                         </div>
@@ -401,13 +432,13 @@ export function SubcategoryClient({
                       <div className="grid grid-cols-2 gap-2">
                         <Link
                           href={`/browse?category=${category.slug}&q=${encodeURIComponent(service.name)}`}
-                          className="rounded-xl border border-hairline bg-bg px-3 py-2 text-center text-[12px] font-bold text-ink transition hover:bg-hairline hover:border-muted/30"
+                          className="rounded-xl border border-hairline bg-bg px-3 py-2 text-center text-[12px] font-bold text-ink transition hover:border-muted/30 hover:bg-hairline"
                         >
                           Browse pros
                         </Link>
                         <Link
                           href={detailUrl}
-                          className="rounded-xl bg-accent px-3 py-2 text-center text-[12px] font-bold text-white shadow-sm transition hover:bg-accent-hover"
+                          className="rounded-xl bg-accent px-3 py-2 text-center text-[12px] font-bold text-white shadow-sm transition hover:bg-accent-hover active:scale-[0.98]"
                         >
                           Book now →
                         </Link>
@@ -458,8 +489,8 @@ export function SubcategoryClient({
             {/* Horizontal Scroll Strip */}
             <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-none -mx-4 px-4 lg:-mx-6 lg:px-6">
               {providers.map((p) => {
-                const rating = p.provider?.rating_avg ?? 4.9;
-                const count = p.provider?.rating_count ?? 12;
+                const count = p.provider?.rating_count ?? 0;
+                const rating = count > 0 ? p.provider?.rating_avg ?? 0 : null;
                 return (
                   <div
                     key={p.id}
@@ -481,11 +512,15 @@ export function SubcategoryClient({
                           <p className="font-extrabold text-ink text-[14px] truncate">
                             {p.provider?.full_name ?? 'Verified Professional'}
                           </p>
-                          <div className="flex items-center gap-1 text-[11px] text-amber-600 font-bold mt-0.5">
-                            <Star className="h-3.5 w-3.5 fill-current" />
-                            <span>{rating.toFixed(1)}</span>
-                            <span className="text-muted font-normal">({count} jobs)</span>
-                          </div>
+                          {rating !== null ? (
+                            <div className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-amber-deep">
+                              <Star className="h-3.5 w-3.5 fill-current" />
+                              <span>{rating.toFixed(1)}</span>
+                              <span className="font-normal text-muted">({count} jobs)</span>
+                            </div>
+                          ) : (
+                            <p className="mt-0.5 text-[11px] font-medium text-muted">New to Urban Assist</p>
+                          )}
                         </div>
                       </div>
 
@@ -539,7 +574,7 @@ export function SubcategoryClient({
             {[
               {
                 icon: ShieldCheck,
-                tint: 'bg-emerald-500/10 text-emerald-600',
+                tint: 'bg-success/10 text-success-deep',
                 title: 'Verified & DBS Checked',
                 body: 'Every professional undergo strict identity verification, reference checks, and DBS background screening.',
               },
@@ -551,7 +586,7 @@ export function SubcategoryClient({
               },
               {
                 icon: Calendar,
-                tint: 'bg-amber-500/10 text-amber-600',
+                tint: 'bg-amber/10 text-amber-deep',
                 title: 'Free Cancellation',
                 body: CANCELLATION_POLICY,
               },

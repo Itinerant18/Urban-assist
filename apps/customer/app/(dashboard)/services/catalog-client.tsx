@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { SERVICE_CATEGORIES, categoryIcons, type Category } from '@/lib/services-data';
-import { Card, ServiceImage } from '@urban-assist/ui';
+import { ServiceImage } from '@urban-assist/ui';
 import { SubcategoryIcon } from '@/components/subcategory-icon';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
@@ -158,7 +158,6 @@ export function CatalogClient({ categories = SERVICE_CATEGORIES }: CatalogClient
             </div>
           ) : (
             filteredCategories.map((cat) => {
-              const CatIcon = categoryIcons[cat.icon];
               return (
                 <div
                   key={cat.id}
@@ -168,38 +167,38 @@ export function CatalogClient({ categories = SERVICE_CATEGORIES }: CatalogClient
                   }}
                   className="space-y-4 scroll-mt-28"
                 >
-                  <div className="flex items-center gap-2 border-b border-hairline pb-2">
-                    {CatIcon && <CatIcon className="h-5 w-5 text-accent" />}
-                    <h2 className="font-display text-lg font-bold text-ink uppercase tracking-wide">
-                      {cat.name}
-                    </h2>
-                  </div>
+                  <h2 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em] text-ink">
+                    {cat.name}
+                  </h2>
 
-                  {/* Dense Masonry CSS-Grid (2 cols on mobile, 3-4 on desktop) */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {cat.subcategories.map((sub) => {
-                      return (
-                        <Link key={sub.id} href={`/services/${cat.slug}/${sub.slug}`}>
-                          <Card className="aspect-square flex flex-col items-center justify-center p-4 gap-3 bg-white border border-hairline hover:border-accent/40 hover:bg-accent/5 hover:-translate-y-1 transition-all cursor-pointer group shadow-sm text-center">
-                            <span className="relative grid h-16 w-16 place-items-center rounded-2xl bg-bg transition-colors group-hover:bg-accent/10">
+                  {/* UC-style "select a service" sheet: one white card per
+                      category, plain image tiles with the label below. */}
+                  <div className="rounded-2xl border border-hairline bg-white p-4">
+                    <div className="grid grid-cols-3 gap-x-2 gap-y-5 sm:grid-cols-4 xl:grid-cols-6">
+                      {cat.subcategories.map((sub) => {
+                        return (
+                          <Link
+                            key={sub.id}
+                            href={`/services/${cat.slug}/${sub.slug}`}
+                            className="tap group flex min-w-0 flex-col items-center gap-1.5 text-center transition active:scale-[0.98]"
+                          >
+                            <span className="relative grid h-16 w-16 place-items-center overflow-hidden rounded-2xl bg-bg transition-colors group-hover:bg-accent/10">
                               <SubcategoryIcon
                                 subSlug={sub.slug}
-                                imgClassName="absolute inset-0 h-full w-full object-contain p-1"
+                                imgClassName="absolute inset-0 h-full w-full object-contain p-1.5"
                                 fallbackNode={<ServiceImage slug={cat.slug} caption="" />}
                               />
                             </span>
-                            <div className="min-w-0">
-                              <h4 className="font-bold text-ink text-xs line-clamp-2 leading-snug group-hover:text-accent-deep transition-colors">
-                                {sub.name}
-                              </h4>
-                              <p className="text-[11px] text-muted line-clamp-1 mt-1">
-                                {sub.services.length} services
-                              </p>
-                            </div>
-                          </Card>
-                        </Link>
-                      );
-                    })}
+                            <span className="line-clamp-2 text-[11px] font-bold leading-[1.25] text-charcoal transition-colors group-hover:text-accent-deep">
+                              {sub.name}
+                            </span>
+                            <span className="text-[10px] font-medium text-muted">
+                              {sub.services.length} service{sub.services.length !== 1 ? 's' : ''}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               );
