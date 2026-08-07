@@ -1,6 +1,6 @@
 import type { HomepageData } from '../lib/homepage-data';
 import { pence } from '@urban-assist/lib';
-import { Reveal, ServiceImage } from '@urban-assist/ui';
+import { Reveal } from '@urban-assist/ui';
 import { PostcodeGate } from './postcode-gate';
 import { BadgePercent, ShieldCheck, BadgePoundSterling, CalendarCheck, Star } from 'lucide-react';
 
@@ -16,7 +16,7 @@ export function Hero({ promoCode }: HeroProps) {
           <Reveal>
             <div>
               <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
-                London &amp; the South East - vetted pros
+                London &amp; the South East — vetted pros
               </p>
               <h1 className="mt-4 text-[44px] font-extrabold leading-[1.04] tracking-[-0.03em] text-ink lg:text-[58px]">
                 Home services,
@@ -83,12 +83,22 @@ export function Hero({ promoCode }: HeroProps) {
             <div className="relative hidden h-[460px] lg:block" aria-hidden="true">
               <div className="absolute right-8 top-0 w-[340px] rotate-[-1.5deg] rounded-2xl border border-hairline bg-white p-2 shadow-card">
                 <div className="aspect-[4/5] overflow-hidden rounded-xl">
-                  <ServiceImage slug="home-cleaning-big" caption="" variant="card" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/images/services/home-cleaning-big.webp"
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
                 </div>
               </div>
               <div className="absolute bottom-2 left-0 w-[220px] rotate-[2deg] rounded-2xl border border-hairline bg-white p-2 shadow-card animate-float">
                 <div className="aspect-square overflow-hidden rounded-xl">
-                  <ServiceImage slug="plumbing-solution" caption="" variant="card" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/images/services/plumbing-solution.webp"
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
                 </div>
               </div>
               <div className="absolute bottom-24 right-0 animate-float-late rounded-xl bg-ink px-4 py-2.5 shadow-card">

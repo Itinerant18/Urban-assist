@@ -26,6 +26,9 @@ export function Testimonials({ reviews }: TestimonialsProps) {
   if (reviews.length === 0) return null;
 
   const [featured, ...rest] = reviews;
+  // With a single review the 3fr/2fr split leaves a dead right column — let the
+  // featured quote own the row at a readable measure instead.
+  const hasSide = rest.length > 0;
 
   return (
     <section className="bg-white py-16">
@@ -40,9 +43,9 @@ export function Testimonials({ reviews }: TestimonialsProps) {
           Trusted by thousands of UK households
         </p>
 
-        <div className="mt-10 grid gap-10 lg:grid-cols-[3fr,2fr]">
+        <div className={`mt-10 grid gap-10 ${hasSide ? 'lg:grid-cols-[3fr,2fr]' : ''}`}>
           <Reveal>
-            <figure className="rounded-2xl bg-ink p-8 text-white">
+            <figure className={`rounded-2xl bg-ink p-8 text-white ${hasSide ? '' : 'max-w-2xl'}`}>
               <Stars rating={featured.rating} size="h-4 w-4" />
               <blockquote className="mt-4 text-[17px] leading-relaxed">
                 {featured.comment}
@@ -59,6 +62,7 @@ export function Testimonials({ reviews }: TestimonialsProps) {
             </figure>
           </Reveal>
 
+          {hasSide && (
           <div className="divide-y divide-hairline">
             {rest.slice(0, 2).map((r, i) => (
               <Reveal key={r.id} index={i}>
@@ -76,6 +80,7 @@ export function Testimonials({ reviews }: TestimonialsProps) {
               </Reveal>
             ))}
           </div>
+          )}
         </div>
       </div>
     </section>
