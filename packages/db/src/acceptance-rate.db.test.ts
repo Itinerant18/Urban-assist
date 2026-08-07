@@ -138,6 +138,7 @@ describe.skipIf(!reachable)('acceptance_rate excludes system declines', () => {
       status: 'declined',
       responded_at: new Date().toISOString(),
       decline_reason: 'schedule_conflict',
+      resolved_by_system: true,
     });
 
     expect(await acceptanceRate()).toBeCloseTo(before, 6);
@@ -151,9 +152,27 @@ describe.skipIf(!reachable)('acceptance_rate excludes system declines', () => {
       status: 'expired',
       responded_at: new Date().toISOString(),
       decline_reason: 'taken_by_other',
+      resolved_by_system: true,
     });
 
     expect(await acceptanceRate()).toBeCloseTo(before, 6);
+  });
+
+  // 202608080006 keyed rate-neutrality off decline_reason, which is free-form client input
+  // (z.string().max(200), written verbatim). A provider could send
+  // decline_reason: 'schedule_conflict' on every decline and pin their rate at 1.0.
+  // The marker is now resolved_by_system, which no client input reaches.
+  it('does NOT go rate-neutral on a forged decline_reason alone', async () => {
+    const before = await acceptedBaseline();
+
+    const forged = await makeOffer();
+    await resolve(forged, {
+      status: 'declined',
+      responded_at: new Date().toISOString(),
+      decline_reason: 'schedule_conflict', // the text, without the system flag
+    });
+
+    expect(await acceptanceRate()).toBeLessThan(before);
   });
 
   it('lowers the rate for a genuine decline', async () => {
@@ -180,5 +199,34 @@ describe.skipIf(!reachable)('acceptance_rate excludes system declines', () => {
     // (including all accepted ones) fell out of the WHERE clause, count(*) hit 0 and the
     // rate snapped to the 1.0 fallback. With that bug this asserts 1.0 < before and fails.
     expect(await acceptanceRate()).toBeLessThan(before);
+  });
+
+  // "offers provider respond" (0002_rls.sql) was `for update using (provider_id =
+  // auth.uid())` with no WITH CHECK and no column scope, and booking_offers never had its
+  // baseline grants revoked — so a provider could PATCH /rest/v1/booking_offers directly
+  // and flip their own declined offers to 'accepted'. 202608080007 revokes client writes.
+  it('rejects a client-side write to booking_offers', async () => {
+    const offerId = await makeOffer();
+
+    const anon = createClient(LOCAL_URL, ANON_KEY!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { error, data } = await anon
+      .from('booking_offers')
+      .update({ status: 'accepted' })
+      .eq('id', offerId)
+      .select('id');
+
+    // Either an outright permission error, or zero rows affected. What must NOT happen is
+    // the row changing.
+    expect(data ?? []).toHaveLength(0);
+    if (!error) {
+      const { data: after } = await admin
+        .from('booking_offers')
+        .select('status')
+        .eq('id', offerId)
+        .single();
+      expect((after as any).status).toBe('pending');
+    }
   });
 });

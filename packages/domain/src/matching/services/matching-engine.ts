@@ -466,10 +466,22 @@ export async function respondToOffer(
               status: 'declined',
               responded_at: new Date().toISOString(),
               decline_reason: 'schedule_conflict',
+              // The rate-neutral marker is this column, not decline_reason: that field is
+              // free-form client input and a provider could otherwise forge the reason to
+              // make every decline free (202608080007).
+              resolved_by_system: true,
             })
             .eq('id', offerId)
             .eq('status', 'pending');
-          await sendNextOffer(db, offer.booking_id);
+          await clearActiveOffer(offer.booking_id);
+          // Cascading must not mask the conflict. sendNextOffer throws on a candidate
+          // lookup or offer-insert failure, and that would replace the typed 409 with a
+          // raw Postgres message shown to the provider.
+          try {
+            await sendNextOffer(db, offer.booking_id);
+          } catch (cascadeErr) {
+            console.error('[matching] cascade after schedule conflict failed', cascadeErr);
+          }
           throw new Error('provider_schedule_conflict');
         }
         throw assignError;
@@ -484,6 +496,7 @@ export async function respondToOffer(
             status: 'expired',
             responded_at: new Date().toISOString(),
             decline_reason: 'taken_by_other',
+            resolved_by_system: true,
           })
           .eq('id', offerId)
           .eq('status', 'pending');

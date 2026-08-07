@@ -13,7 +13,16 @@ export const runtime = 'nodejs';
 // served on public pages. That makes it spammable, so nothing is persisted — entries are
 // logged for aggregation by the platform log drain, with the payload trimmed to the fields
 // that matter and capped in size.
+// Real violation reports are a couple of hundred bytes. Rejected before parsing, so an
+// unauthenticated caller cannot make the route materialise a large JSON payload.
+const MAX_BODY_BYTES = 16 * 1024;
+const MAX_ENTRIES = 10;
+
 export async function POST(req: NextRequest) {
+  if (Number(req.headers.get('content-length') ?? 0) > MAX_BODY_BYTES) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -22,12 +31,13 @@ export async function POST(req: NextRequest) {
   }
 
   // Two wire formats exist: the legacy report-uri shape ({ "csp-report": {...} }) and the
-  // Reporting API shape (an array of { type, body }). Normalise both.
+  // Reporting API shape (an array of { type, body }). Normalise both, capping before the
+  // map so a long array is never walked in full.
   const entries = Array.isArray(body)
-    ? body.map((r: any) => r?.body).filter(Boolean)
+    ? body.slice(0, MAX_ENTRIES).map((r: any) => r?.body).filter(Boolean)
     : [(body as any)?.['csp-report'] ?? body];
 
-  for (const entry of entries.slice(0, 10)) {
+  for (const entry of entries) {
     const e = entry as Record<string, unknown>;
     console.warn(
       '[csp-report]',

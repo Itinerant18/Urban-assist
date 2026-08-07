@@ -25,6 +25,11 @@ grant update (full_name, phone, avatar_url, bio, notification_prefs)
   on public.profiles to authenticated;
 revoke insert, delete, truncate on public.profiles from anon, authenticated;
 
+-- 202608080007: offer responses are service-role only. Without this the blanket grant
+-- above re-opens direct PATCH /rest/v1/booking_offers, which let a provider flip their own
+-- declined offers to 'accepted' and pin acceptance_rate at 1.0.
+revoke insert, update, delete, truncate on public.booking_offers from anon, authenticated;
+
 revoke insert, update, delete, truncate on public.service_categories from anon, authenticated;
 revoke insert, update, delete, truncate on public.service_subcategories from anon, authenticated;
 revoke insert, update, delete, truncate on public.service_skus from anon, authenticated;
