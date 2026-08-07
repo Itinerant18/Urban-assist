@@ -38,6 +38,9 @@ function releaseSummary(result: ProviderPayoutReleaseResult) {
     `${result.alreadyPaid} already paid`,
   ];
   if (result.failed > 0) parts.push(`${result.failed} failed`);
+  // Held bookings are skipped by claim_booking_payout, not failed. Without this the run
+  // reads as fully successful while a disputed booking was silently passed over.
+  if (result.held > 0) parts.push(`${result.held} on hold (refund/dispute)`);
   return parts.join(', ');
 }
 
@@ -48,6 +51,7 @@ function StatusBadge({ provider }: { provider: ProviderPayoutSummary }) {
     processing: { label: 'Processing', tone: 'pending' },
     failed: { label: 'Retry needed', tone: 'danger' },
     paid: { label: 'Paid', tone: 'success' },
+    held: { label: 'On hold', tone: 'pending' },
   };
   const { label, tone } = map[status];
   return <StatusChip tone={tone}>{label}</StatusChip>;
@@ -112,8 +116,9 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
           processing: summary.processing + provider.processing,
           alreadyPaid: summary.alreadyPaid + provider.alreadyPaid,
           failed: summary.failed + provider.failed,
+          held: summary.held + provider.held,
         }),
-        { released: 0, processing: 0, alreadyPaid: 0, failed: 0 },
+        { released: 0, processing: 0, alreadyPaid: 0, failed: 0, held: 0 },
       );
       const connectErrors = (data.processed ?? []).filter((p) => p.error).length;
       const type = total.failed > 0 || connectErrors > 0 ? 'error' : 'success';
@@ -197,6 +202,10 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
     { label: 'Processing', value: metrics.processing_pence, icon: Clock3, className: 'text-amber' },
     { label: 'Paid', value: metrics.paid_pence, icon: CheckCircle2, className: 'text-success' },
     { label: 'Failed', value: metrics.failed_pence, icon: ShieldAlert, className: 'text-danger' },
+    // Held money is deliberately excluded from ready/releasable, so it needs its own tile
+    // — otherwise a partial refund or dispute just makes the releasable total shrink with
+    // no visible reason.
+    { label: 'Held (refund/dispute)', value: metrics.held_pence, icon: ShieldAlert, className: 'text-amber' },
   ];
 
   return (

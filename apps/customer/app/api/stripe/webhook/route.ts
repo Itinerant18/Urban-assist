@@ -174,10 +174,11 @@ async function handleEvent(db: ReturnType<typeof createServiceRole>, event: any)
     const paymentIntentId = charge.payment_intent;
     if (!paymentIntentId) return;
 
-    // Partial refunds leave the payment settled: payment_status has no
-    // 'partially_refunded' value. NOTE this means the provider is still paid on the
-    // full booking price — claim_booking_payout reads bookings.price_pence and does not
-    // consult refunds. Tracked as a follow-up; the audit row below is the only signal.
+    // A full refund flips the payment to 'refunded', which claim_booking_payout already
+    // treats as ineligible. A partial refund cannot: payment_status has no
+    // 'partially_refunded' value, so the payment stays 'succeeded' and the payout would
+    // be computed from the full bookings.price_pence — the platform funding the
+    // difference. Hold the payout instead.
     const fullyRefunded = charge.amount_refunded >= charge.amount;
     if (fullyRefunded) {
       const { error } = await db
@@ -186,6 +187,12 @@ async function handleEvent(db: ReturnType<typeof createServiceRole>, event: any)
         .eq('stripe_payment_intent_id', paymentIntentId)
         .eq('status', 'succeeded');
       if (error) throw error;
+    } else {
+      await holdPayout(
+        db,
+        paymentIntentId,
+        `partial_refund:${charge.amount_refunded}_of_${charge.amount}`,
+      );
     }
 
     await logPaymentEvent(
@@ -207,8 +214,11 @@ async function handleEvent(db: ReturnType<typeof createServiceRole>, event: any)
     const paymentIntentId = dispute.payment_intent;
     if (!paymentIntentId) return;
 
-    // No 'disputed' payment_status exists. Payment state is left alone, so a disputed
-    // booking remains payout-eligible — tracked as a follow-up alongside partial refunds.
+    // No 'disputed' payment_status exists, so the payment stays 'succeeded'. Without a
+    // hold the provider gets paid while Stripe claws the funds back from the platform
+    // balance — the platform absorbs the chargeback and the payout.
+    await holdPayout(db, paymentIntentId, `dispute:${dispute.reason ?? 'unknown'}`);
+
     await logPaymentEvent(
       db,
       paymentIntentId,
@@ -221,7 +231,97 @@ async function handleEvent(db: ReturnType<typeof createServiceRole>, event: any)
       },
       dispute.metadata?.booking_id ?? null,
     );
+    return;
   }
+
+  if (event.type === 'charge.dispute.closed') {
+    const dispute = event.data.object as any;
+    const paymentIntentId = dispute.payment_intent;
+    if (!paymentIntentId) return;
+
+    // Only a dispute resolved in the platform's favour releases the payout. 'lost' leaves
+    // the hold in place: Stripe has taken the money back, so the provider must not be
+    // paid. Without this branch a won dispute left the provider permanently unpayable.
+    const won = dispute.status === 'won' || dispute.status === 'warning_closed';
+    if (won) {
+      await releaseHold(db, paymentIntentId, `dispute_closed:${dispute.status}`);
+    }
+
+    await logPaymentEvent(
+      db,
+      paymentIntentId,
+      won ? 'payment.dispute_won' : 'payment.dispute_lost',
+      { dispute_id: dispute.id, amount_pence: dispute.amount, status: dispute.status },
+      dispute.metadata?.booking_id ?? null,
+    );
+  }
+}
+
+// Blocks the payout for the booking behind a PaymentIntent. Throws rather than warning:
+// the whole point is that money must not move, so a hold that fails to land has to leave
+// the event unprocessed and retryable.
+//
+// Deliberately resolves the booking from the `payments` row ONLY, never from Stripe
+// metadata. Tips have no payments row but their charge metadata carries the real
+// booking_id (createTipIntent sets it), so a metadata fallback here meant a £2 refund on a
+// £5 tip blocked the provider's entire job payout.
+async function holdPayout(
+  db: ReturnType<typeof createServiceRole>,
+  paymentIntentId: string,
+  reason: string,
+) {
+  const { data: payment, error: readErr } = await db
+    .from('payments')
+    .select('booking_id')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle();
+  if (readErr) throw readErr;
+
+  // No payments row means this intent is not a booking charge (a tip), so there is no
+  // payout of ours to hold. logPaymentEvent still records it.
+  if (!payment?.booking_id) return;
+
+  const { error } = await db.rpc('set_booking_payout_hold', {
+    p_booking_id: payment.booking_id,
+    p_reason: reason,
+  });
+  if (error) throw error;
+}
+
+// Releases a hold once a dispute closes in the platform's favour. Without this a won
+// dispute left the provider permanently unpayable.
+async function releaseHold(
+  db: ReturnType<typeof createServiceRole>,
+  paymentIntentId: string,
+  reason: string,
+) {
+  const { data: payment, error: readErr } = await db
+    .from('payments')
+    .select('booking_id')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle();
+  if (readErr) throw readErr;
+  if (!payment?.booking_id) return;
+
+  const { error } = await db.rpc('clear_booking_payout_hold', {
+    p_booking_id: payment.booking_id,
+    p_reason: reason,
+  });
+  if (error) throw error;
+}
+
+async function resolveBookingId(
+  db: ReturnType<typeof createServiceRole>,
+  paymentIntentId: string,
+  fallbackBookingId: string | null,
+): Promise<string | null> {
+  const { data: payment, error } = await db
+    .from('payments')
+    .select('booking_id')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle();
+  if (error) throw error;
+  return payment?.booking_id ?? fallbackBookingId;
 }
 
 // Resolves the booking behind a PaymentIntent and writes an audit_log row.
@@ -235,14 +335,7 @@ async function logPaymentEvent(
   newData: Record<string, unknown>,
   fallbackBookingId: string | null,
 ) {
-  const { data: payment, error: readErr } = await db
-    .from('payments')
-    .select('booking_id')
-    .eq('stripe_payment_intent_id', paymentIntentId)
-    .maybeSingle();
-  if (readErr) throw readErr;
-
-  const bookingId = payment?.booking_id ?? fallbackBookingId;
+  const bookingId = await resolveBookingId(db, paymentIntentId, fallbackBookingId);
   if (!bookingId) {
     // Refusing silently here is how a chargeback disappears. Throw so the event stays
     // unprocessed, Stripe retries, and the failure is visible in logs.

@@ -108,7 +108,7 @@ export async function releaseProviderEarnings(
     .single();
   if (profileError) throw profileError;
   if (!profile?.stripe_account_id) {
-    return { released: 0, processing: 0, alreadyPaid: 0, failed: 0 };
+    return { released: 0, processing: 0, alreadyPaid: 0, failed: 0, held: 0 };
   }
 
   await assertConnectPayoutReady(profile.stripe_account_id);
@@ -125,12 +125,19 @@ export async function releaseProviderEarnings(
   let processing = 0;
   let alreadyPaid = 0;
   let failed = 0;
+  let held = 0;
 
   for (const booking of bookings ?? []) {
     const { data, error: claimError } = await db.rpc('claim_booking_payout', {
       p_booking_id: booking.id,
     });
-    if (claimError) continue;
+    if (claimError) {
+      // A partial refund or open dispute blocks this booking (202608080004). Counted and
+      // returned rather than swallowed, otherwise "Release all" reports a clean run and
+      // the admin never learns a disputed booking was passed over.
+      if ((claimError.message ?? '').includes('payout_on_hold')) held += 1;
+      continue;
+    }
 
     const claim = (data?.[0] ?? null) as BookingPayoutClaim | null;
     if (!claim || claim.provider_id !== providerId) continue;
@@ -192,5 +199,5 @@ export async function releaseProviderEarnings(
     }
   }
 
-  return { released, processing, alreadyPaid, failed };
+  return { released, processing, alreadyPaid, failed, held };
 }

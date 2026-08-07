@@ -48,6 +48,9 @@ const reachable = await localSupabaseReachable();
 describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
   let admin: SupabaseClient;
   let categoryId: string;
+  // Read rather than hardcoded: the overlap window is now the real job duration, so every
+  // offset below is relative to it.
+  let serviceDuration = 60;
   const created: string[] = [];
 
   beforeAll(async () => {
@@ -56,10 +59,18 @@ describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
     });
     const { data } = await admin
       .from('provider_services')
-      .select('category_id')
+      .select('category_id, duration_mins, service_skus(duration_mins)')
       .eq('id', PROVIDER_SERVICE)
       .single();
     categoryId = (data as any).category_id;
+    const sku = (data as any).service_skus;
+    serviceDuration =
+      (Array.isArray(sku) ? sku[0]?.duration_mins : sku?.duration_mins) ??
+      (data as any).duration_mins ??
+      60;
+    // The duration-aware test below is only meaningful if the job outlasts the old
+    // ±60 minute window it replaced.
+    expect(serviceDuration).toBeGreaterThan(60);
   });
 
   afterEach(async () => {
@@ -115,9 +126,13 @@ describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
   // like a broken guard rather than a broken fixture.
   async function assertSlotFree(minutesFromBase: number) {
     const at = new Date(Date.now() + (BASE_MINUTES + minutesFromBase) * 60_000).toISOString();
+    const ends = new Date(
+      Date.now() + (BASE_MINUTES + minutesFromBase + serviceDuration) * 60_000,
+    ).toISOString();
     const { data, error } = await admin.rpc('provider_has_conflicting_booking', {
       p_provider_id: PROVIDER,
       p_scheduled_at: at,
+      p_ends_at: ends,
       p_exclude_booking_id: null,
     });
     expect(error).toBeNull();
@@ -150,11 +165,83 @@ describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
     expect((stillFree as any).status).toBe('pending_match');
   });
 
-  it('allows a second claim outside the busy window', async () => {
+  // The regression test for 202608080003. The old guard compared start times against a
+  // flat ±60 minutes, so this pair — a long job and a second booking starting after that
+  // window but well before the first one ends — was allowed and double-booked the
+  // provider for the remainder.
+  it('rejects an overlap that starts beyond 60 minutes but inside a long job', async () => {
+    const offset = serviceDuration - 30; // inside the real job, outside ±60 min
+    expect(offset).toBeGreaterThan(60);
+
     await assertSlotFree(0);
-    await assertSlotFree(220);
     const first = await makeBooking(0);
-    const later = await makeBooking(220); // +220 min — clear of the ±60 min window
+    const overlapping = await makeBooking(offset);
+
+    expect((await claim(first)).error).toBeNull();
+
+    const second = await claim(overlapping);
+    expect(second.error?.message ?? '').toContain('provider_schedule_conflict');
+  });
+
+  // The function guard can be bypassed by anything writing bookings directly; the GiST
+  // exclusion constraint cannot.
+  it('blocks a direct overlapping assignment at the storage layer', async () => {
+    await assertSlotFree(0);
+    const first = await makeBooking(0);
+    const overlapping = await makeBooking(30);
+    expect((await claim(first)).error).toBeNull();
+
+    // Straight UPDATE, no RPC, no advisory lock — exactly the path the function cannot see.
+    const { error } = await admin
+      .from('bookings')
+      .update({ provider_id: PROVIDER, status: 'assigned' })
+      .eq('id', overlapping);
+    expect(error, 'exclusion constraint should have rejected this').not.toBeNull();
+    expect(error?.message ?? '').toMatch(/bookings_no_provider_overlap|exclusion/i);
+  });
+
+  // A duration of 0 makes tstzrange(x, x) EMPTY, and an empty range overlaps nothing —
+  // which silently switched off both the function guard and the exclusion constraint.
+  // Zero was reachable from the admin SKU form ("0" is a truthy string, so the old
+  // `? Number(...) : null` passed it through). 202608080005 rejects it in the DB and
+  // clamps it in the trigger.
+  it('refuses to store a non-positive duration', async () => {
+    const scheduledAt = new Date(Date.now() + (BASE_MINUTES + 900) * 60_000).toISOString();
+    const { error } = await admin.from('bookings').insert({
+      customer_id: CUSTOMER,
+      category_id: categoryId,
+      provider_service_id: PROVIDER_SERVICE,
+      address_id: ADDRESS,
+      scheduled_at: scheduledAt,
+      status: 'pending_match',
+      price_pence: 5000,
+      vat_pence: 1000,
+      total_pence: 6000,
+      payment_method: 'cash',
+      duration_mins: 0,
+    });
+    // The trigger clamps to >= 1, so the insert succeeds with a usable range rather than
+    // an empty one. Either outcome is acceptable; a stored 0 is not.
+    if (!error) {
+      const { data } = await admin
+        .from('bookings')
+        .select('id, duration_mins, ends_at, scheduled_at')
+        .eq('scheduled_at', scheduledAt)
+        .maybeSingle();
+      if (data) created.push((data as any).id);
+      expect((data as any).duration_mins).toBeGreaterThan(0);
+      expect(new Date((data as any).ends_at).getTime()).toBeGreaterThan(
+        new Date((data as any).scheduled_at).getTime(),
+      );
+    }
+  });
+
+  it('allows a second claim outside the busy window', async () => {
+    const clear = serviceDuration + 100; // past the end of the first job
+    await assertSlotFree(0);
+    await assertSlotFree(clear);
+    const first = await makeBooking(0);
+    const later = await makeBooking(clear);
 
     expect((await claim(first)).error).toBeNull();
 
