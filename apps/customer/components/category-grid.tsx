@@ -164,10 +164,17 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
 
 
   return (
-    <section className="bg-bg py-12">
+    <section className="bg-white py-12">
       <div className="mx-auto max-w-page px-6">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-[26px] font-extrabold text-ink">Explore our services</h2>
+          <div>
+            <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+              Explore
+            </p>
+            <h2 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">
+              Explore our services
+            </h2>
+          </div>
           <a
             href="/services"
             className="flex items-center gap-1 text-[14px] font-semibold text-accent hover:text-accent-hover"
@@ -184,8 +191,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                 <a
                   key={tile.id}
                   href={`/services/${tile.slug}`}
-                  className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col h-full justify-between ${tile.spanClass}`}
-                  style={{ borderColor: '#ECE6D9' }}
+                  className={`group card-shadow card overflow-hidden rounded-xl border-hairline transition hover:border-accent flex flex-col h-full justify-between ${tile.spanClass} active:scale-[0.98]`}
                 >
                   <div className="relative aspect-[2/1] overflow-hidden">
                     <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} variant="card" />
@@ -236,8 +242,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                 <a
                   key={tile.id}
                   href={`/services/${tile.slug}`}
-                  className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col sm:flex-row ${tile.spanClass}`}
-                  style={{ borderColor: '#ECE6D9' }}
+                  className={`group card-shadow card overflow-hidden rounded-xl border-hairline transition hover:border-accent flex flex-col sm:flex-row ${tile.spanClass} active:scale-[0.98]`}
                 >
                   <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
                     <div>
@@ -290,8 +295,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                 <a
                   key={tile.id}
                   href="/services"
-                  className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col justify-between ${tile.spanClass}`}
-                  style={{ borderColor: '#ECE6D9' }}
+                  className={`group card-shadow card overflow-hidden rounded-xl border-hairline transition hover:border-accent flex flex-col justify-between ${tile.spanClass} active:scale-[0.98]`}
                 >
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} variant="card" />
@@ -323,8 +327,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
               <a
                 key={tile.id}
                 href={`/services/${tile.slug}`}
-                className={`group card-shadow card overflow-hidden rounded-xl transition hover:border-accent flex flex-col justify-between ${tile.spanClass}`}
-                style={{ borderColor: '#ECE6D9' }}
+                className={`group card-shadow card overflow-hidden rounded-xl border-hairline transition hover:border-accent flex flex-col justify-between ${tile.spanClass} active:scale-[0.98]`}
               >
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <ServiceImage slug={art[tile.slug] ?? tile.slug} caption={tile.caption} stripeType={tile.stripeType} variant="card" />

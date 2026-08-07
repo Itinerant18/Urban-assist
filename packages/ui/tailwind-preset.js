@@ -66,6 +66,10 @@ module.exports = {
           '60%': { opacity: '1', transform: 'scale(1.02)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
       },
       animation: {
         'sheet-up': 'sheet-up 250ms cubic-bezier(0.22, 1, 0.36, 1)',
@@ -74,13 +78,15 @@ module.exports = {
         'draw-circle': 'draw-circle 500ms cubic-bezier(0.22, 1, 0.36, 1) 150ms forwards',
         'draw-check': 'draw-check 320ms cubic-bezier(0.22, 1, 0.36, 1) 520ms forwards',
         'pop-in': 'pop-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both',
+        float: 'float 6s ease-in-out infinite',
+        'float-late': 'float 7s ease-in-out 1.2s infinite',
       },
       // --font-sans / --font-mono are set by next/font in each app's root layout;
       // the literal family names stay as the fallback for any surface without it.
       fontFamily: {
-        sans: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
-        display: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
-        body: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-sans)', 'Outfit', 'system-ui', 'sans-serif'],
+        display: ['var(--font-sans)', 'Outfit', 'system-ui', 'sans-serif'],
+        body: ['var(--font-sans)', 'Outfit', 'system-ui', 'sans-serif'],
         mono: ['var(--font-mono)', '"JetBrains Mono"', 'ui-monospace', 'monospace'],
         'mono-utility': ['var(--font-mono)', '"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },

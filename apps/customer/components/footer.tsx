@@ -53,7 +53,7 @@ export function Footer() {
   };
 
   return (
-    <footer className="bg-[#1F3A4D] border-t border-hairline/20">
+    <footer className="bg-ink border-t border-hairline/20">
       {/* Install prompt. There is no native app: the store badges and the QR code
           that used to sit here both pointed at /coming-soon, and the QR was a
           hand-drawn SVG that scanned to nothing. This is the install path that
@@ -108,7 +108,7 @@ export function Footer() {
               <ul className="space-y-2.5">
                 {links.map((link) => (
                   <li key={link.label}>
-                    <Link href={link.href} className="text-[13px] text-[#9FB1BC] hover:text-white transition">
+                    <Link href={link.href} className="text-[13px] text-[#9FB1BC] hover:text-amber transition">
                       {link.label}
                     </Link>
                   </li>
@@ -147,7 +147,7 @@ export function Footer() {
                   <ul className="mt-3 pl-1 space-y-2.5">
                     {links.map((link) => (
                       <li key={link.label}>
-                        <Link href={link.href} className="text-xs text-[#9FB1BC] hover:text-white transition">
+                        <Link href={link.href} className="text-xs text-[#9FB1BC] hover:text-amber transition">
                           {link.label}
                         </Link>
                       </li>
@@ -164,7 +164,7 @@ export function Footer() {
 
         {/* Bottom copyright & socials */}
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-[12px] text-[#7E93A0] text-center sm:text-left">
+          <p className="font-mono-utility text-[12px] text-[#7E93A0] text-center sm:text-left">
             &copy; 2026 Urban Assist Services Ltd. Registered in England &amp; Wales. All rights reserved.
           </p>
           <div className="flex gap-4">

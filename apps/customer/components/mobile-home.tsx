@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { Logo, ServiceImage } from '@urban-assist/ui';
+import { Logo, Reveal, ServiceImage } from '@urban-assist/ui';
 import { pence } from '@urban-assist/lib';
 import type {
   HomepageCategory,
@@ -33,8 +33,9 @@ interface MobileHomeProps {
 function MobileIntro({ promoCode }: { promoCode: HomepageData['promoCode'] }) {
   return (
     <section className="bg-ink px-4 pb-7 text-white lg:hidden">
-      <div className="max-w-md">
-        <p className="flex items-center gap-1.5 text-[13px] font-semibold text-footer-muted">
+      <Reveal>
+        <div className="max-w-md">
+          <p className="flex items-center gap-1.5 font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-amber">
           <MapPin className="h-4 w-4 text-amber" aria-hidden="true" />
           London &amp; the South East
         </p>
@@ -54,14 +55,15 @@ function MobileIntro({ promoCode }: { promoCode: HomepageData['promoCode'] }) {
         </p>
 
         {promoCode && (
-          <div className="mt-4 flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5">
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-amber/25 bg-amber/15 px-3 py-2.5">
             <BadgePoundSterling className="h-5 w-5 shrink-0 text-amber" aria-hidden="true" />
             <p className="text-[12px] leading-5 text-white">
               First booking offer: use <strong className="font-extrabold">{promoCode.code}</strong> at checkout.
             </p>
           </div>
         )}
-      </div>
+        </div>
+      </Reveal>
     </section>
   );
 }
@@ -75,14 +77,16 @@ function TrustStrip() {
 
   return (
     <section className="border-b border-hairline bg-white px-4 py-3 lg:hidden" aria-label="Urban Assist promise">
-      <ul className="grid grid-cols-3 gap-2">
+      <Reveal>
+        <ul className="grid grid-cols-3 gap-2">
         {promises.map(({ label, icon: Icon }) => (
           <li key={label} className="flex min-w-0 items-center justify-center gap-1.5 text-center">
-            <Icon className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+            <Icon className="h-4 w-4 shrink-0 text-success-deep" aria-hidden="true" />
             <span className="text-[11px] font-bold leading-4 text-ink">{label}</span>
           </li>
-        ))}
-      </ul>
+          ))}
+        </ul>
+      </Reveal>
     </section>
   );
 }
@@ -94,7 +98,8 @@ function ServiceCategories({ categories }: { categories: HomepageCategory[] }) {
 
   return (
     <section className="bg-bg px-4 py-7 lg:hidden" aria-labelledby="mobile-categories-title">
-      <div className="mb-4 flex items-end justify-between gap-4">
+      <Reveal>
+        <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <h2 id="mobile-categories-title" className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">
             Services for your home
@@ -133,7 +138,8 @@ function ServiceCategories({ categories }: { categories: HomepageCategory[] }) {
           </span>
           <span className="text-[11px] font-bold leading-[1.25] text-charcoal">All services</span>
         </Link>
-      </div>
+        </div>
+      </Reveal>
     </section>
   );
 }
@@ -143,7 +149,8 @@ function PopularServices({ items }: { items: HomepageService[] }) {
 
   return (
     <section className="bg-white px-4 py-7 lg:hidden" aria-labelledby="popular-services-title">
-      <div className="mb-4 flex items-end justify-between gap-4">
+      <Reveal>
+        <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <h2 id="popular-services-title" className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">
             Most booked
@@ -187,6 +194,7 @@ function PopularServices({ items }: { items: HomepageService[] }) {
           );
         })}
       </div>
+      </Reveal>
     </section>
   );
 }
@@ -200,14 +208,15 @@ function HowItWorks() {
 
   return (
     <section className="bg-bg px-4 py-7 lg:hidden" aria-labelledby="how-it-works-title">
-      <h2 id="how-it-works-title" className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">
+      <Reveal>
+        <h2 id="how-it-works-title" className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">
         Book without the phone-tag
       </h2>
       <ol className="mt-5 space-y-4">
         {steps.map((step, index) => (
           <li key={step.title} className="flex gap-3">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink text-[12px] font-extrabold text-white">
-              {index + 1}
+            <span className="w-8 shrink-0 select-none text-[28px] font-extrabold leading-none text-ink/15">
+              0{index + 1}
             </span>
             <div className="pt-0.5">
               <h3 className="text-[14px] font-bold text-charcoal">{step.title}</h3>
@@ -222,6 +231,7 @@ function HowItWorks() {
       >
         Browse services <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>
+      </Reveal>
     </section>
   );
 }
@@ -232,7 +242,8 @@ function CustomerProof({ reviews }: { reviews: HomepageReview[] }) {
 
   return (
     <section className="bg-white px-4 py-7 lg:hidden" aria-labelledby="customer-proof-title">
-      <div className="rounded-2xl bg-ink px-5 py-6 text-white">
+      <Reveal>
+        <div className="rounded-2xl bg-ink px-5 py-6 text-white">
         <div className="flex items-center justify-between gap-3">
           <h2 id="customer-proof-title" className="text-[18px] font-extrabold">Trusted in real homes</h2>
           <Quote className="h-6 w-6 text-amber" aria-hidden="true" />
@@ -255,7 +266,8 @@ function CustomerProof({ reviews }: { reviews: HomepageReview[] }) {
             {review.authorName} · {review.location}
           </span>
         </p>
-      </div>
+        </div>
+      </Reveal>
     </section>
   );
 }

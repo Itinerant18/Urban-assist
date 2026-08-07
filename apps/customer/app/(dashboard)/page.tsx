@@ -22,7 +22,7 @@ export default async function LandingPage() {
 
       <div className="hidden lg:block">
         <main>
-          <Hero categories={data.categories} promoCode={data.promoCode} />
+          <Hero promoCode={data.promoCode} />
           <CategoryGrid categories={data.categories} />
           <PromoCarousel promoCode={data.promoCode} />
           <HowItWorks />

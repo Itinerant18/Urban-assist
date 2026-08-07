@@ -1,67 +1,105 @@
-import type { HomepageCategory, HomepageData } from '../lib/homepage-data';
+import type { HomepageData } from '../lib/homepage-data';
 import { pence } from '@urban-assist/lib';
-import { ServiceImage } from '@urban-assist/ui';
+import { Reveal, ServiceImage } from '@urban-assist/ui';
 import { PostcodeGate } from './postcode-gate';
+import { BadgePercent, ShieldCheck, BadgePoundSterling, CalendarCheck, Star } from 'lucide-react';
 
 interface HeroProps {
-  categories: HomepageCategory[];
   promoCode: HomepageData['promoCode'];
 }
 
-// Removed tileColors mapping in favor of DB/taxonomy color property
-
-export function Hero({ categories, promoCode }: HeroProps) {
+export function Hero({ promoCode }: HeroProps) {
   return (
-    <section className="bg-white py-10">
+    <section className="bg-bg pt-14 pb-16">
       <div className="mx-auto max-w-page px-6">
-        <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-start lg:gap-16">
-          <div className="flex-1">
-            <h1 className="text-[44px] font-extrabold leading-[1.12] tracking-[-0.02em] text-ink">
-              Home services<br />at your doorstep
-            </h1>
-            <p className="mt-3 max-w-md text-[14px] leading-relaxed text-muted">
-              Book trusted professionals for cleaning, repairs, installation, and more.
-              Verified providers, transparent pricing, hassle-free.
-            </p>
-
-            {promoCode && (
-              <p className="mt-3 text-[13px] font-semibold text-accent">
-                Use code <span className="font-extrabold">{promoCode.code}</span> to save
+        <div className="grid items-center gap-12 lg:grid-cols-[7fr,5fr] lg:gap-16">
+          <Reveal>
+            <div>
+              <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+                London &amp; the South East - vetted pros
               </p>
-            )}
+              <h1 className="mt-4 text-[44px] font-extrabold leading-[1.04] tracking-[-0.03em] text-ink lg:text-[58px]">
+                Home services,
+                <br />
+                <span className="relative inline-block">
+                  sorted.
+                  <svg
+                    viewBox="0 0 120 8"
+                    aria-hidden="true"
+                    className="absolute -bottom-1 left-0 h-2 w-full"
+                    preserveAspectRatio="none"
+                  >
+                    <path
+                      d="M2 6 Q 24 2.5, 47 5 T 92 4.5 T 118 5"
+                      stroke="rgb(var(--amber))"
+                      strokeWidth="3"
+                      fill="none"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+              </h1>
+              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-muted">
+                Book trusted professionals for cleaning, repairs, installation, and more.
+                Verified providers, transparent pricing, hassle-free.
+              </p>
 
-            <div className="mt-8">
-              <h2 className="mb-4 text-[15px] font-bold text-ink">What are you looking for?</h2>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {categories.map((cat) => {
-                  return (
-                    <a
-                      key={cat.id}
-                      href={`/services/${cat.slug}`}
-                      className="group flex flex-col items-center gap-2 rounded-xl border border-input-border bg-white p-4 text-center transition hover:border-accent"
-                    >
-                      <span className="relative h-20 w-20">
-                        <ServiceImage slug={cat.slug} caption="" />
-                      </span>
-                      <span className="text-[12px] font-semibold leading-tight text-ink">
-                        {cat.name}
-                      </span>
-                      <span className="text-[11px] font-medium text-success-deep">
-                        From {pence(cat.minPricePence)}
-                      </span>
-                    </a>
-                  );
-                })}
+              <PostcodeGate
+                variant="hero"
+                placeholder="e.g. EC1A 1BB"
+                className="mt-8 max-w-md"
+              />
+              <p className="mt-2 text-[12px] text-muted">
+                Enter your postcode to see services and pricing in your area.
+              </p>
+
+              {promoCode && (
+                <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber/30 bg-amber/10 px-3.5 py-1.5">
+                  <BadgePercent className="h-4 w-4 text-amber-deep" aria-hidden="true" />
+                  <span className="text-[12px] font-semibold text-amber-deep">
+                    Use code {promoCode.code} - save on your first booking
+                  </span>
+                </p>
+              )}
+
+              <div className="mt-9 flex divide-x divide-hairline text-[12px] font-semibold text-charcoal">
+                <span className="flex items-center gap-1.5 px-4 first:pl-0">
+                  <ShieldCheck className="h-4 w-4 text-success-deep" aria-hidden="true" />
+                  Vetted pros
+                </span>
+                <span className="flex items-center gap-1.5 px-4 first:pl-0">
+                  <BadgePoundSterling className="h-4 w-4 text-success-deep" aria-hidden="true" />
+                  Fixed prices
+                </span>
+                <span className="flex items-center gap-1.5 px-4 first:pl-0">
+                  <CalendarCheck className="h-4 w-4 text-success-deep" aria-hidden="true" />
+                  Reschedule free
+                </span>
               </div>
             </div>
-          </div>
+          </Reveal>
 
-          <div className="hidden w-full max-w-md lg:flex lg:flex-col lg:items-start lg:justify-center lg:gap-6">
-            <PostcodeGate variant="hero" placeholder="e.g. EC1A 1BB" />
-            <p className="text-[12px] text-muted">
-              Enter your postcode to see services and pricing in your area.
-            </p>
-          </div>
+          <Reveal index={2}>
+            <div className="relative hidden h-[460px] lg:block" aria-hidden="true">
+              <div className="absolute right-8 top-0 w-[340px] rotate-[-1.5deg] rounded-2xl border border-hairline bg-white p-2 shadow-card">
+                <div className="aspect-[4/5] overflow-hidden rounded-xl">
+                  <ServiceImage slug="home-cleaning-big" caption="" variant="card" />
+                </div>
+              </div>
+              <div className="absolute bottom-2 left-0 w-[220px] rotate-[2deg] rounded-2xl border border-hairline bg-white p-2 shadow-card animate-float">
+                <div className="aspect-square overflow-hidden rounded-xl">
+                  <ServiceImage slug="plumbing-solution" caption="" variant="card" />
+                </div>
+              </div>
+              <div className="absolute bottom-24 right-0 animate-float-late rounded-xl bg-ink px-4 py-2.5 shadow-card">
+                <p className="text-[10px] uppercase tracking-wider text-footer-muted">From</p>
+                <p className="flex items-center gap-1.5 font-mono-utility text-[18px] font-extrabold text-white">
+                  {pence(1500)}
+                  <Star className="h-4 w-4 fill-amber text-amber" aria-hidden="true" />
+                </p>
+              </div>
+            </div>
+          </Reveal>
         </div>
       </div>
     </section>
