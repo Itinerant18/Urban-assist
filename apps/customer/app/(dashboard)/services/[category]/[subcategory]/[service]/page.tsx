@@ -234,7 +234,7 @@ export default async function ServiceDetailPage({
                   Fixed upfront price, no call-out fees
                 </li>
                 <li className="flex items-center gap-2.5 text-[12px] font-semibold text-ink">
-                  <CalendarCheck className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+                  <CalendarCheck className="h-4 w-4 shrink-0 text-amber-deep" aria-hidden="true" />
                   Free cancellation &amp; rescheduling
                 </li>
               </ul>

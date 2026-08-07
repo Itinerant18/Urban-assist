@@ -18,7 +18,7 @@ type Tab = keyof typeof TABS;
 const EMPTY_COPY: Record<Tab, { title: string; description: string }> = {
   active: { title: 'No active bookings', description: 'Find a service to get started.' },
   completed: { title: 'No completed bookings yet', description: 'Finished jobs will appear here with their invoices.' },
-  cancelled: { title: 'No cancelled bookings', description: 'Good news — nothing here.' },
+  cancelled: { title: 'No cancelled bookings', description: 'Good news: nothing here.' },
 };
 
 export default async function BookingsList({ searchParams }: { searchParams: { tab?: string } }) {
@@ -82,7 +82,7 @@ export default async function BookingsList({ searchParams }: { searchParams: { t
               <Link href={`/bookings/${b.id}`} className="min-w-0 flex-1">
                 <div className="font-medium text-ink">{b.category?.name ?? 'Service'}</div>
                 <div className="mt-1 text-xs text-muted">
-                  {ukDateTime(b.scheduled_at)} · {b.provider?.full_name ?? '—'}
+                  {ukDateTime(b.scheduled_at)} · {b.provider?.full_name ?? 'Not assigned yet'}
                 </div>
                 <div className="mt-1 font-mono-utility text-xs text-muted">#{b.short_code}</div>
               </Link>

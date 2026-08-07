@@ -479,7 +479,7 @@ export function BookFlow({
       <div className="mb-5">
         <h1 className="font-display text-2xl font-bold text-ink">Book {service.title}</h1>
         <p className="mt-1 text-sm text-muted">
-          One step at a time. We&apos;ll match a verified professional after you confirm — preference is a soft
+          One step at a time. We&apos;ll match a verified professional after you confirm. Preference is a soft
           request, not a guarantee.
         </p>
       </div>
@@ -490,7 +490,7 @@ export function BookFlow({
           className="mb-5 flex items-center gap-3 rounded-xl border border-hairline bg-white px-4 py-3 text-sm text-charcoal shadow-card"
         >
           <CheckCircle2 className="h-4 w-4 shrink-0 text-success-deep" aria-hidden />
-          <span className="flex-1">We saved your progress — you&apos;re back where you left off.</span>
+          <span className="flex-1">We saved your progress. You&apos;re back where you left off.</span>
           <button
             type="button"
             onClick={() => setResumed(false)}
@@ -643,7 +643,7 @@ export function BookFlow({
                 <div className="pb-4">
                   <h2 className="text-base font-bold text-ink">Pick a date &amp; window</h2>
                   <p className="mt-1 text-xs text-muted">
-                    These are platform booking windows — not live diary slots. We match a verified pro after you
+                    These are platform booking windows, not live diary slots. We match a verified pro after you
                     confirm.
                   </p>
                 </div>
@@ -754,7 +754,7 @@ export function BookFlow({
                           <span className="text-sm text-ink">
                             <span className="font-medium">Prefer {previousProvider.full_name} from last time</span>
                             <span className="mt-0.5 block text-xs text-muted">
-                              Soft request only — we&apos;ll try if they&apos;re available for this window.
+                              Soft request only. We&apos;ll try if they&apos;re available for this window.
                             </span>
                           </span>
                         </label>
@@ -810,7 +810,7 @@ export function BookFlow({
                           </div>
                           <span className="ml-6 text-xs text-muted">
                             {cardEnabled
-                              ? 'Card via Stripe — secures your booking window and reduces no-shows. Charged when you confirm.'
+                              ? 'Card via Stripe. Secures your booking window and reduces no-shows. Charged when you confirm.'
                               : 'Card payments are not available in this environment yet.'}
                           </span>
                         </label>
@@ -833,7 +833,7 @@ export function BookFlow({
                             Pay after service
                           </div>
                           <span className="ml-6 text-xs text-muted">
-                            Cash to the professional after the job — confirm payment in-app when done. Invoice and
+                            Cash to the professional after the job. Confirm payment in-app when done. Invoice and
                             payment link may also be sent.
                           </span>
                         </label>

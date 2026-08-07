@@ -260,7 +260,7 @@ export function BookingDetail({
         const j = await res.json().catch(() => ({}));
         throw new Error(
           j.error === 'not_cancellable'
-            ? 'Too late to cancel — the provider is already on the way. Contact support.'
+            ? 'Too late to cancel: the provider is already on the way. Contact support.'
             : 'Could not cancel',
         );
       }
@@ -320,7 +320,7 @@ export function BookingDetail({
         <Card className="space-y-3 border-accent/25 bg-accent/5">
           <h2 className="font-display text-lg font-bold text-ink">How was your service?</h2>
           <p className="text-sm text-muted">
-            A quick rating helps us improve matching — and helps great professionals get more work.
+            A quick rating helps us improve matching, and helps great professionals get more work.
           </p>
           <Link href={`/bookings/${booking.id}/rate`}>
             <Button className="min-h-12 w-full sm:w-auto">Rate your service</Button>
