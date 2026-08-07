@@ -1,4 +1,7 @@
-export type PayoutReleaseStatus = 'ready' | 'processing' | 'failed' | 'paid';
+// 'held' means a partial refund or dispute blocked the payout (202608080004). Held money
+// is excluded from ready_pence and releasable_pence, so it is reported separately rather
+// than silently vanishing from the dashboard.
+export type PayoutReleaseStatus = 'ready' | 'processing' | 'failed' | 'paid' | 'held';
 
 export interface FinancialMetrics {
   gross_processed_pence: number;
@@ -10,6 +13,7 @@ export interface FinancialMetrics {
   processing_pence: number;
   paid_pence: number;
   failed_pence: number;
+  held_pence: number;
   releasable_pence: number;
 }
 
@@ -23,6 +27,7 @@ export interface ProviderPayoutSummary {
   processing_pence: number;
   paid_pence: number;
   failed_pence: number;
+  held_pence: number;
   releasable_pence: number;
   release_status: PayoutReleaseStatus;
   last_failure_reason: string | null;

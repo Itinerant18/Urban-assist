@@ -48,6 +48,9 @@ const reachable = await localSupabaseReachable();
 describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
   let admin: SupabaseClient;
   let categoryId: string;
+  // Read rather than hardcoded: the overlap window is now the real job duration, so every
+  // offset below is relative to it.
+  let serviceDuration = 60;
   const created: string[] = [];
 
   beforeAll(async () => {
@@ -56,10 +59,18 @@ describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
     });
     const { data } = await admin
       .from('provider_services')
-      .select('category_id')
+      .select('category_id, duration_mins, service_skus(duration_mins)')
       .eq('id', PROVIDER_SERVICE)
       .single();
     categoryId = (data as any).category_id;
+    const sku = (data as any).service_skus;
+    serviceDuration =
+      (Array.isArray(sku) ? sku[0]?.duration_mins : sku?.duration_mins) ??
+      (data as any).duration_mins ??
+      60;
+    // The duration-aware test below is only meaningful if the job outlasts the old
+    // ±60 minute window it replaced.
+    expect(serviceDuration).toBeGreaterThan(60);
   });
 
   afterEach(async () => {
@@ -115,9 +126,13 @@ describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
   // like a broken guard rather than a broken fixture.
   async function assertSlotFree(minutesFromBase: number) {
     const at = new Date(Date.now() + (BASE_MINUTES + minutesFromBase) * 60_000).toISOString();
+    const ends = new Date(
+      Date.now() + (BASE_MINUTES + minutesFromBase + serviceDuration) * 60_000,
+    ).toISOString();
     const { data, error } = await admin.rpc('provider_has_conflicting_booking', {
       p_provider_id: PROVIDER,
       p_scheduled_at: at,
+      p_ends_at: ends,
       p_exclude_booking_id: null,
     });
     expect(error).toBeNull();
@@ -150,11 +165,47 @@ describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
     expect((stillFree as any).status).toBe('pending_match');
   });
 
-  it('allows a second claim outside the busy window', async () => {
+  // The regression test for 202608080003. The old guard compared start times against a
+  // flat ±60 minutes, so this pair — a long job and a second booking starting after that
+  // window but well before the first one ends — was allowed and double-booked the
+  // provider for the remainder.
+  it('rejects an overlap that starts beyond 60 minutes but inside a long job', async () => {
+    const offset = serviceDuration - 30; // inside the real job, outside ±60 min
+    expect(offset).toBeGreaterThan(60);
+
     await assertSlotFree(0);
-    await assertSlotFree(220);
     const first = await makeBooking(0);
-    const later = await makeBooking(220); // +220 min — clear of the ±60 min window
+    const overlapping = await makeBooking(offset);
+
+    expect((await claim(first)).error).toBeNull();
+
+    const second = await claim(overlapping);
+    expect(second.error?.message ?? '').toContain('provider_schedule_conflict');
+  });
+
+  // The function guard can be bypassed by anything writing bookings directly; the GiST
+  // exclusion constraint cannot.
+  it('blocks a direct overlapping assignment at the storage layer', async () => {
+    await assertSlotFree(0);
+    const first = await makeBooking(0);
+    const overlapping = await makeBooking(30);
+    expect((await claim(first)).error).toBeNull();
+
+    // Straight UPDATE, no RPC, no advisory lock — exactly the path the function cannot see.
+    const { error } = await admin
+      .from('bookings')
+      .update({ provider_id: PROVIDER, status: 'assigned' })
+      .eq('id', overlapping);
+    expect(error, 'exclusion constraint should have rejected this').not.toBeNull();
+    expect(error?.message ?? '').toMatch(/bookings_no_provider_overlap|exclusion/i);
+  });
+
+  it('allows a second claim outside the busy window', async () => {
+    const clear = serviceDuration + 100; // past the end of the first job
+    await assertSlotFree(0);
+    await assertSlotFree(clear);
+    const first = await makeBooking(0);
+    const later = await makeBooking(clear);
 
     expect((await claim(first)).error).toBeNull();
 

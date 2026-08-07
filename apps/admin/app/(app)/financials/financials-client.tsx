@@ -48,6 +48,7 @@ function StatusBadge({ provider }: { provider: ProviderPayoutSummary }) {
     processing: { label: 'Processing', tone: 'pending' },
     failed: { label: 'Retry needed', tone: 'danger' },
     paid: { label: 'Paid', tone: 'success' },
+    held: { label: 'On hold', tone: 'pending' },
   };
   const { label, tone } = map[status];
   return <StatusChip tone={tone}>{label}</StatusChip>;
@@ -197,6 +198,10 @@ export function FinancialsClient({ dashboard }: FinancialsProps) {
     { label: 'Processing', value: metrics.processing_pence, icon: Clock3, className: 'text-amber' },
     { label: 'Paid', value: metrics.paid_pence, icon: CheckCircle2, className: 'text-success' },
     { label: 'Failed', value: metrics.failed_pence, icon: ShieldAlert, className: 'text-danger' },
+    // Held money is deliberately excluded from ready/releasable, so it needs its own tile
+    // — otherwise a partial refund or dispute just makes the releasable total shrink with
+    // no visible reason.
+    { label: 'Held (refund/dispute)', value: metrics.held_pence, icon: ShieldAlert, className: 'text-amber' },
   ];
 
   return (
