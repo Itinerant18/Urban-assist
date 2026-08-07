@@ -3,6 +3,17 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 async function requirePermission(db: SupabaseClient, perm: string): Promise<void> {
   const { data: { user } } = await db.auth.getUser();
   if (!user) throw new Error('unauthorized');
+
+  // An aal1 session (correct password, TOTP not yet verified) is a real, reachable
+  // state: the admin app's /api/auth/login sets the session cookie before returning
+  // mfa_required. Every caller of this helper is an admin operation, so require the
+  // same aal2 level the admin middleware and requireAdminRole enforce.
+  const { data: assurance, error: assuranceError } =
+    await db.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (assuranceError || assurance.currentLevel !== 'aal2') {
+    throw new Error('mfa_required');
+  }
+
   const rolesByPermission: Record<string, string[]> = {
     can_manage_admins: ['super_admin'],
     can_manage_bookings: ['super_admin', 'ops_admin'],

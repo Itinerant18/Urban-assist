@@ -28,6 +28,7 @@ export async function POST(req: Request) {
       providerServiceId: parsed.data.provider_service_id,
       addressId: parsed.data.address_id,
       scheduledAt: parsed.data.scheduled_at,
+      ownerId: user.id,
     });
     return NextResponse.json({ base_pence: basePence, net_pence: netPence });
   } catch (e: any) {

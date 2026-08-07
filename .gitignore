@@ -36,6 +36,11 @@ node_modules/
 supabase/config.toml.backup.local
 supabase/.env
 
+# Recovery codes / MFA backup codes — NEVER commit
+docs/Importent/
+*recovery_code*
+*recovery-codes*
+
 # ──────────────────────────────────────────────────
 # TypeScript
 # ──────────────────────────────────────────────────

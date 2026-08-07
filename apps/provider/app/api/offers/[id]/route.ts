@@ -60,6 +60,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         },
       });
     }
+    // The booking overlaps a job this provider already holds. 409 rather than 400 —
+    // the request was well formed, the schedule just moved under it.
+    if (message === 'provider_schedule_conflict') {
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
