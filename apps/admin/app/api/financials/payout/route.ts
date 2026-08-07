@@ -64,6 +64,7 @@ export async function POST(req: Request) {
           processing: 0,
           alreadyPaid: 0,
           failed: 0,
+          held: 0,
           error: providerError instanceof Error ? providerError.message : 'release_failed',
         });
       }

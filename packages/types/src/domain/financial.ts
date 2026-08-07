@@ -43,4 +43,6 @@ export interface ProviderPayoutReleaseResult {
   processing: number;
   alreadyPaid: number;
   failed: number;
+  // Skipped because a partial refund or dispute holds the payout (202608080004).
+  held: number;
 }

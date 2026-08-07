@@ -191,7 +191,6 @@ async function handleEvent(db: ReturnType<typeof createServiceRole>, event: any)
       await holdPayout(
         db,
         paymentIntentId,
-        charge.metadata?.booking_id ?? null,
         `partial_refund:${charge.amount_refunded}_of_${charge.amount}`,
       );
     }
@@ -218,12 +217,7 @@ async function handleEvent(db: ReturnType<typeof createServiceRole>, event: any)
     // No 'disputed' payment_status exists, so the payment stays 'succeeded'. Without a
     // hold the provider gets paid while Stripe claws the funds back from the platform
     // balance — the platform absorbs the chargeback and the payout.
-    await holdPayout(
-      db,
-      paymentIntentId,
-      dispute.metadata?.booking_id ?? null,
-      `dispute:${dispute.reason ?? 'unknown'}`,
-    );
+    await holdPayout(db, paymentIntentId, `dispute:${dispute.reason ?? 'unknown'}`);
 
     await logPaymentEvent(
       db,
@@ -237,26 +231,80 @@ async function handleEvent(db: ReturnType<typeof createServiceRole>, event: any)
       },
       dispute.metadata?.booking_id ?? null,
     );
+    return;
+  }
+
+  if (event.type === 'charge.dispute.closed') {
+    const dispute = event.data.object as any;
+    const paymentIntentId = dispute.payment_intent;
+    if (!paymentIntentId) return;
+
+    // Only a dispute resolved in the platform's favour releases the payout. 'lost' leaves
+    // the hold in place: Stripe has taken the money back, so the provider must not be
+    // paid. Without this branch a won dispute left the provider permanently unpayable.
+    const won = dispute.status === 'won' || dispute.status === 'warning_closed';
+    if (won) {
+      await releaseHold(db, paymentIntentId, `dispute_closed:${dispute.status}`);
+    }
+
+    await logPaymentEvent(
+      db,
+      paymentIntentId,
+      won ? 'payment.dispute_won' : 'payment.dispute_lost',
+      { dispute_id: dispute.id, amount_pence: dispute.amount, status: dispute.status },
+      dispute.metadata?.booking_id ?? null,
+    );
   }
 }
 
 // Blocks the payout for the booking behind a PaymentIntent. Throws rather than warning:
 // the whole point is that money must not move, so a hold that fails to land has to leave
 // the event unprocessed and retryable.
+//
+// Deliberately resolves the booking from the `payments` row ONLY, never from Stripe
+// metadata. Tips have no payments row but their charge metadata carries the real
+// booking_id (createTipIntent sets it), so a metadata fallback here meant a £2 refund on a
+// £5 tip blocked the provider's entire job payout.
 async function holdPayout(
   db: ReturnType<typeof createServiceRole>,
   paymentIntentId: string,
-  fallbackBookingId: string | null,
   reason: string,
 ) {
-  const bookingId = await resolveBookingId(db, paymentIntentId, fallbackBookingId);
-  if (!bookingId) {
-    // A tip has no payments row and no payout of its own, so there is nothing to hold.
-    // logPaymentEvent still throws for the audit trail, which is the visible signal.
-    return;
-  }
+  const { data: payment, error: readErr } = await db
+    .from('payments')
+    .select('booking_id')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle();
+  if (readErr) throw readErr;
+
+  // No payments row means this intent is not a booking charge (a tip), so there is no
+  // payout of ours to hold. logPaymentEvent still records it.
+  if (!payment?.booking_id) return;
+
   const { error } = await db.rpc('set_booking_payout_hold', {
-    p_booking_id: bookingId,
+    p_booking_id: payment.booking_id,
+    p_reason: reason,
+  });
+  if (error) throw error;
+}
+
+// Releases a hold once a dispute closes in the platform's favour. Without this a won
+// dispute left the provider permanently unpayable.
+async function releaseHold(
+  db: ReturnType<typeof createServiceRole>,
+  paymentIntentId: string,
+  reason: string,
+) {
+  const { data: payment, error: readErr } = await db
+    .from('payments')
+    .select('booking_id')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle();
+  if (readErr) throw readErr;
+  if (!payment?.booking_id) return;
+
+  const { error } = await db.rpc('clear_booking_payout_hold', {
+    p_booking_id: payment.booking_id,
     p_reason: reason,
   });
   if (error) throw error;

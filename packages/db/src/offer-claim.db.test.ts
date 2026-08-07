@@ -200,6 +200,42 @@ describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
     expect(error?.message ?? '').toMatch(/bookings_no_provider_overlap|exclusion/i);
   });
 
+  // A duration of 0 makes tstzrange(x, x) EMPTY, and an empty range overlaps nothing —
+  // which silently switched off both the function guard and the exclusion constraint.
+  // Zero was reachable from the admin SKU form ("0" is a truthy string, so the old
+  // `? Number(...) : null` passed it through). 202608080005 rejects it in the DB and
+  // clamps it in the trigger.
+  it('refuses to store a non-positive duration', async () => {
+    const scheduledAt = new Date(Date.now() + (BASE_MINUTES + 900) * 60_000).toISOString();
+    const { error } = await admin.from('bookings').insert({
+      customer_id: CUSTOMER,
+      category_id: categoryId,
+      provider_service_id: PROVIDER_SERVICE,
+      address_id: ADDRESS,
+      scheduled_at: scheduledAt,
+      status: 'pending_match',
+      price_pence: 5000,
+      vat_pence: 1000,
+      total_pence: 6000,
+      payment_method: 'cash',
+      duration_mins: 0,
+    });
+    // The trigger clamps to >= 1, so the insert succeeds with a usable range rather than
+    // an empty one. Either outcome is acceptable; a stored 0 is not.
+    if (!error) {
+      const { data } = await admin
+        .from('bookings')
+        .select('id, duration_mins, ends_at, scheduled_at')
+        .eq('scheduled_at', scheduledAt)
+        .maybeSingle();
+      if (data) created.push((data as any).id);
+      expect((data as any).duration_mins).toBeGreaterThan(0);
+      expect(new Date((data as any).ends_at).getTime()).toBeGreaterThan(
+        new Date((data as any).scheduled_at).getTime(),
+      );
+    }
+  });
+
   it('allows a second claim outside the busy window', async () => {
     const clear = serviceDuration + 100; // past the end of the first job
     await assertSlotFree(0);

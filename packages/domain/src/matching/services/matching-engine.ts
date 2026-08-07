@@ -445,7 +445,8 @@ export async function respondToOffer(
       }
 
       // Claim through the RPC rather than a bare compare-and-swap: it takes a
-      // per-provider advisory lock and re-checks the ±60 minute busy window, so a
+      // per-provider advisory lock and re-checks for a real interval overlap against the
+      // provider's live jobs (using each booking's duration, not a flat window), so a
       // provider holding two overlapping offers cannot accept both. The CAS on
       // `provider_id is null` still lives inside the RPC.
       const { data: claimed, error: assignError } = await db.rpc('claim_booking_for_provider', {

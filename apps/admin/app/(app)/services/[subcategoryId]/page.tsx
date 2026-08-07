@@ -25,6 +25,17 @@ async function audit(db: any, userId: string, action: string, id: string | null,
   });
 }
 
+// A duration of 0 (or negative) makes a booking's tstzrange empty, and an empty range
+// overlaps nothing, which silently switched off the whole provider double-booking guard.
+// "0" is a truthy string, so the previous `formData.get(...) ? Number(...) : null` let it
+// straight through. The database now rejects it too (bookings_duration_positive), but
+// coercing to null here avoids surfacing a raw constraint error in the admin UI.
+function toDurationMins(raw: FormDataEntryValue | null): number | null {
+  const n = Number(String(raw ?? '').trim());
+  if (!Number.isFinite(n) || n < 1) return null;
+  return Math.round(n);
+}
+
 async function createSku(formData: FormData) {
   'use server';
   const { db, user } = await requireAdminPermission('can_manage_bookings');
@@ -40,7 +51,7 @@ async function createSku(formData: FormData) {
       description: String(formData.get('description') ?? '').trim() || null,
       min_price_pence: toPence(formData.get('min')),
       max_price_pence: toPence(formData.get('max')),
-      duration_mins: formData.get('duration') ? Number(formData.get('duration')) : null,
+      duration_mins: toDurationMins(formData.get('duration')),
       inclusions: linesToList(String(formData.get('inclusions') ?? '')),
       exclusions: linesToList(String(formData.get('exclusions') ?? '')),
     })
@@ -60,7 +71,7 @@ async function updateSku(formData: FormData) {
     description: String(formData.get('description') ?? '').trim() || null,
     min_price_pence: toPence(formData.get('min')),
     max_price_pence: toPence(formData.get('max')),
-    duration_mins: formData.get('duration') ? Number(formData.get('duration')) : null,
+    duration_mins: toDurationMins(formData.get('duration')),
     is_popular: formData.get('is_popular') === 'on',
     is_active: formData.get('is_active') === 'on',
     inclusions: linesToList(String(formData.get('inclusions') ?? '')),
@@ -207,7 +218,7 @@ export default async function SubcategoryDetailPage({
                 <Input
                   name="duration"
                   type="number"
-                  min="0"
+                  min="1"
                   defaultValue={s.duration_mins ?? ''}
                   className="mt-1 w-20"
                 />
@@ -271,7 +282,7 @@ export default async function SubcategoryDetailPage({
             </label>
             <label className="text-xs text-muted">
               Mins
-              <Input name="duration" type="number" min="0" className="mt-1 w-20" />
+              <Input name="duration" type="number" min="1" className="mt-1 w-20" />
             </label>
           </div>
           <label className="block text-xs text-muted">
