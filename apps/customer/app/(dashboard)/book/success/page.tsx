@@ -51,7 +51,7 @@ export default async function BookingSuccessPage({ searchParams }: { searchParam
         </p>
       </div>
 
-      <Card className="border border-hairline bg-white p-5 rounded-xl shadow-card text-left space-y-4">
+      <Card className="animate-pop-in border border-hairline bg-white p-5 rounded-xl shadow-card text-left space-y-4">
         <div className="flex items-center justify-between border-b border-hairline pb-3">
           <span className="font-mono-utility text-xs text-muted uppercase tracking-wider">
             Order ID: #{booking.short_code}
@@ -91,7 +91,7 @@ export default async function BookingSuccessPage({ searchParams }: { searchParam
             <Receipt className="h-4.5 w-4.5 text-muted mt-0.5" />
             <div>
               <span className="text-muted block text-xs">Total</span>
-              <span className="font-bold text-ink">{pence(booking.total_pence)}</span>
+              <span className="font-bold text-ink font-mono-utility">{pence(booking.total_pence)}</span>
             </div>
           </li>
           <li className="flex items-start gap-3">

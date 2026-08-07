@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSupabaseServer } from '@urban-assist/db/server';
-import { Card, EmptyState, Button } from '@urban-assist/ui';
+import { EmptyState, Button } from '@urban-assist/ui';
 import { pence, ukDateTime } from '@urban-assist/lib';
 import { StatusPill } from '../../../components/status-pill';
 
@@ -76,38 +76,34 @@ export default async function BookingsList({ searchParams }: { searchParams: { t
           action={tab === 'active' ? <Link href="/"><Button>Find a service</Button></Link> : undefined}
         />
       ) : (
-        <ul className="space-y-3">
+        <ul className="divide-y divide-hairline rounded-2xl border border-hairline bg-white">
           {bookings.map((b: any) => (
-            <li key={b.id}>
-              <Card className="flex items-center gap-4 p-4 transition hover:border-ink">
-                <Link href={`/bookings/${b.id}`} className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-ink">{b.category?.name ?? 'Service'}</span>
-                    <StatusPill status={b.status} />
-                  </div>
-                  <div className="mt-1 text-xs text-muted">
-                    {ukDateTime(b.scheduled_at)} · {b.provider?.full_name ?? '—'}
-                  </div>
-                  <div className="mt-1 font-mono-utility text-xs text-muted">#{b.short_code}</div>
-                </Link>
-                <div className="flex shrink-0 flex-col items-end gap-2">
-                  <div className="font-display text-lg font-bold text-ink">{pence(b.total_pence)}</div>
-                  {tab === 'completed' && (
-                    <div className="flex flex-wrap justify-end gap-2">
-                      {!reviewedIds.has(b.id) && (
-                        <Link href={`/bookings/${b.id}/rate`}>
-                          <Button size="sm" className="min-h-10">Rate</Button>
-                        </Link>
-                      )}
-                      {b.provider_service_id && (
-                        <Link href={`/book/${b.provider_service_id}`}>
-                          <Button size="sm" variant="outline" className="min-h-10">Book again</Button>
-                        </Link>
-                      )}
-                    </div>
-                  )}
+            <li key={b.id} className="flex items-start gap-4 px-4 py-3.5 transition-colors hover:bg-bg/60">
+              <Link href={`/bookings/${b.id}`} className="min-w-0 flex-1">
+                <div className="font-medium text-ink">{b.category?.name ?? 'Service'}</div>
+                <div className="mt-1 text-xs text-muted">
+                  {ukDateTime(b.scheduled_at)} · {b.provider?.full_name ?? '—'}
                 </div>
-              </Card>
+                <div className="mt-1 font-mono-utility text-xs text-muted">#{b.short_code}</div>
+              </Link>
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <StatusPill status={b.status} />
+                <div className="font-display text-lg font-bold text-ink">{pence(b.total_pence)}</div>
+                {tab === 'completed' && (
+                  <div className="flex flex-wrap justify-end gap-2">
+                    {!reviewedIds.has(b.id) && (
+                      <Link href={`/bookings/${b.id}/rate`}>
+                        <Button size="sm" className="min-h-10">Rate</Button>
+                      </Link>
+                    )}
+                    {b.provider_service_id && (
+                      <Link href={`/book/${b.provider_service_id}`}>
+                        <Button size="sm" variant="outline" className="min-h-10">Book again</Button>
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
             </li>
           ))}
         </ul>

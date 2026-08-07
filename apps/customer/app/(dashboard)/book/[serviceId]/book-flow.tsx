@@ -513,14 +513,18 @@ export function BookFlow({
                 <span
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
                     current
-                      ? 'bg-accent text-white'
+                      ? 'bg-accent text-white animate-pop-in'
                       : done
-                        ? 'bg-ink text-bg'
-                        : 'bg-hairline text-muted'
+                        ? 'bg-hairline text-amber-deep'
+                        : 'bg-surface-sunk text-muted'
                   }`}
                   aria-current={current ? 'step' : undefined}
                 >
-                  {done ? '✓' : i + 1}
+                  {done ? (
+                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    i + 1
+                  )}
                 </span>
                 <span
                   className={`truncate text-[11px] font-semibold sm:text-[11px] ${
@@ -635,8 +639,8 @@ export function BookFlow({
             )}
 
             {step === 'schedule' && (
-              <section className="space-y-5 rounded-2xl border border-hairline bg-white p-4 shadow-sm">
-                <div>
+              <section className="divide-y divide-hairline rounded-2xl border border-hairline bg-white p-4 shadow-sm">
+                <div className="pb-4">
                   <h2 className="text-base font-bold text-ink">Pick a date &amp; window</h2>
                   <p className="mt-1 text-xs text-muted">
                     These are platform booking windows — not live diary slots. We match a verified pro after you
@@ -644,7 +648,7 @@ export function BookFlow({
                   </p>
                 </div>
 
-                <div>
+                <div className="py-4">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Date</p>
                   <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none">
                     {days.map((day) => {
@@ -658,14 +662,18 @@ export function BookFlow({
                             const open = nextSlots.find((s) => !s.disabled) ?? nextSlots[0];
                             if (open) setValue('scheduledAt', open.value, { shouldValidate: true });
                           }}
-                          className={`tap flex min-h-14 min-w-[4.25rem] shrink-0 flex-col items-center justify-center rounded-xl border px-2 py-2 transition-colors ${
+                          className={`tap flex min-h-14 min-w-[4.25rem] shrink-0 flex-col items-center justify-center rounded-xl border px-2 py-2 transition-colors active:scale-[0.98] ${
                             selected
-                              ? 'border-accent bg-accent/10 text-ink'
-                              : 'border-hairline bg-white text-muted'
+                              ? 'border-ink bg-ink text-white'
+                              : 'border-hairline bg-white text-muted hover:border-accent'
                           }`}
                         >
                           <span className="text-[11px] font-semibold uppercase">{day.weekday}</span>
-                          <span className="text-lg font-extrabold leading-none text-ink">{day.dayNum}</span>
+                          <span
+                            className={`text-lg font-extrabold leading-none ${selected ? 'text-white' : 'text-ink'}`}
+                          >
+                            {day.dayNum}
+                          </span>
                           <span className="text-[11px]">{day.monthShort}</span>
                         </button>
                       );
@@ -673,7 +681,7 @@ export function BookFlow({
                   </div>
                 </div>
 
-                <div>
+                <div className="py-4">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Time window</p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {slots.map((slot) => {
@@ -685,12 +693,12 @@ export function BookFlow({
                           disabled={slot.disabled}
                           onClick={() => setValue('scheduledAt', slot.value, { shouldValidate: true })}
                           aria-pressed={selected}
-                          className={`tap flex min-h-12 flex-col items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
+                          className={`tap flex min-h-12 flex-col items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold transition-colors active:scale-[0.98] ${
                             slot.disabled
                               ? 'cursor-not-allowed border-hairline bg-surface-sunk text-muted'
                               : selected
-                                ? 'border-accent bg-accent text-white'
-                                : 'border-hairline bg-white text-ink hover:border-accent/40'
+                                ? 'border-ink bg-ink text-white'
+                                : 'border-hairline bg-white text-ink hover:border-accent'
                           }`}
                         >
                           {/* Unavailable windows carried strike-through at ~2:1 — a
@@ -711,62 +719,66 @@ export function BookFlow({
                   )}
                 </div>
 
-                <Controller
-                  control={control}
-                  name="notes"
-                  render={({ field }) => (
-                    <Field label="Notes for the professional (optional)">
-                      <Textarea
-                        placeholder="e.g. key box code, gate entry, parking"
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(e.target.value.slice(0, 500))}
-                        rows={3}
-                        maxLength={500}
-                      />
-                      <p className="mt-1 text-right text-xs text-muted">{(field.value || '').length}/500</p>
-                    </Field>
-                  )}
-                />
-
-                {previousProvider && (
+                <div className="py-4">
                   <Controller
                     control={control}
-                    name="preferPrevious"
+                    name="notes"
                     render={({ field }) => (
-                      <label className="flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border border-hairline bg-bg/40 p-3.5">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(field.value)}
-                          onChange={(e) => field.onChange(e.target.checked)}
-                          className="mt-0.5 h-5 w-5 accent-[var(--accent,#C1622E)]"
+                      <Field label="Notes for the professional (optional)">
+                        <Textarea
+                          placeholder="e.g. key box code, gate entry, parking"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value.slice(0, 500))}
+                          rows={3}
+                          maxLength={500}
                         />
-                        <span className="text-sm text-ink">
-                          <span className="font-medium">Prefer {previousProvider.full_name} from last time</span>
-                          <span className="mt-0.5 block text-xs text-muted">
-                            Soft request only — we&apos;ll try if they&apos;re available for this window.
-                          </span>
-                        </span>
-                      </label>
+                        <p className="mt-1 text-right text-xs text-muted">{(field.value || '').length}/500</p>
+                      </Field>
                     )}
                   />
+                </div>
+
+                {previousProvider && (
+                  <div className="py-4">
+                    <Controller
+                      control={control}
+                      name="preferPrevious"
+                      render={({ field }) => (
+                        <label className="flex min-h-12 cursor-pointer items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(field.value)}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            className="mt-0.5 h-5 w-5 accent-[var(--accent,#C1622E)]"
+                          />
+                          <span className="text-sm text-ink">
+                            <span className="font-medium">Prefer {previousProvider.full_name} from last time</span>
+                            <span className="mt-0.5 block text-xs text-muted">
+                              Soft request only — we&apos;ll try if they&apos;re available for this window.
+                            </span>
+                          </span>
+                        </label>
+                      )}
+                    />
+                  </div>
                 )}
               </section>
             )}
 
             {step === 'confirm' && (
-              <section className="space-y-4 rounded-2xl border border-hairline bg-white p-4 shadow-sm">
-                <h2 className="text-base font-bold text-ink">Confirm &amp; pay</h2>
+              <section className="divide-y divide-hairline rounded-2xl border border-hairline bg-white p-4 shadow-sm">
+                <h2 className="pb-4 text-base font-bold text-ink">Confirm &amp; pay</h2>
 
-                <div className="space-y-2 rounded-xl bg-bg/50 p-3 text-sm">
-                  <div className="flex justify-between gap-3">
+                <div className="divide-y divide-hairline py-3 text-sm">
+                  <div className="flex justify-between gap-3 py-2.5">
                     <span className="text-muted">Service</span>
                     <span className="text-right font-medium text-ink">{service.title}</span>
                   </div>
-                  <div className="flex justify-between gap-3">
+                  <div className="flex justify-between gap-3 py-2.5">
                     <span className="text-muted">Address</span>
                     <span className="text-right font-medium text-ink">{addrSummary}</span>
                   </div>
-                  <div className="flex justify-between gap-3">
+                  <div className="flex justify-between gap-3 py-2.5">
                     <span className="text-muted">When</span>
                     <span className="text-right font-medium text-ink">{formatSlotSummary(selectedDate)}</span>
                   </div>
@@ -776,7 +788,7 @@ export function BookFlow({
                   control={control}
                   name="paymentMethod"
                   render={({ field }) => (
-                    <div className="space-y-3">
+                    <div className="space-y-3 py-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted">Payment</p>
                       <div className="grid gap-3">
                         <label
