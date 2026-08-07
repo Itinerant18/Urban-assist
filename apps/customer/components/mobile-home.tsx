@@ -1,11 +1,15 @@
 'use client';
 
+// Mobile home, structured after Urban Company's app home (category icon card,
+// horizontal most-booked cards, promo banner, big section headings + "See all"
+// pills) but skinned entirely in Urban Assist tokens. Dark intro stays: it is
+// the brand's signature moment; UC's utility-first rhythm takes over below it.
+
 import {
   ArrowRight,
   BadgePoundSterling,
   CalendarCheck2,
   ChevronDown,
-  ChevronRight,
   Grid3X3,
   MapPin,
   Quote,
@@ -22,7 +26,6 @@ import type {
   HomepageReview,
   HomepageService,
 } from '../lib/homepage-data';
-import { getCategoryIcon } from '../lib/homepage-data';
 import { PostcodeGate } from './postcode-gate';
 import { ReviewAvatar } from './review-avatar';
 
@@ -30,38 +33,48 @@ interface MobileHomeProps {
   data: HomepageData;
 }
 
-function MobileIntro({ promoCode }: { promoCode: HomepageData['promoCode'] }) {
+function SectionHeading({
+  title,
+  href,
+  hrefLabel = 'See all',
+}: {
+  title: string;
+  href?: string;
+  hrefLabel?: string;
+}) {
   return (
-    <section className="bg-ink px-4 pb-7 text-white lg:hidden">
+    <div className="mb-4 flex items-center justify-between gap-4">
+      <h2 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em] text-ink">
+        {title}
+      </h2>
+      {href && (
+        <Link
+          href={href}
+          className="tap shrink-0 rounded-lg border border-hairline bg-white px-3 py-1.5 text-[12px] font-bold text-ink transition active:scale-[0.98]"
+        >
+          {hrefLabel}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function MobileIntro() {
+  return (
+    <section className="bg-ink px-4 pb-6 text-white lg:hidden">
       <Reveal>
         <div className="max-w-md">
           <p className="flex items-center gap-1.5 font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-amber">
-          <MapPin className="h-4 w-4 text-amber" aria-hidden="true" />
-          London &amp; the South East
-        </p>
-        <h1 className="mt-4 max-w-[18rem] text-[30px] font-extrabold leading-[1.08] tracking-[-0.03em] text-white text-balance">
-          What needs sorting at home?
-        </h1>
-        <p className="mt-3 max-w-sm text-[15px] leading-6 text-[#D7E0E5] text-pretty">
-          Fixed prices, vetted professionals and a time that works for you.
-        </p>
-        <PostcodeGate
-          variant="compact"
-          className="mt-5"
-          placeholder="e.g. SW1A 1AA"
-        />
-        <p className="mt-2 text-[12px] leading-5 text-footer-muted">
-          Enter your postcode to see services and availability nearby.
-        </p>
-
-        {promoCode && (
-          <div className="mt-4 flex items-center gap-3 rounded-xl border border-amber/25 bg-amber/15 px-3 py-2.5">
-            <BadgePoundSterling className="h-5 w-5 shrink-0 text-amber" aria-hidden="true" />
-            <p className="text-[12px] leading-5 text-white">
-              First booking offer: use <strong className="font-extrabold">{promoCode.code}</strong> at checkout.
-            </p>
-          </div>
-        )}
+            <MapPin className="h-4 w-4" aria-hidden="true" />
+            London &amp; the South East
+          </p>
+          <h1 className="mt-3 max-w-[18rem] text-[26px] font-extrabold leading-[1.1] tracking-[-0.03em] text-white text-balance">
+            What needs sorting at home?
+          </h1>
+          <PostcodeGate variant="compact" className="mt-4" placeholder="e.g. SW1A 1AA" />
+          <p className="mt-2 text-[12px] leading-5 text-footer-muted">
+            Enter your postcode to see services and availability nearby.
+          </p>
         </div>
       </Reveal>
     </section>
@@ -77,124 +90,153 @@ function TrustStrip() {
 
   return (
     <section className="border-b border-hairline bg-white px-4 py-3 lg:hidden" aria-label="Urban Assist promise">
-      <Reveal>
-        <ul className="grid grid-cols-3 gap-2">
+      <ul className="grid grid-cols-3 gap-2">
         {promises.map(({ label, icon: Icon }) => (
           <li key={label} className="flex min-w-0 items-center justify-center gap-1.5 text-center">
             <Icon className="h-4 w-4 shrink-0 text-success-deep" aria-hidden="true" />
             <span className="text-[11px] font-bold leading-4 text-ink">{label}</span>
           </li>
-          ))}
-        </ul>
-      </Reveal>
+        ))}
+      </ul>
     </section>
   );
 }
 
+/** UC-style category card: icon tiles in one white card, price chip per tile. */
 function ServiceCategories({ categories }: { categories: HomepageCategory[] }) {
-  const visibleCategories = categories.slice(0, 7);
+  const visibleCategories = categories.slice(0, 8);
 
   if (visibleCategories.length === 0) return null;
 
   return (
-    <section className="bg-bg px-4 py-7 lg:hidden" aria-labelledby="mobile-categories-title">
+    <section className="bg-bg px-4 py-6 lg:hidden" aria-labelledby="mobile-categories-title">
+      <h2 id="mobile-categories-title" className="sr-only">
+        Services for your home
+      </h2>
       <Reveal>
-        <div className="mb-4 flex items-end justify-between gap-4">
-        <div>
-          <h2 id="mobile-categories-title" className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">
-            Services for your home
-          </h2>
-          <p className="mt-1 text-[13px] leading-5 text-muted">Start with the job you need done.</p>
-        </div>
-        <Link
-          href="/services"
-          className="tap inline-flex shrink-0 items-center gap-1 rounded-lg text-[13px] font-bold text-accent-hover hover:text-ink"
-        >
-          View all <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-4 gap-x-2 gap-y-4">
-        {visibleCategories.map((category) => (
-          <Link
-            key={category.id}
-            href={`/services/${category.slug}`}
-            className="group flex min-h-[104px] min-w-0 flex-col items-center justify-start gap-2 rounded-xl px-1 py-2 text-center transition-colors hover:bg-white focus-visible:bg-white"
-          >
-            <span className="relative h-16 w-16">
-              <ServiceImage slug={category.slug} caption="" />
-            </span>
-            <span className="line-clamp-2 text-[11px] font-bold leading-[1.25] text-charcoal">
-              {category.name}
-            </span>
-          </Link>
-        ))}
-        <Link
-          href="/services"
-          className="group flex min-h-[104px] min-w-0 flex-col items-center justify-start gap-2 rounded-xl px-1 py-2 text-center transition-colors hover:bg-white focus-visible:bg-white"
-        >
-          <span className="grid h-16 w-16 place-items-center rounded-xl bg-ink text-white">
-            <Grid3X3 className="h-6 w-6" aria-hidden="true" />
-          </span>
-          <span className="text-[11px] font-bold leading-[1.25] text-charcoal">All services</span>
-        </Link>
+        <div className="rounded-2xl border border-hairline bg-white p-4">
+          <div className="grid grid-cols-3 gap-x-2 gap-y-5">
+            {visibleCategories.map((category) => (
+              <Link
+                key={category.id}
+                href={`/services/${category.slug}`}
+                className="tap group flex min-w-0 flex-col items-center gap-1.5 text-center transition active:scale-[0.98]"
+              >
+                <span className="relative grid h-16 w-16 place-items-center rounded-2xl bg-bg">
+                  <span className="relative h-14 w-14">
+                    <ServiceImage slug={category.slug} caption="" />
+                  </span>
+                </span>
+                <span className="line-clamp-2 text-[11px] font-bold leading-[1.25] text-charcoal">
+                  {category.name}
+                </span>
+                <span className="font-mono-utility text-[10px] font-semibold text-success-deep">
+                  £{Math.round(category.minPricePence / 100)}+
+                </span>
+              </Link>
+            ))}
+            <Link
+              href="/services"
+              className="tap group flex min-w-0 flex-col items-center gap-1.5 text-center transition active:scale-[0.98]"
+            >
+              <span className="grid h-16 w-16 place-items-center rounded-2xl bg-ink text-white">
+                <Grid3X3 className="h-6 w-6" aria-hidden="true" />
+              </span>
+              <span className="text-[11px] font-bold leading-[1.25] text-charcoal">
+                All services
+              </span>
+            </Link>
+          </div>
         </div>
       </Reveal>
     </section>
   );
 }
 
-function PopularServices({ items }: { items: HomepageService[] }) {
-  if (items.length === 0) return null;
+function PromoBanner({ promoCode }: { promoCode: HomepageData['promoCode'] }) {
+  if (!promoCode) return null;
 
   return (
-    <section className="bg-white px-4 py-7 lg:hidden" aria-labelledby="popular-services-title">
+    <section className="bg-bg px-4 pb-6 lg:hidden" aria-label="First booking offer">
       <Reveal>
-        <div className="mb-4 flex items-end justify-between gap-4">
-        <div>
-          <h2 id="popular-services-title" className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">
-            Most booked
-          </h2>
-          <p className="mt-1 text-[13px] leading-5 text-muted">Clear starting prices, before you commit.</p>
-        </div>
-        <Link href="/services" className="tap inline-flex shrink-0 items-center text-[13px] font-bold text-accent-hover hover:text-ink">
-          See all
+        <Link
+          href="/services"
+          className="tap block overflow-hidden rounded-2xl bg-accent px-5 py-4 transition active:scale-[0.99]"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[15px] font-extrabold leading-snug text-white">
+                Save on your first booking
+              </p>
+              <p className="mt-1 text-[12px] leading-5 text-white/85">
+                Use code{' '}
+                <span className="rounded bg-white/20 px-1.5 py-0.5 font-mono-utility font-bold text-white">
+                  {promoCode.code}
+                </span>{' '}
+                at checkout
+              </p>
+            </div>
+            <span className="shrink-0 rounded-xl bg-white px-4 py-2 text-[12px] font-bold text-accent-deep">
+              Book now
+            </span>
+          </div>
         </Link>
+      </Reveal>
+    </section>
+  );
+}
+
+/** UC-style horizontal card row: image top, title, rating, price. */
+function MostBooked({ items }: { items: HomepageService[] }) {
+  // One card per category: with a small marketplace the raw list repeats the
+  // same service art back to back, which reads as a rendering bug.
+  const unique = items.filter(
+    (item, i) => items.findIndex((other) => other.categorySlug === item.categorySlug) === i,
+  );
+  if (unique.length === 0) return null;
+
+  return (
+    <section className="bg-white px-4 py-6 lg:hidden" aria-labelledby="most-booked-title">
+      <div id="most-booked-title" className="contents">
+        <SectionHeading title="Most booked services" href="/services" />
       </div>
 
-      <div className="divide-y divide-hairline border-y border-hairline">
-        {items.slice(0, 4).map((item) => {
-          const Icon = getCategoryIcon(item.icon);
-          return (
-            <Link
-              key={item.id}
-              href={`/services/${item.categorySlug}`}
-              className="group flex min-h-[84px] items-center gap-3 py-3"
-            >
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-bg text-ink transition-colors group-hover:text-accent">
-                <Icon className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="line-clamp-2 text-[14px] font-bold leading-5 text-charcoal">{item.title}</span>
-                <span className="mt-0.5 block text-[12px] text-muted">{item.categoryName}</span>
-                {item.rating && (
-                  <span className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-muted">
-                    <Star className="h-3.5 w-3.5 fill-amber text-amber" aria-hidden="true" />
-                    {item.rating.toFixed(1)}
-                    {item.reviewCount ? <span>({item.reviewCount})</span> : null}
-                  </span>
-                )}
-              </span>
-              <span className="shrink-0 text-right">
-                <span className="block text-[11px] font-medium text-muted">From</span>
-                <span className="block text-[14px] font-extrabold text-ink">{pence(item.pricePence)}</span>
-              </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-            </Link>
-          );
-        })}
+      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 scrollbar-none">
+        {unique.slice(0, 6).map((item, i) => (
+          <Link
+            key={item.id}
+            href={`/services/${item.categorySlug}`}
+            className="tap w-[220px] shrink-0 snap-start transition active:scale-[0.98]"
+          >
+            <Reveal index={i}>
+              <div className="grid aspect-[4/3] place-items-center rounded-2xl border border-hairline bg-bg p-6">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/images/services/${item.categorySlug}.webp`}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <p className="mt-2 line-clamp-2 text-[14px] font-bold leading-5 text-charcoal">
+                {item.title}
+              </p>
+              {item.rating ? (
+                <p className="mt-1 flex items-center gap-1 text-[12px] font-semibold text-muted">
+                  <Star className="h-3.5 w-3.5 fill-amber text-amber" aria-hidden="true" />
+                  {item.rating.toFixed(2)}
+                  {item.reviewCount ? <span>({item.reviewCount})</span> : null}
+                </p>
+              ) : (
+                <p className="mt-1 text-[12px] text-muted">{item.categoryName}</p>
+              )}
+              <p className="mt-1 font-mono-utility text-[14px] font-extrabold text-ink">
+                {pence(item.pricePence)}
+              </p>
+            </Reveal>
+          </Link>
+        ))}
       </div>
-      </Reveal>
     </section>
   );
 }
@@ -208,14 +250,13 @@ function HowItWorks() {
 
   return (
     <section className="bg-bg px-4 py-7 lg:hidden" aria-labelledby="how-it-works-title">
-      <Reveal>
-        <h2 id="how-it-works-title" className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">
+      <h2 id="how-it-works-title" className="text-[22px] font-extrabold tracking-[-0.02em] text-ink">
         Book without the phone-tag
       </h2>
       <ol className="mt-5 space-y-4">
         {steps.map((step, index) => (
           <li key={step.title} className="flex gap-3">
-            <span className="w-8 shrink-0 select-none text-[28px] font-extrabold leading-none text-ink/15">
+            <span className="w-8 shrink-0 text-[28px] font-extrabold leading-none text-ink/15">
               0{index + 1}
             </span>
             <div className="pt-0.5">
@@ -227,11 +268,10 @@ function HowItWorks() {
       </ol>
       <Link
         href="/services"
-        className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent-hover px-5 py-3 text-[14px] font-bold text-white transition-colors hover:bg-ink"
+        className="tap mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-[14px] font-bold text-white transition-colors hover:bg-accent-hover active:scale-[0.99]"
       >
         Browse services <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>
-      </Reveal>
     </section>
   );
 }
@@ -242,8 +282,7 @@ function CustomerProof({ reviews }: { reviews: HomepageReview[] }) {
 
   return (
     <section className="bg-white px-4 py-7 lg:hidden" aria-labelledby="customer-proof-title">
-      <Reveal>
-        <div className="rounded-2xl bg-ink px-5 py-6 text-white">
+      <div className="rounded-2xl bg-ink px-5 py-6 text-white">
         <div className="flex items-center justify-between gap-3">
           <h2 id="customer-proof-title" className="text-[18px] font-extrabold">Trusted in real homes</h2>
           <Quote className="h-6 w-6 text-amber" aria-hidden="true" />
@@ -266,8 +305,7 @@ function CustomerProof({ reviews }: { reviews: HomepageReview[] }) {
             {review.authorName} · {review.location}
           </span>
         </p>
-        </div>
-      </Reveal>
+      </div>
     </section>
   );
 }
@@ -356,10 +394,11 @@ export function MobileHome({ data }: MobileHomeProps) {
   return (
     <div className="min-h-dvh bg-bg lg:hidden">
       <main>
-        <MobileIntro promoCode={promoCode} />
+        <MobileIntro />
         <TrustStrip />
         <ServiceCategories categories={categories} />
-        <PopularServices items={popular} />
+        <PromoBanner promoCode={promoCode} />
+        <MostBooked items={popular} />
         <HowItWorks />
         <CustomerProof reviews={reviews} />
       </main>

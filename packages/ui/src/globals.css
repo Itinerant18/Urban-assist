@@ -71,6 +71,13 @@
   .safe-pb {
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
+  /* Horizontal snap rows: content scrolls, the scrollbar stays hidden. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media print {
