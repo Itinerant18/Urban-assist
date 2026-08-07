@@ -4,7 +4,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from './cn';
 
 const buttonStyles = cva(
-  'tap inline-flex items-center justify-center gap-2 rounded-xl text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50 disabled:pointer-events-none',
+  'tap inline-flex items-center justify-center gap-2 rounded-xl text-sm font-medium transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50 disabled:pointer-events-none',
   {
     variants: {
       variant: {
@@ -165,28 +165,34 @@ export function EmptyState({
   title,
   description,
   action,
+  icon,
 }: {
   title: string;
   description?: string;
   action?: React.ReactNode;
+  icon?: React.ReactNode;
 }) {
   return (
     <div className="card flex flex-col items-center justify-center gap-5 py-12 text-center border border-hairline bg-white rounded-xl shadow-card">
       {/* Floating Box Illustration */}
-      <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl bg-bg/50 border border-hairline/60">
-        <svg
-          className="h-12 w-12 text-accent"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-          <path d="m3.3 7 8.7 5 8.7-5" />
-          <path d="M12 22V12" />
-        </svg>
+      <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl bg-amber/10 border border-amber/25">
+        {icon ? (
+          icon
+        ) : (
+          <svg
+            className="h-12 w-12 text-amber-deep"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+            <path d="m3.3 7 8.7 5 8.7-5" />
+            <path d="M12 22V12" />
+          </svg>
+        )}
         <span className="absolute bottom-1.5 h-1.5 w-12 rounded-full bg-ink/5 blur-[2px] animate-pulse" />
       </div>
       <div className="space-y-1">

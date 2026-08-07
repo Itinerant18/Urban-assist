@@ -488,7 +488,7 @@ export function AccountClient({
       <h3 className="font-display text-base font-bold text-ink flex items-center gap-2">
         <CreditCard className="h-5 w-5 text-muted" /> Wallet Balance
       </h3>
-      <div className="font-display text-3xl font-bold text-ink">{pence(walletBalancePence)}</div>
+      <div className="font-mono-utility font-display text-3xl font-bold text-ink">{pence(walletBalancePence)}</div>
       <p className="text-xs text-muted">Wallet credit is applied automatically to eligible bookings.</p>
     </Card>
   );
@@ -499,12 +499,9 @@ export function AccountClient({
         <Heart className="h-5 w-5 text-danger fill-danger/10" /> Saved Providers
       </h3>
       {favorites.length ? (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-hairline">
           {favorites.map((f) => (
-            <li
-              key={f.provider_id}
-              className="flex justify-between items-center bg-bg/10 p-3.5 rounded-xl border border-hairline"
-            >
+            <li key={f.provider_id} className="flex justify-between items-center gap-3 py-3.5 first:pt-0 last:pb-0">
               <div>
                 <span className="font-bold text-sm text-ink block">{f.provider?.full_name}</span>
                 <span className="text-xs text-muted block mt-0.5">
@@ -719,7 +716,10 @@ export function AccountClient({
       {confirmDialog}
       {/* Title */}
       <header>
-        <h1 className="font-display text-2xl font-bold text-ink">Account Settings</h1>
+        <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+          Your account
+        </p>
+        <h1 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">Account Settings</h1>
         <p className="mt-1 text-sm text-muted">Manage your profile, payments, addresses, and preferences.</p>
       </header>
 

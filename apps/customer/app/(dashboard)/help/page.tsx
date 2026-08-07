@@ -115,8 +115,11 @@ export default function HelpPage() {
 
       {/* Header */}
       <div className="hidden lg:block">
-        <h1 className="font-display text-xl font-bold text-ink">Help & Support</h1>
-        <p className="text-xs text-muted mt-0.5">Find answers to common questions or reach our support team.</p>
+        <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+          Support
+        </p>
+        <h1 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">Help &amp; Support</h1>
+        <p className="mt-1 text-sm text-muted">Find answers to common questions or reach our support team.</p>
       </div>
 
       {/* Search Help Articles */}
@@ -259,19 +262,17 @@ export default function HelpPage() {
           {!tickets?.length ? (
             <p className="text-sm text-muted">No past support tickets.</p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="divide-y divide-hairline rounded-2xl border border-hairline bg-white shadow-card">
               {tickets.map((t) => (
-                <li key={t.id}>
-                  <Card className="flex items-start justify-between gap-3 border border-hairline bg-white rounded-xl p-4 shadow-card">
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold text-ink">{t.category}</div>
-                      <p className="mt-1 line-clamp-2 text-xs text-muted leading-relaxed">{t.description}</p>
-                      <div className="mt-2 text-[11px] text-muted font-mono-utility">
-                        Raised {ukDateTime(t.created_at)}
-                      </div>
+                <li key={t.id} className="flex items-start justify-between gap-3 px-4 py-4 transition-colors hover:bg-bg/60">
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-ink">{t.category}</div>
+                    <p className="mt-1 line-clamp-2 text-xs text-muted leading-relaxed">{t.description}</p>
+                    <div className="mt-2 text-[11px] text-muted font-mono-utility">
+                      Raised {ukDateTime(t.created_at)}
                     </div>
-                    <Badge tone={ticketTone[t.status] ?? 'muted'}>{t.status.replace(/_/g, ' ')}</Badge>
-                  </Card>
+                  </div>
+                  <Badge tone={ticketTone[t.status] ?? 'muted'}>{t.status.replace(/_/g, ' ')}</Badge>
                 </li>
               ))}
             </ul>

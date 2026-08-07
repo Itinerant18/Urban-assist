@@ -23,7 +23,10 @@ export default function LoginPage() {
             <Logo className="h-[34px] w-[34px]" />
             <span className="font-extrabold text-ink">Urban Assist</span>
           </div>
-          <h1 className="mt-6 font-display text-2xl font-extrabold text-ink">Welcome back</h1>
+          <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+            Home services
+          </p>
+          <h1 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">Welcome back</h1>
           <p className="mt-2 text-sm text-muted">Log in to manage your home.</p>
           <p className="mt-1 text-sm text-muted">
             New to Urban Assist? You&apos;ll be signed up on first use.

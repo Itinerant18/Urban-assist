@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '../../../components/cart-context';
 import { Card, Button, EmptyState, Skeleton } from '@urban-assist/ui';
 import { pence, quote } from '@urban-assist/lib';
-import { Clock, Trash2, ArrowRight } from 'lucide-react';
+import { Clock, Trash2, ArrowRight, ShoppingBag } from 'lucide-react';
 import { vatLabel } from '@urban-assist/ui';
 
 export default function CartPage() {
@@ -15,7 +15,12 @@ export default function CartPage() {
   if (!hydrated) {
     return (
       <div className="space-y-4 py-6">
-        <h1 className="font-display text-xl">Cart</h1>
+        <div>
+          <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+            Booking
+          </p>
+          <h1 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">Cart</h1>
+        </div>
         <Card className="border border-hairline bg-white p-4 rounded-xl">
           <Skeleton className="h-5 w-1/3" />
           <Skeleton className="mt-3 h-4 w-2/3" />
@@ -29,10 +34,16 @@ export default function CartPage() {
   if (!cart) {
     return (
       <div className="space-y-4 py-6">
-        <h1 className="font-display text-xl">Cart</h1>
+        <div>
+          <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+            Booking
+          </p>
+          <h1 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">Cart</h1>
+        </div>
         <EmptyState
           title="Your cart is empty"
           description="Find a service to get started."
+          icon={<ShoppingBag className="h-8 w-8 text-amber-deep" />}
           action={
             <Link href="/">
               <Button>Find a service</Button>
@@ -45,7 +56,12 @@ export default function CartPage() {
 
   return (
     <div className="space-y-5 py-6">
-      <h1 className="font-display text-xl">Cart</h1>
+      <div>
+        <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+          Booking
+        </p>
+        <h1 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">Cart</h1>
+      </div>
       <Card className="flex flex-col gap-4 border border-hairline bg-white p-4 rounded-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -78,16 +94,16 @@ export default function CartPage() {
             <div className="space-y-1.5 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted">Subtotal</span>
-                <span className="font-medium text-ink">{pence(q.subtotal_pence)}</span>
+                <span className="font-mono-utility font-medium text-ink">{pence(q.subtotal_pence)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted">{vatLabel}</span>
-                <span className="font-medium text-ink">{pence(q.vat_pence)}</span>
+                <span className="font-mono-utility font-medium text-ink">{pence(q.vat_pence)}</span>
               </div>
               <div className="flex items-center justify-between pt-1">
                 <div>
                   <div className="text-xs text-muted">Total (inc. VAT)</div>
-                  <div className="font-display text-xl font-bold text-ink">
+                  <div className="font-mono-utility font-display text-xl font-bold text-ink">
                     {pence(q.total_pence)}
                   </div>
                 </div>

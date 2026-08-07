@@ -50,7 +50,10 @@ export function ReferralClient({
     <div className="space-y-8 max-w-4xl mx-auto py-2">
       {/* Page Header */}
       <div>
-        <h1 className="font-display text-2xl font-bold text-ink">Refer a Friend</h1>
+        <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+          Referrals
+        </p>
+        <h1 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">Refer a Friend</h1>
         <p className="text-sm text-muted mt-1">{rewardCopy}</p>
       </div>
 
@@ -126,7 +129,9 @@ export function ReferralClient({
         
         {history.length === 0 ? (
           <Card className="flex flex-col items-center py-10 gap-2 border border-hairline text-center">
-            <Gift className="h-8 w-8 text-muted" />
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-amber/10">
+              <Gift className="h-7 w-7 text-amber-deep" />
+            </div>
             <p className="text-sm font-semibold text-ink">No referrals yet</p>
             <p className="text-xs text-muted">Codes shared will list here as soon as friends sign up.</p>
           </Card>
@@ -159,7 +164,7 @@ export function ReferralClient({
                           {row.status.toUpperCase()}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-right font-bold text-sm">
+                      <td className="px-5 py-4 text-right font-mono-utility font-bold text-sm">
                         {row.reward}
                       </td>
                     </tr>

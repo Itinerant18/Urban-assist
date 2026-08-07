@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
-import { Card, Button, EmptyState, Skeleton } from '@urban-assist/ui';
+import { Button, EmptyState, Skeleton } from '@urban-assist/ui';
 import { Bell, BellDot, CheckCircle2 } from 'lucide-react';
 import { ukDateTime } from '@urban-assist/lib';
 import Link from 'next/link';
@@ -98,7 +98,10 @@ export default function NotificationsPage() {
     <div className="space-y-4">
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Notifications</h1>
+          <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+            Updates
+          </p>
+          <h1 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">Notifications</h1>
           <p className="mt-1 text-sm text-muted">Booking, payment, and account updates.</p>
         </div>
         {unreadCount > 0 && (
@@ -112,13 +115,14 @@ export default function NotificationsPage() {
         <EmptyState
           title="No notifications yet"
           description="Booking, payment, and account updates will appear here."
+          icon={<Bell className="h-8 w-8 text-amber-deep" />}
         />
       ) : (
-        <div className="space-y-2">
+        <ul className="divide-y divide-hairline rounded-2xl border border-hairline bg-white">
           {notifications.map((n) => (
-            <Card 
-              key={n.id} 
-              className={`p-4 transition-colors ${!n.read_at ? 'bg-accent/5 border-accent/20' : ''}`}
+            <li
+              key={n.id}
+              className={`px-4 py-3.5 transition-colors ${!n.read_at ? 'bg-accent/5' : 'hover:bg-bg/60'}`}
             >
               <div className="flex gap-4">
                 <div className="pt-1">
@@ -154,9 +158,9 @@ export default function NotificationsPage() {
                   </div>
                 )}
               </div>
-            </Card>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

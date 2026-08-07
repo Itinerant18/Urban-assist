@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Card, EmptyState, RatingStars } from '@urban-assist/ui';
-import { ArrowLeft, ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Filter, Star } from 'lucide-react';
 
 export interface CustomerReview {
   id: string;
@@ -55,12 +55,16 @@ export function ReviewsClient({ reviews }: { reviews: CustomerReview[] }) {
 
   return (
     <div className="space-y-6 py-2 pb-8">
-      <header className="flex items-center justify-between">
-        <Link href="/" className="tap flex items-center gap-1 text-sm font-bold text-muted hover:text-ink">
+      <header>
+        <Link href="/" className="tap inline-flex items-center gap-1 text-sm font-bold text-muted hover:text-ink">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
-        <h1 className="font-display text-base font-bold text-ink">Your Reviews</h1>
-        <div className="w-10" />
+        <div className="mt-3">
+          <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+            Reviews
+          </p>
+          <h1 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">Your Reviews</h1>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[280px,1fr]">

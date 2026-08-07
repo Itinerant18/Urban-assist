@@ -96,16 +96,19 @@ export function BrowseClient({
   return (
     <div className="space-y-5 py-2">
       {/* Title / Info Header */}
-      <header className="flex items-center justify-between">
+      <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-ink">
+          <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+            Browse
+          </p>
+          <h1 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">
             {categoryName ? categoryName : 'All services'}
           </h1>
           <p className="mt-1 text-sm text-muted">
             {filteredServices.length} Providers Found{customerLocation ? ' near you' : ''}
           </p>
         </div>
-        <Link href="/" className="text-xs text-muted hover:text-ink font-semibold">
+        <Link href="/" className="text-xs text-muted hover:text-ink font-semibold shrink-0">
           All categories
         </Link>
       </header>
@@ -299,7 +302,7 @@ export function BrowseClient({
                           <div className="text-[11px] text-muted uppercase font-mono-utility">
                             {s.distanceKm != null ? 'Rate / Distance' : 'Rate'}
                           </div>
-                          <div className="text-sm font-extrabold text-ink">
+                          <div className="font-mono-utility text-sm font-extrabold text-ink">
                             {pence(s.price_pence)}/hr
                             {s.distanceKm != null ? ` • ${miles(s.distanceKm)}` : ''}
                           </div>
@@ -339,7 +342,7 @@ export function BrowseClient({
                             {Number(s.provider?.rating_avg ?? 0).toFixed(1)}
                           </span>
                           <span>•</span>
-                          <span className="font-extrabold text-ink">{pence(s.price_pence)}/hr</span>
+                          <span className="font-mono-utility font-extrabold text-ink">{pence(s.price_pence)}/hr</span>
                           {s.distanceKm != null && (
                             <>
                               <span>•</span>
