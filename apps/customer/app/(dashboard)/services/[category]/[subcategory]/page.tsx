@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getSupabaseServer } from '@urban-assist/db/server';
+import { createServiceRole, getSupabaseServer } from '@urban-assist/db/server';
 import {
     getCategoryBySlug,
     getSubcategoryBySlug,
@@ -54,6 +54,37 @@ async function fetchProviders(categorySlug: string) {
   }
 }
 
+// Real per-category rating distribution for the UC-style histogram.
+// Returns null when the category has no reviews yet, and the block hides.
+// Service-role: RLS scopes `bookings` to their owners, which would blank the
+// join for anonymous visitors. Only aggregate counts leave this function.
+async function fetchRatings(categorySlug: string) {
+  try {
+    const db = createServiceRole();
+    const { data: cat } = await db
+      .from('service_categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .single();
+    if (!cat) return null;
+    const { data } = await db
+      .from('reviews')
+      .select('rating, booking:bookings!inner(category_id)')
+      .eq('bookings.category_id', cat.id);
+    if (!data || data.length === 0) return null;
+    const dist = [0, 0, 0, 0, 0]; // index 0 = 5 stars … index 4 = 1 star
+    let sum = 0;
+    for (const r of data) {
+      const rating = Math.min(5, Math.max(1, r.rating));
+      dist[5 - rating] += 1;
+      sum += rating;
+    }
+    return { avg: sum / data.length, count: data.length, dist };
+  } catch {
+    return null;
+  }
+}
+
 function getDefaultFaqs(subcategoryName: string) {
   return [
     {
@@ -93,7 +124,10 @@ export default async function SubcategoryPage({
     notFound();
   }
 
-  const providers = await fetchProviders(params.category);
+  const [providers, ratings] = await Promise.all([
+    fetchProviders(params.category),
+    fetchRatings(params.category),
+  ]);
   const siblingSubcategories = category.subcategories.filter((s) => s.slug !== subcategory.slug);
   const faqs = getDefaultFaqs(subcategory.name);
 
@@ -112,6 +146,7 @@ export default async function SubcategoryPage({
         siblingSubcategories={siblingSubcategories}
         providers={providers}
         faqs={faqs}
+        ratings={ratings}
       />
       <Footer />
     </>

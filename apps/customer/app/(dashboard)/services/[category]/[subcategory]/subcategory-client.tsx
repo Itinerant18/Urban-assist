@@ -15,7 +15,6 @@ import {
   ArrowRight,
   SlidersHorizontal,
   Flame,
-  HelpCircle,
 } from 'lucide-react';
 import { pence } from '@urban-assist/lib';
 import { Reveal, BeforeAfter, ServiceImage, VideoLoop } from '@urban-assist/ui';
@@ -54,6 +53,8 @@ interface SubcategoryClientProps {
   siblingSubcategories: Subcategory[];
   providers: ProviderPreview[];
   faqs: { question: string; answer: string }[];
+  /** Real per-category review distribution; null hides the histogram. dist[0] = 5★ … dist[4] = 1★ */
+  ratings: { avg: number; count: number; dist: number[] } | null;
 }
 
 export function SubcategoryClient({
@@ -62,6 +63,7 @@ export function SubcategoryClient({
   siblingSubcategories,
   providers,
   faqs,
+  ratings,
 }: SubcategoryClientProps) {
   // ── States ───────────────────────────────────────────────────
   const [isScrolled, setIsScrolled] = React.useState(false);
@@ -559,6 +561,52 @@ export function SubcategoryClient({
           </section>
         )}
 
+        {/* ── SECTION 5b: RATINGS HISTOGRAM (real data only) ────── */}
+        {ratings && (
+          <section className="mb-14" aria-labelledby="ratings-title">
+            <h2 id="ratings-title" className="text-[20px] font-extrabold text-ink">
+              Customer ratings in {category.name.toLowerCase()}
+            </h2>
+            <div className="mt-4 flex flex-col gap-6 rounded-2xl border border-hairline bg-white p-6 sm:flex-row sm:items-center sm:gap-10">
+              <div className="shrink-0">
+                <p className="flex items-center gap-2 text-[44px] font-extrabold leading-none tracking-tight text-ink">
+                  <Star className="h-8 w-8 fill-amber text-amber" aria-hidden="true" />
+                  {ratings.avg.toFixed(2)}
+                </p>
+                <p className="mt-2 text-[13px] font-medium text-muted">
+                  {ratings.count} review{ratings.count !== 1 ? 's' : ''} across completed bookings
+                </p>
+              </div>
+              <dl className="min-w-0 flex-1 space-y-2">
+                {ratings.dist.map((n, i) => {
+                  const stars = 5 - i;
+                  const pct = ratings.count > 0 ? (n / ratings.count) * 100 : 0;
+                  return (
+                    <div key={stars} className="flex items-center gap-3">
+                      <dt className="flex w-8 shrink-0 items-center gap-1 font-mono-utility text-[12px] font-semibold text-charcoal">
+                        <Star className="h-3 w-3 fill-amber text-amber" aria-hidden="true" />
+                        {stars}
+                      </dt>
+                      <dd className="flex min-w-0 flex-1 items-center gap-3">
+                        <div
+                          className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-sunk"
+                          role="img"
+                          aria-label={`${n} ${stars}-star review${n !== 1 ? 's' : ''}`}
+                        >
+                          <div className="h-full rounded-full bg-amber" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="w-8 shrink-0 text-right font-mono-utility text-[12px] font-semibold text-muted">
+                          {n}
+                        </span>
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            </div>
+          </section>
+        )}
+
         {/* ── SECTION 6: TRUST PILLARS ──────────────────────────── */}
         <section className="mb-14 rounded-3xl border border-input-border bg-white p-6 shadow-sm lg:p-8">
           <div className="text-center max-w-xl mx-auto mb-8">
@@ -619,26 +667,22 @@ export function SubcategoryClient({
               </p>
             </div>
 
-            <div className="flex flex-col gap-3">
+            {/* UC-lean rows: one hairline between questions, no icon boxes. */}
+            <div className="divide-y divide-hairline border-t border-hairline">
               {faqs.map((faq, index) => {
                 const isOpen = openFaqIndex === index;
                 return (
-                  <div
-                    key={index}
-                    className="rounded-2xl border border-hairline bg-white shadow-sm transition overflow-hidden"
-                  >
+                  <div key={index}>
                     <button
                       onClick={() => setOpenFaqIndex(isOpen ? null : index)}
-                      className="flex w-full items-center justify-between p-4 text-left text-[14px] font-bold text-ink hover:text-accent transition"
+                      aria-expanded={isOpen}
+                      className="tap flex w-full items-center justify-between gap-4 py-4 text-left text-[14px] font-bold text-ink transition hover:text-accent-deep"
                     >
-                      <span className="flex items-center gap-2.5">
-                        <HelpCircle className="h-4 w-4 text-accent shrink-0" />
-                        {faq.question}
-                      </span>
+                      {faq.question}
                       {isOpen ? (
-                        <ChevronUp className="h-4 w-4 text-muted shrink-0" />
+                        <ChevronUp className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
                       ) : (
-                        <ChevronDown className="h-4 w-4 text-muted shrink-0" />
+                        <ChevronDown className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
                       )}
                     </button>
                     {/* Animated open/close: grid-rows 0fr→1fr keeps height
@@ -649,9 +693,7 @@ export function SubcategoryClient({
                       }`}
                     >
                       <div className="min-h-0 overflow-hidden">
-                        <div className="px-4 pb-4 pt-1 text-[13px] text-muted leading-relaxed border-t border-hairline/50 bg-bg/30">
-                          {faq.answer}
-                        </div>
+                        <p className="pb-4 text-[13px] leading-relaxed text-muted">{faq.answer}</p>
                       </div>
                     </div>
                   </div>
