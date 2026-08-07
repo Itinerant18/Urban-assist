@@ -14,6 +14,20 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const admin = createServiceRole();
   try {
+    // The offer must belong to the caller. Without this any authenticated provider
+    // could expire a stranger's stale offer and force the dispatch cascade to move
+    // on. The sibling PATCH route gets this via respondToOffer's provider_id check
+    // (matching-engine.ts); this route had no equivalent.
+    const { data: offer } = await admin
+      .from('booking_offers')
+      .select('provider_id')
+      .eq('id', id.data)
+      .maybeSingle();
+    if (!offer) return NextResponse.json({ error: 'offer_not_found' }, { status: 404 });
+    if (offer.provider_id !== user.id) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    }
+
     const result = await expireOfferIfStale(admin, id.data);
     return NextResponse.json(result);
   } catch (e: any) {

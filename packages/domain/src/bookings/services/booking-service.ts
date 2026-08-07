@@ -36,7 +36,11 @@ export interface CreateBookingResult {
  */
 export async function computeNetServicePrice(
   admin: SupabaseClient,
-  input: { providerServiceId: string; addressId: string; scheduledAt: string },
+  // ownerId is required, not optional: the address lookup below runs on the
+  // service-role client, so without it a caller could pass any address_id and read
+  // the postcode-derived price for a stranger's address. bookings' RLS insert policy
+  // only checks customer_id, so it does not backstop this.
+  input: { providerServiceId: string; addressId: string; scheduledAt: string; ownerId: string },
 ): Promise<{
   svc: { id: string; provider_id: string; category_id: string | null; sku_id: string | null; price_pence: number };
   basePence: number;
@@ -65,24 +69,33 @@ export async function computeNetServicePrice(
   }
   const basePence = resolveServicePrice(svc, sku);
 
+  // Resolved outside the fail-open block below on purpose. This is an authorization
+  // check, not a pricing input: if it were folded into that try/catch, a foreign
+  // address_id would quietly fall through to base price and createBooking would then
+  // persist it onto the booking and dispatch offers against it.
+  const { data: address } = await admin
+    .from('addresses')
+    .select('postcode')
+    .eq('id', input.addressId)
+    .eq('profile_id', input.ownerId)
+    .maybeSingle();
+  if (!address) throw new Error('address_not_found');
+
   // Region / time modifiers (admin /pricing). Fail open so a modifier-table
   // problem never blocks bookings — but never silently.
   let netPence = basePence;
   try {
-    const [{ data: address }, { data: modifiers }] = await Promise.all([
-      admin.from('addresses').select('postcode').eq('id', input.addressId).maybeSingle(),
-      admin
-        .from('pricing_modifiers')
-        .select(
-          'id, postcode_prefix, start_hour, end_hour, category_id, adjustment_percent, is_active',
-        )
-        .eq('is_active', true),
-    ]);
+    const { data: modifiers } = await admin
+      .from('pricing_modifiers')
+      .select(
+        'id, postcode_prefix, start_hour, end_hour, category_id, adjustment_percent, is_active',
+      )
+      .eq('is_active', true);
     netPence = applyPricingModifiers(
       basePence,
       (modifiers ?? []) as PricingModifierRule[],
       {
-        postcode: address?.postcode ?? null,
+        postcode: address.postcode ?? null,
         hour: hourInLondon(input.scheduledAt),
         categoryId: svc.category_id ?? null,
       },
@@ -120,14 +133,15 @@ export async function createBooking(
     providerServiceId: input.providerServiceId,
     addressId: input.addressId,
     scheduledAt: input.scheduledAt,
+    ownerId: input.customerId,
   });
 
   let promo: { id: string; discount_type: 'percent' | 'fixed'; discount_value: number } | null =
     null;
   if (input.promoCode) {
     // Atomically reserves one redemption; returns nothing if expired/exhausted.
-    // ponytail: over-counts by one if the booking insert below then fails —
-    // acceptable until createBooking is wrapped in a single DB transaction.
+    // The reservation has to happen before the insert because the discount feeds
+    // the totals below, so the insert failure path releases it again.
     const { data: redeemed } = await admin.rpc('redeem_promo_code', {
       p_code: input.promoCode,
     });
@@ -160,6 +174,16 @@ export async function createBooking(
     .select()
     .single();
   if (bErr || !booking) {
+    // Give the promo redemption back — it was reserved above for a booking that
+    // does not exist. Best-effort: the insert failure is what the caller needs to
+    // hear about, so a failed release must not mask it.
+    if (promo) {
+      try {
+        await admin.rpc('release_promo_code', { p_promo_id: promo.id });
+      } catch {
+        /* the insert error below is the one that matters */
+      }
+    }
     // Unique index bookings_dedupe_active_idx: same customer/service/slot with a
     // live prior booking — double-click or back-button resubmission.
     if (bErr?.code === '23505') {
@@ -238,6 +262,16 @@ export async function createBooking(
       .from('bookings')
       .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
       .eq('id', booking.id);
+    // Give the promo redemption back here too. The booking exists but is dead, which
+    // burns a capped code exactly as an outright insert failure would — releasing only
+    // on the insert path left this leak open.
+    if (promo) {
+      try {
+        await admin.rpc('release_promo_code', { p_promo_id: promo.id });
+      } catch {
+        /* the setup error below is the one that matters */
+      }
+    }
     throw e;
   }
 

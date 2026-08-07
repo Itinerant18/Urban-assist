@@ -80,6 +80,9 @@ export function OfferCard({ offer, onResolved }: { offer: any; onResolved: () =>
         body: JSON.stringify({ accept }),
       });
       const j = await res.json().catch(() => ({}));
+      if (j.error === 'provider_schedule_conflict') {
+        throw new Error('You already have a job booked around this time.');
+      }
       if (!res.ok) throw new Error(j.error ?? 'Failed');
       if (accept && j.result !== 'accepted') {
         // Server declined the accept (offer taken/expired) but returned 200 —

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseServer } from '@urban-assist/db/server';
 import { createTipIntent } from '@urban-assist/integrations/stripe';
+import { paymentIntentRateLimit } from '@urban-assist/integrations/redis';
 
 const Schema = z.object({
   booking_id: z.string().uuid(),
@@ -14,6 +15,12 @@ export async function POST(req: NextRequest) {
     const db = getSupabaseServer();
     const { data: { user } } = await db.auth.getUser();
     if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+    const rl = paymentIntentRateLimit();
+    if (rl) {
+      const { success } = await rl.limit(user.id);
+      if (!success) return NextResponse.json({ error: 'too_many_requests' }, { status: 429 });
+    }
 
     const parsed = Schema.safeParse(await req.json());
     if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

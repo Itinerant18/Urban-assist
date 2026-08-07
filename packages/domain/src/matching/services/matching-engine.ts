@@ -444,15 +444,21 @@ export async function respondToOffer(
         throw new Error(training.message ?? 'training_required');
       }
 
-      const { data: assigned, error: assignError } = await db
-        .from('bookings')
-        .update({ provider_id: providerId })
-        .eq('id', offer.booking_id)
-        .in('status', ['pending_match', 'unmatched'])
-        .is('provider_id', null)
-        .select('id, customer_id, provider_id, status')
-        .maybeSingle();
-      if (assignError) throw assignError;
+      // Claim through the RPC rather than a bare compare-and-swap: it takes a
+      // per-provider advisory lock and re-checks the ±60 minute busy window, so a
+      // provider holding two overlapping offers cannot accept both. The CAS on
+      // `provider_id is null` still lives inside the RPC.
+      const { data: claimed, error: assignError } = await db.rpc('claim_booking_for_provider', {
+        p_booking_id: offer.booking_id,
+        p_provider_id: providerId,
+      });
+      if (assignError) {
+        if (String(assignError.message ?? '').includes('provider_schedule_conflict')) {
+          throw new Error('provider_schedule_conflict');
+        }
+        throw assignError;
+      }
+      const assigned = Array.isArray(claimed) ? claimed[0] : claimed;
       if (!assigned) {
         await db
           .from('booking_offers')

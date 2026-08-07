@@ -10,7 +10,7 @@ export async function GET() {
     const data = await listPendingKyc(db);
     return NextResponse.json(data);
   } catch (e: any) {
-    const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' ? 401 : 400;
+    const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' || e.message === 'mfa_required' ? 401 : 400;
     return NextResponse.json({ error: e.message }, { status });
   }
 }

@@ -69,6 +69,9 @@ export function OfferDetail({
         }),
       });
       const j = await res.json().catch(() => ({}));
+      if (j.error === 'provider_schedule_conflict') {
+        throw new Error('You already have a job booked around this time.');
+      }
       if (!res.ok) throw new Error(j.error ?? 'Could not send your response');
 
       // The engine may report `expired` even on an accept, if another provider took

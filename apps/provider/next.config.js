@@ -1,8 +1,12 @@
 const path = require('path');
+const { securityHeaders } = require('../../tooling/security-headers');
 
 /** @type {import('next').NextConfig} */
 module.exports = {
   reactStrictMode: true,
+  async headers() {
+    return [{ source: '/(.*)', headers: securityHeaders() }];
+  },
   transpilePackages: ['@urban-assist/ui', '@urban-assist/db', '@urban-assist/lib'],
   // ponytail: Next 14 still nests this under experimental; top-level key is ignored
   experimental: {

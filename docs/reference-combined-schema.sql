@@ -1,8 +1,13 @@
 -- ============================================================
--- HOMEASE COMBINED MIGRATION SCRIPT (0001 - 0005)
--- Copy and paste this script directly into the Supabase Dashboard SQL Editor
--- (https://supabase.com/dashboard/project/bkgoavguqwdbpycbnrky/sql)
--- to initialize the database schema, RLS, triggers, seed data, and buckets.
+-- HOMEASE COMBINED SCHEMA SNAPSHOT (0001 - 0005) -- REFERENCE ONLY, DO NOT EXECUTE
+--
+-- This is a historical snapshot of migrations 0001-0005, kept for reading only. It
+-- was previously labelled "copy and paste into the Supabase SQL Editor"; do not.
+-- The schema has moved on by 70+ migrations and running this against a live
+-- database re-applies superseded definitions and policies.
+--
+-- The database is owned by supabase/migrations/. Apply changes with
+-- `pnpm db:migrate` (supabase db push), never by pasting SQL from docs.
 -- ============================================================
 
 -- EXTENSIONS
@@ -490,20 +495,19 @@ insert into promo_codes (code, discount_type, discount_value, expires_at) values
 on conflict (code) do nothing;
 
 -- ============================================================
--- STORAGE BUCKETS & POLICIES
+-- STORAGE BUCKETS & POLICIES -- REMOVED, DO NOT RESTORE
 -- ============================================================
-
-insert into storage.buckets (id, name, public)
-values ('completion', 'completion', true)
-on conflict (id) do nothing;
-
-drop policy if exists "completion public read" on storage.objects;
-create policy "completion public read" on storage.objects
-  for select using (bucket_id = 'completion');
-
-drop policy if exists "completion provider insert" on storage.objects;
-create policy "completion provider insert" on storage.objects
-  for insert with check (
-    bucket_id = 'completion'
-    and (auth.uid()::text = (storage.foldername(name))[1])
-  );
+--
+-- This section used to create a PUBLIC 'completion' bucket plus a
+-- "completion public read" policy with no role restriction. That policy is
+-- satisfied by `anon`, and the anon key ships in all three client apps, so it
+-- exposed customer home-interior photos to anyone with the key -- independently
+-- of the bucket's `public` flag, which only governs the unauthenticated
+-- /object/public/ route.
+--
+-- Migration 202608070001_lock_legacy_completion_bucket.sql closed that hole.
+-- Re-running the statements that were here would reopen it.
+--
+-- Completion photos now live in the private 'completion-photos' bucket, created
+-- and policed by 0017_secure_job_start_and_completion.sql. Storage buckets and
+-- policies are owned by supabase/migrations/ -- not by this file.

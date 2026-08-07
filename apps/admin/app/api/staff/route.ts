@@ -36,6 +36,17 @@ async function checkSuperAdmin() {
   const { data: { user } } = await db.auth.getUser();
   if (!user) return { isSuper: false, user: null };
 
+  // /api/auth/login sets the session cookie on a correct password and only THEN
+  // returns mfa_required, so a bare getUser() here is satisfied by an aal1 session
+  // that never passed TOTP. This route creates admin users and assigns admin roles,
+  // so it must require aal2 the same way requireAdminRole does (lib/admin-auth.ts).
+  // Same class of bug as the one already fixed in api/auth/password/route.ts.
+  const { data: assurance, error: assuranceError } =
+    await db.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (assuranceError || assurance.currentLevel !== 'aal2') {
+    return { isSuper: false, user: null };
+  }
+
   const adminDb = createServiceRole();
   const { data: memberships } = await (adminDb as any)
     .from('admin_user_roles')

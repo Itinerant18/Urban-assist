@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     const data = await getTicket(db, params.id);
     return NextResponse.json(data);
   } catch (e: any) {
-    const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' ? 401 : 404;
+    const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' || e.message === 'mfa_required' ? 401 : 404;
     return NextResponse.json({ error: e.message }, { status });
   }
 }
@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' ? 401 : 400;
+    const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' || e.message === 'mfa_required' ? 401 : 400;
     return NextResponse.json({ error: e.message }, { status });
   }
 }
