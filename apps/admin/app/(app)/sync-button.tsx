@@ -13,10 +13,20 @@ export function SyncButton() {
     setBusy(true);
     setErr(null);
     try {
-      await syncDashboardStats();
-      router.refresh();
-    } catch (e: any) {
-      setErr(e?.message === 'mfa_required' ? 'Re-authenticate to sync' : 'Sync failed');
+      const res = await syncDashboardStats();
+      if (res.ok) {
+        router.refresh();
+      } else {
+        setErr(
+          res.reason === 'mfa_required'
+            ? 'Re-authenticate to sync'
+            : res.reason === 'forbidden'
+              ? 'Not permitted'
+              : 'Sync failed',
+        );
+      }
+    } catch {
+      setErr('Sync failed');
     } finally {
       setBusy(false);
     }

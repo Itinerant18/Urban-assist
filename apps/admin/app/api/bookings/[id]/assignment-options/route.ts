@@ -34,7 +34,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ providers });
   } catch (error: any) {
     const status =
-      error.message === 'unauthorized' ? 401 : error.message === 'forbidden' ? 403 : 400;
+      error.message === 'unauthorized' || error.message === 'mfa_required'
+        ? 401
+        : error.message === 'forbidden'
+          ? 403
+          : 400;
     return NextResponse.json({ error: error.message }, { status });
   }
 }

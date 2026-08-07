@@ -20,22 +20,33 @@ const FIREBASE = [
   'wss://*.firebaseio.com',
   'https://*.google.com',
 ];
-const MAPS = ['https://maps.googleapis.com', 'https://maps.gstatic.com'];
 const VERCEL = ['https://va.vercel-scripts.com', 'https://vitals.vercel-insights.com'];
+// The Maps JS SDK is not used anywhere (no `google.maps`, no @react-google-maps). Maps
+// appears only as www.google.com/maps/embed iframes — 8 call sites across the customer
+// and provider apps — so it belongs in frame-src, not script-src/connect-src.
+const MAPS_EMBED = 'https://www.google.com';
+// firebase-messaging-sw.js in the customer and provider apps importScripts() the compat
+// SDKs from gstatic. The '/(.*)' header rule serves this CSP on the worker script too,
+// so the worker inherits it and importScripts is governed by script-src. Omitting this
+// breaks push notifications the moment the policy is enforced.
+const FIREBASE_SDK = 'https://www.gstatic.com';
 
 function contentSecurityPolicy() {
   return [
     "default-src 'self'",
-    // 'unsafe-inline'/'unsafe-eval': Next's runtime and the Stripe/Maps loaders both
-    // need them without a nonce pipeline. Tightening this is a separate job — it
-    // needs per-request nonces threaded through the app shell.
-    `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${STRIPE.join(' ')} ${MAPS.join(' ')} ${VERCEL.join(' ')}`,
+    // 'unsafe-inline'/'unsafe-eval': Next's runtime and the Stripe loader both need them
+    // without a nonce pipeline. Tightening this is a separate job — it needs per-request
+    // nonces threaded through the app shell.
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${STRIPE.join(' ')} ${FIREBASE_SDK} ${VERCEL.join(' ')}`,
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: ${SUPABASE_HTTP} https://*.gstatic.com https://*.googleapis.com`,
     "font-src 'self' data:",
-    `connect-src 'self' ${SUPABASE.join(' ')} ${STRIPE.join(' ')} ${FIREBASE.join(' ')} ${MAPS.join(' ')} ${VERCEL.join(' ')}`,
-    // Stripe payment element and 3DS challenges render in Stripe-hosted iframes.
-    'frame-src https://js.stripe.com https://hooks.stripe.com',
+    `connect-src 'self' ${SUPABASE.join(' ')} ${STRIPE.join(' ')} ${FIREBASE.join(' ')} ${VERCEL.join(' ')}`,
+    // frame-src does NOT fall back to default-src, so every framed origin must be listed:
+    // Stripe payment element + 3DS challenges, Google Maps embeds, and the Supabase
+    // signed-URL iframe the admin KYC reviewer uses to view passports/DBS/insurance
+    // (apps/admin/app/(app)/kyc/[providerId]/review-actions.tsx:131).
+    `frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com https://m.stripe.network ${MAPS_EMBED} ${SUPABASE_HTTP}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const result = await listProviders(db, limit, offset, kycFilter);
     return NextResponse.json(result);
   } catch (e: any) {
-    const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' ? 401 : 400;
+    const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' || e.message === 'mfa_required' ? 401 : 400;
     return NextResponse.json({ error: e.message }, { status });
   }
 }

@@ -30,7 +30,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       documents: documentsWithUrls,
     });
   } catch (e: any) {
-    const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' ? 401 : 404;
+    const status = e.message === 'forbidden' ? 403 : e.message === 'unauthorized' || e.message === 'mfa_required' ? 401 : 404;
     return NextResponse.json({ error: e.message }, { status });
   }
 }

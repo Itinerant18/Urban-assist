@@ -262,6 +262,16 @@ export async function createBooking(
       .from('bookings')
       .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
       .eq('id', booking.id);
+    // Give the promo redemption back here too. The booking exists but is dead, which
+    // burns a capped code exactly as an outright insert failure would — releasing only
+    // on the insert path left this leak open.
+    if (promo) {
+      try {
+        await admin.rpc('release_promo_code', { p_promo_id: promo.id });
+      } catch {
+        /* the setup error below is the one that matters */
+      }
+    }
     throw e;
   }
 
