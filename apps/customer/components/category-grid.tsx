@@ -49,7 +49,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
       description: cleaning.description || 'Professional home and flat cleaning services.',
       icon: cleaning.icon,
       stripeType: 'B' as const,
-      caption: 'Cleaning service — photo',
+      caption: 'Cleaning service',
       spanClass: 'col-span-2 row-span-1 sm:row-span-2',
       badge: badgeColors[cleaning.icon] || { bg: '#6B8F6B', label: 'Top rated' },
     },
@@ -62,7 +62,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
       description: plumbing.description,
       icon: plumbing.icon,
       stripeType: 'A' as const,
-      caption: 'Plumbing service — photo',
+      caption: 'Plumbing service',
       spanClass: 'col-span-1 row-span-1',
       badge: badgeColors[plumbing.icon],
     },
@@ -75,7 +75,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
       description: electrical.description,
       icon: electrical.icon,
       stripeType: 'A' as const,
-      caption: 'Electrical service — photo',
+      caption: 'Electrical service',
       spanClass: 'col-span-1 row-span-1',
       badge: badgeColors[electrical.icon],
     },
@@ -88,7 +88,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
       description: heating.description,
       icon: heating.icon,
       stripeType: 'A' as const,
-      caption: 'Heating & boiler — photo',
+      caption: 'Heating & boiler',
       spanClass: 'col-span-1 row-span-1',
       badge: badgeColors[heating.icon],
     },
@@ -101,7 +101,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
       description: handyman.description,
       icon: handyman.icon,
       stripeType: 'A' as const,
-      caption: 'Handyman service — photo',
+      caption: 'Handyman service',
       spanClass: 'col-span-1 row-span-1',
       badge: badgeColors[handyman.icon],
     },
@@ -114,7 +114,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
       description: painting.description,
       icon: painting.icon,
       stripeType: 'A' as const,
-      caption: 'Painting & decor — photo',
+      caption: 'Painting & decor',
       spanClass: 'col-span-1 row-span-1',
       badge: badgeColors[painting.icon],
     },
@@ -126,7 +126,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
       description: 'Browse our complete catalog of professional services.',
       icon: 'grid',
       stripeType: 'A' as const,
-      caption: 'Browse catalog — illustration',
+      caption: 'Browse catalog',
       spanClass: 'col-span-1 row-span-1',
       badge: { bg: '#1F3A4D', label: 'Browse' },
     },
@@ -139,7 +139,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
       description: gardening.description || 'Professional gardening and outdoor maintenance.',
       icon: gardening.icon,
       stripeType: 'B' as const,
-      caption: 'Gardening & outdoor — photo',
+      caption: 'Gardening & outdoor',
       spanClass: 'col-span-2 row-span-1',
       badge: badgeColors[gardening.icon],
     },
@@ -168,10 +168,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
       <div className="mx-auto max-w-page px-6">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
-              Explore
-            </p>
-            <h2 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">
+            <h2 className="text-[26px] font-extrabold tracking-tight text-ink">
               Explore our services
             </h2>
           </div>

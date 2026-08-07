@@ -71,7 +71,7 @@ export function Footer() {
               </h3>
               <p className="max-w-md text-xs leading-relaxed text-[#9FB1BC]">
                 Add this site to your home screen for one-tap booking, live provider tracking and
-                your booking history — no app store, no download.
+                your booking history. No app store, no download.
               </p>
               <p className="text-[11px] leading-relaxed text-footer-faint">
                 iPhone: Share → Add to Home Screen. Android: menu → Install app.

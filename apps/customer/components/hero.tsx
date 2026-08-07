@@ -16,7 +16,7 @@ export function Hero({ promoCode }: HeroProps) {
           <Reveal>
             <div>
               <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
-                London &amp; the South East — vetted pros
+                Vetted pros across London &amp; the South East
               </p>
               <h1 className="mt-4 text-[44px] font-extrabold leading-[1.04] tracking-[-0.03em] text-ink lg:text-[58px]">
                 Home services,

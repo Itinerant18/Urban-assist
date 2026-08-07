@@ -28,10 +28,7 @@ export function WhyUs() {
   return (
     <section className="bg-bg py-16">
       <div className="mx-auto max-w-page px-6">
-        <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
-          Why Urban Assist
-        </p>
-        <h2 className="mt-3 text-[30px] font-extrabold leading-tight tracking-tight text-ink">
+        <h2 className="text-[30px] font-extrabold leading-tight tracking-tight text-ink">
           The boring stuff, guaranteed
         </h2>
         <div className="mt-10 grid gap-x-12 gap-y-0 md:grid-cols-2">

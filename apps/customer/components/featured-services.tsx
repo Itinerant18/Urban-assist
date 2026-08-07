@@ -17,10 +17,7 @@ export function FeaturedServices({ trending }: FeaturedServicesProps) {
         <div className="rounded-2xl border border-input-border bg-amber/[0.07] p-6 sm:p-8">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
-                Most booked this month
-              </p>
-              <h3 className="mt-2 text-[22px] font-extrabold tracking-tight text-ink">
+              <h3 className="text-[22px] font-extrabold tracking-tight text-ink">
                 Trending Services
               </h3>
             </div>
