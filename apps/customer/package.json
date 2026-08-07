@@ -23,6 +23,7 @@
     "@urban-assist/types": "workspace:*",
     "@urban-assist/ui": "workspace:*",
     "@urban-assist/utils": "workspace:*",
+    "@vercel/speed-insights": "^2.0.0",
     "framer-motion": "^11.2.10",
     "lucide-react": "^0.395.0",
     "next": "^14.2.4",

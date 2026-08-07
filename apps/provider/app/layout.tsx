@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Providers } from './providers';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Outfit, JetBrains_Mono } from 'next/font/google';
 
 // next/font self-hosts and preloads: no render-blocking request to fonts.googleapis.com,
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-GB" className={`${outfit.variable} ${jetbrainsMono.variable}`}>
       <body>
         <Providers>{children}</Providers>
+        <SpeedInsights />
       </body>
     </html>
   );
