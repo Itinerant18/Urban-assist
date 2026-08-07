@@ -9,7 +9,10 @@
 // Third-party origins the apps genuinely talk to. Keep this list as the single
 // place they are enumerated — a CSP that drifts from reality is worse than none,
 // because the report-only noise trains everyone to ignore it.
-const SUPABASE = ['https://*.supabase.co', 'wss://*.supabase.co'];
+// Split because wss: belongs in connect-src only — a websocket scheme in img-src is
+// meaningless noise, and Supabase realtime needs the wss origin in connect-src.
+const SUPABASE_HTTP = 'https://*.supabase.co';
+const SUPABASE = [SUPABASE_HTTP, 'wss://*.supabase.co'];
 const STRIPE = ['https://js.stripe.com', 'https://api.stripe.com', 'https://hooks.stripe.com'];
 const FIREBASE = [
   'https://*.googleapis.com',
@@ -28,7 +31,7 @@ function contentSecurityPolicy() {
     // needs per-request nonces threaded through the app shell.
     `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${STRIPE.join(' ')} ${MAPS.join(' ')} ${VERCEL.join(' ')}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: ${SUPABASE.join(' ')} https://*.gstatic.com https://*.googleapis.com`,
+    `img-src 'self' data: blob: ${SUPABASE_HTTP} https://*.gstatic.com https://*.googleapis.com`,
     "font-src 'self' data:",
     `connect-src 'self' ${SUPABASE.join(' ')} ${STRIPE.join(' ')} ${FIREBASE.join(' ')} ${MAPS.join(' ')} ${VERCEL.join(' ')}`,
     // Stripe payment element and 3DS challenges render in Stripe-hosted iframes.
