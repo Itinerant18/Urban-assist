@@ -336,8 +336,8 @@ export function BookFlow({
       try {
         sessionStorage.removeItem(storageKey);
       } catch {}
-      if (values.paymentMethod === 'card' && data.payment?.client_secret) {
-        setPaymentSecret(data.payment.client_secret);
+      if (values.paymentMethod === 'card' && data.payment?.clientSecret) {
+        setPaymentSecret(data.payment.clientSecret);
         setCreatedBookingId(data.booking.id);
         setStep('confirm');
       } else {

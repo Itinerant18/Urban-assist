@@ -121,8 +121,8 @@ export function RatingPrompt({
           throw new Error('Review saved, but tip payment failed. You can tip later from the booking.');
         }
         const tipData = await tipRes.json();
-        if (tipData.client_secret) {
-          const { error: payErr } = await stripe.confirmCardPayment(tipData.client_secret, {
+        if (tipData.clientSecret) {
+          const { error: payErr } = await stripe.confirmCardPayment(tipData.clientSecret, {
             payment_method: { card: cardElement },
           });
           if (payErr) {
