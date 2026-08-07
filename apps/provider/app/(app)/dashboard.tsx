@@ -109,7 +109,7 @@ export function Dashboard({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Card className="flex flex-col gap-1 border border-hairline p-4 bg-white shadow-card rounded-xl">
           <span className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">Today's Earnings</span>
-          <span className="font-display text-2xl font-extrabold text-ink">{pence(earningsToday)}</span>
+          <span className="font-mono-utility text-2xl font-extrabold tabular-nums text-ink">{pence(earningsToday)}</span>
         </Card>
         <Card className="flex flex-col gap-1 border border-hairline p-4 bg-white shadow-card rounded-xl">
           <span className="font-mono-utility text-[11px] uppercase tracking-wider text-muted">Completion Rate</span>
@@ -241,7 +241,7 @@ export function Dashboard({
                       </div>
                       <div className="font-mono-utility text-muted">#{j.short_code}</div>
                     </div>
-                    <div className="text-right font-display text-lg">{pence(j.total_pence)}</div>
+                    <div className="text-right font-mono-utility text-lg font-bold tabular-nums">{pence(j.total_pence)}</div>
                   </Card>
                 </Link>
               </li>

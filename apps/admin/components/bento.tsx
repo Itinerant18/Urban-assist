@@ -99,7 +99,7 @@ export function StatTile({
       <div>
         <p
           className={cn(
-            'text-2xl lg:text-3xl font-bold font-mono tracking-tight',
+            'text-2xl lg:text-3xl font-bold font-mono tracking-tight tabular-nums truncate',
             accent ? 'text-accent' : 'text-ink',
           )}
         >

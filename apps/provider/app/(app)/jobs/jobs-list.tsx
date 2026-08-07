@@ -69,8 +69,11 @@ export function JobsList({ jobs }: { jobs: any[] }) {
     <div className="space-y-4 py-2">
       <header className="space-y-3">
         <div>
-          <h1 className="font-display text-xl uppercase font-bold text-ink tracking-tight">
-            My Jobs
+          <p className="font-mono-utility text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-deep">
+            Work
+          </p>
+          <h1 className="mt-1 font-display text-[24px] font-extrabold tracking-tight text-ink">
+            My jobs
           </h1>
           <p className="text-xs text-muted mt-0.5">
             {shown.length} {shown.length === 1 ? 'job' : 'jobs'}
@@ -193,8 +196,8 @@ export function JobsList({ jobs }: { jobs: any[] }) {
 
                     <div className="text-right shrink-0 space-y-1">
                       <div
-                        className={`font-display text-lg font-bold ${
-                          j.status === 'completed' ? 'text-success' : 'text-ink'
+                        className={`font-mono-utility text-[16px] font-extrabold ${
+                          j.status === 'completed' ? 'text-success-deep' : 'text-ink'
                         }`}
                       >
                         {pence(j.total_pence ?? 0)}
