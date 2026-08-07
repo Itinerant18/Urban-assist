@@ -69,10 +69,19 @@ describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
     }
   });
 
+  // Offsets are measured from BASE, not from now. supabase/seed.sql already gives this
+  // provider bookings in busy statuses at now-30min (in_progress), now+3h (on_the_way)
+  // and now+2d (assigned) — an earlier version of this test used now+3h and every case
+  // failed on a genuine conflict with the seed. BASE sits 30 days out, clear of all of
+  // them; assertSlotFree below fails loudly if a future seed change reaches that far.
+  const BASE_MINUTES = 60 * 24 * 30;
+
   // scheduled_at is part of bookings_dedupe_active_idx, so each booking gets a
   // distinct slot and the offsets below stay inside/outside the ±60 min window.
-  async function makeBooking(minutesFromNow: number): Promise<string> {
-    const scheduledAt = new Date(Date.now() + minutesFromNow * 60_000).toISOString();
+  async function makeBooking(minutesFromBase: number): Promise<string> {
+    const scheduledAt = new Date(
+      Date.now() + (BASE_MINUTES + minutesFromBase) * 60_000,
+    ).toISOString();
     const { data, error } = await admin
       .from('bookings')
       .insert({
@@ -101,9 +110,26 @@ describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
     });
   }
 
+  // Guards the fixture, not the code under test: if seed data ever puts a busy booking
+  // near BASE, every assertion below would fail with provider_schedule_conflict and look
+  // like a broken guard rather than a broken fixture.
+  async function assertSlotFree(minutesFromBase: number) {
+    const at = new Date(Date.now() + (BASE_MINUTES + minutesFromBase) * 60_000).toISOString();
+    const { data, error } = await admin.rpc('provider_has_conflicting_booking', {
+      p_provider_id: PROVIDER,
+      p_scheduled_at: at,
+      p_exclude_booking_id: null,
+    });
+    expect(error).toBeNull();
+    expect(data, `fixture slot at BASE+${minutesFromBase}min is already busy in seed data`).toBe(
+      false,
+    );
+  }
+
   it('rejects a second claim that overlaps one already held', async () => {
-    const first = await makeBooking(180);
-    const overlapping = await makeBooking(210); // +30 min — inside the ±60 min window
+    await assertSlotFree(0);
+    const first = await makeBooking(0);
+    const overlapping = await makeBooking(30); // +30 min — inside the ±60 min window
 
     const firstClaim = await claim(first);
     expect(firstClaim.error).toBeNull();
@@ -125,8 +151,10 @@ describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
   });
 
   it('allows a second claim outside the busy window', async () => {
-    const first = await makeBooking(180);
-    const later = await makeBooking(400); // +220 min — clear of the ±60 min window
+    await assertSlotFree(0);
+    await assertSlotFree(220);
+    const first = await makeBooking(0);
+    const later = await makeBooking(220); // +220 min — clear of the ±60 min window
 
     expect((await claim(first)).error).toBeNull();
 
@@ -136,7 +164,8 @@ describe.skipIf(!reachable)('claim_booking_for_provider overlap guard', () => {
   });
 
   it('returns no rows when the booking was already claimed', async () => {
-    const booking = await makeBooking(180);
+    await assertSlotFree(0);
+    const booking = await makeBooking(0);
     expect((await claim(booking)).error).toBeNull();
 
     // Re-claiming is not an error — the caller expires the offer on an empty result,
