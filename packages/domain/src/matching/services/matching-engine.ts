@@ -455,15 +455,49 @@ export async function respondToOffer(
       });
       if (assignError) {
         if (String(assignError.message ?? '').includes('provider_schedule_conflict')) {
+          // Resolve the offer instead of leaving it pending. Left pending, the booking sat
+          // idle until responds_by lapsed and only then re-dispatched, and the resulting
+          // 'expired' counted against the provider's acceptance_rate — punishing them for
+          // a collision the platform detected. 'schedule_conflict' is treated as a system
+          // decline by recompute_acceptance (202608080006), so it is rate-neutral.
+          await db
+            .from('booking_offers')
+            .update({
+              status: 'declined',
+              responded_at: new Date().toISOString(),
+              decline_reason: 'schedule_conflict',
+              // The rate-neutral marker is this column, not decline_reason: that field is
+              // free-form client input and a provider could otherwise forge the reason to
+              // make every decline free (202608080007).
+              resolved_by_system: true,
+            })
+            .eq('id', offerId)
+            .eq('status', 'pending');
+          await clearActiveOffer(offer.booking_id);
+          // Cascading must not mask the conflict. sendNextOffer throws on a candidate
+          // lookup or offer-insert failure, and that would replace the typed 409 with a
+          // raw Postgres message shown to the provider.
+          try {
+            await sendNextOffer(db, offer.booking_id);
+          } catch (cascadeErr) {
+            console.error('[matching] cascade after schedule conflict failed', cascadeErr);
+          }
           throw new Error('provider_schedule_conflict');
         }
         throw assignError;
       }
       const assigned = Array.isArray(claimed) ? claimed[0] : claimed;
       if (!assigned) {
+        // The provider did accept — another provider simply won the race. Tagged so
+        // recompute_acceptance treats it as a system outcome rather than a missed offer.
         await db
           .from('booking_offers')
-          .update({ status: 'expired', responded_at: new Date().toISOString() })
+          .update({
+            status: 'expired',
+            responded_at: new Date().toISOString(),
+            decline_reason: 'taken_by_other',
+            resolved_by_system: true,
+          })
           .eq('id', offerId)
           .eq('status', 'pending');
         return { result: 'expired' as const, next: null, bookingId };

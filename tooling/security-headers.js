@@ -30,6 +30,10 @@ const MAPS_EMBED = 'https://www.google.com';
 // so the worker inherits it and importScripts is governed by script-src. Omitting this
 // breaks push notifications the moment the policy is enforced.
 const FIREBASE_SDK = 'https://www.gstatic.com';
+// Same-origin collector, present in all three apps at app/api/csp-report/route.ts. Each
+// app's middleware matcher excludes /api, so the endpoint stays reachable without a session
+// — including in admin, where the aal2 gate would otherwise reject browser-sent reports.
+const CSP_REPORT_PATH = '/api/csp-report';
 
 function contentSecurityPolicy() {
   return [
@@ -52,6 +56,13 @@ function contentSecurityPolicy() {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
+    // Both wire formats: report-uri is legacy but still the most widely honoured, and
+    // report-to is the Reporting API successor (paired with the Reporting-Endpoints header
+    // below). Without at least one of these, Report-Only violations reach nothing but
+    // individual browser consoles — so the "watch the reports, then enforce" plan could
+    // never actually be carried out.
+    `report-uri ${CSP_REPORT_PATH}`,
+    'report-to csp-endpoint',
   ].join('; ');
 }
 
@@ -62,6 +73,9 @@ function securityHeaders() {
     // customer does. Watch the reports, then switch this key to
     // 'Content-Security-Policy'.
     { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicy() },
+
+    // Declares the group named by the CSP's `report-to csp-endpoint`.
+    { key: 'Reporting-Endpoints', value: `csp-endpoint="${CSP_REPORT_PATH}"` },
 
     // These are safe to enforce immediately.
     { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
