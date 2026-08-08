@@ -6,10 +6,10 @@ verify_jwt = false
 [functions.notification-dispatch]
 verify_jwt = false
 
-[functions.booking-start-otp]
+[functions.payment-release]
 verify_jwt = false
 
-[functions.payment-release]
+[functions.support-ticket-webhook]
 verify_jwt = false
 
 [auth]
