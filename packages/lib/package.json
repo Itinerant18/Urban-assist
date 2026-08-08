@@ -18,6 +18,6 @@
     "@urban-assist/integrations": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.4.5"
+    "typescript": "^7.0.2"
   }
 }
