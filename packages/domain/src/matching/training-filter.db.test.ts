@@ -117,15 +117,22 @@ describe.skipIf(!up)('training gating in findCandidates (local Supabase)', () =>
     // separately; this test must follow the path it actually exercises.
     const slotWeekday = (d: Date) => d.getUTCDay();
 
-    // Inside the next 7 days. The other suites that book this same seeded provider sit in
-    // deliberately separate bands — offer-claim ~30d out, payout-hold ~90d, acceptance-rate
-    // ~120d — so nothing they insert can land in the ±60-minute busy window findCandidates
-    // checks. Keep that separation when adding a suite, or availability here starts flapping.
-    const when = new Date();
+    // ~150 days out, then forward to the first matching weekday.
+    //
+    // The band is not cosmetic. Every suite booking this same seeded provider takes its own —
+    // offer-claim ~30d, payout-hold ~90d, acceptance-rate ~120d — but the seed ALSO books this
+    // provider, at now()-relative times ('now() + interval 2 days', '+3 hours', …). So a fixture
+    // in the next few days collides with a seeded booking whenever the stack happened to be
+    // seeded near the fixture's hour, and the collision depends on nothing but wall clock:
+    // CI seeded at 10:03 UTC, the seeded +2d booking claimed 09:03–12:03 once the ±60-minute
+    // busy window is applied, and a 12:00 fixture landed inside it. The same code passed 11/11
+    // locally on a stack seeded mid-afternoon. Staying past every seeded booking removes the
+    // wall clock from the equation. Keep the separation when adding a suite.
+    const when = new Date(Date.now() + 150 * 24 * 60 * 60_000);
     when.setUTCHours(12, 0, 0, 0);
-    do {
+    while (slotWeekday(when) !== (slot as any).weekday) {
       when.setUTCDate(when.getUTCDate() + 1);
-    } while (slotWeekday(when) !== (slot as any).weekday);
+    }
 
     // Guards the fixture, not the code under test. If the booking falls outside the
     // provider's working hours or collides with a seeded busy booking, they are excluded for

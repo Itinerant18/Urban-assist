@@ -22,13 +22,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # No `version:` input on purpose — pnpm/action-setup errors with "Multiple versions of
       # pnpm specified" when the version is given here AND in package.json's packageManager
       # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
       # read it.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v7
         with:
@@ -50,13 +50,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # No `version:` input on purpose — pnpm/action-setup errors with "Multiple versions of
       # pnpm specified" when the version is given here AND in package.json's packageManager
       # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
       # read it.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       # 22, not 20, and this is load-bearing. @supabase/supabase-js constructs a
       # RealtimeClient inside createClient, which throws "Node.js 20 detected without native
@@ -69,7 +69,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
 
@@ -125,13 +125,13 @@ jobs:
       matrix:
         app: [customer, provider, admin]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # No `version:` input on purpose — pnpm/action-setup errors with "Multiple versions of
       # pnpm specified" when the version is given here AND in package.json's packageManager
       # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
       # read it.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v7
         with:
