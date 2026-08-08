@@ -23,14 +23,14 @@
     "images:webp": "python scripts/export-webp.py"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.0"
+    "@supabase/supabase-js": "^2.112.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.57.0",
-    "prettier": "^3.2.5",
+    "prettier": "^3.9.6",
     "typescript": "^5.4.5",
     "vitest": "^4.1.10"
   }
