@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.6.0",
+    "@sentry/nextjs": "^10",
     "@supabase/ssr": "^0.4.0",
     "@supabase/supabase-js": "^2.45.0",
     "@tanstack/react-query": "^5.45.0",
@@ -21,6 +22,7 @@
     "@urban-assist/lib": "workspace:*",
     "@urban-assist/types": "workspace:*",
     "@urban-assist/ui": "workspace:*",
+    "@urban-assist/utils": "workspace:^",
     "@vercel/speed-insights": "^2.0.0",
     "framer-motion": "^11.2.10",
     "lucide-react": "^0.395.0",
