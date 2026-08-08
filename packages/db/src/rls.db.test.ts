@@ -32,7 +32,7 @@ async function localSupabaseReachable(): Promise<boolean> {
     // stack was fully up, and 78-passed-10-skipped read as "88 passed".
     const res = await fetch(`${LOCAL_URL}/auth/v1/health`, {
       headers: { apikey: ANON_KEY! },
-      signal: AbortSignal.timeout(1500),
+      signal: AbortSignal.timeout(5000),
     });
     return res.ok;
   } catch {

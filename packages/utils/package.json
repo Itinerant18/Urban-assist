@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./constants": "./src/constants.ts"
+    "./constants": "./src/constants.ts",
+    "./sentry-scrub": "./src/sentry-scrub.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
