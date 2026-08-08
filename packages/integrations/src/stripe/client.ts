@@ -15,7 +15,11 @@ export function stripe(): Stripe {
   }
   // ponytail: '' previously slipped past `??` and sent an empty Bearer header
   _stripe = new Stripe(key || 'sk_test_placeholder', {
-    apiVersion: '2024-06-20',
+    // Moves with the SDK major: stripe 22 types this field as the literal it ships against,
+    // so it cannot be left behind without lying to the compiler. This is a two-year jump in
+    // API version, which changes server-side response shapes as well as types — see the
+    // migration notes on PR #20 for what was checked.
+    apiVersion: '2026-07-29.dahlia',
     typescript: true,
   });
   return _stripe;
