@@ -25,6 +25,16 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: react-dom
         update-types: [version-update:semver-major]
+      # eslint-config-next 16 targets Next 16 and cannot lead the Next migration it depends
+      # on. Closed once as #18; without this it returns every Monday.
+      - dependency-name: eslint-config-next
+        update-types: [version-update:semver-major]
+      # TypeScript 7 is the native compiler rewrite and is blocked upstream, not by taste:
+      # `next build` on Next 14.2 resolves no `@/*` path aliases under it, because Next parses
+      # tsconfig through the installed typescript package and 7.0 does not satisfy that path.
+      # All three apps fail to build. Tested and closed as #19; reopen with the Next migration.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
