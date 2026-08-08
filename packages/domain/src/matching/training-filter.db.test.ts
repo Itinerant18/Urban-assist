@@ -117,6 +117,10 @@ describe.skipIf(!up)('training gating in findCandidates (local Supabase)', () =>
     // separately; this test must follow the path it actually exercises.
     const slotWeekday = (d: Date) => d.getUTCDay();
 
+    // Inside the next 7 days. The other suites that book this same seeded provider sit in
+    // deliberately separate bands — offer-claim ~30d out, payout-hold ~90d, acceptance-rate
+    // ~120d — so nothing they insert can land in the ±60-minute busy window findCandidates
+    // checks. Keep that separation when adding a suite, or availability here starts flapping.
     const when = new Date();
     when.setUTCHours(12, 0, 0, 0);
     do {
