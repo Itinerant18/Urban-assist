@@ -36,7 +36,7 @@ async function localSupabaseReachable(): Promise<boolean> {
   try {
     const res = await fetch(`${LOCAL_URL}/auth/v1/health`, {
       headers: { apikey: ANON_KEY },
-      signal: AbortSignal.timeout(1500),
+      signal: AbortSignal.timeout(5000),
     });
     return res.ok;
   } catch {

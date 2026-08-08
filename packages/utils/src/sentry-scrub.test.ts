@@ -94,6 +94,83 @@ describe('scrubSentryEvent', () => {
     expect(out.breadcrumbs[0].data.keep).toBe('yes');
   });
 
+  // Found by sending a real event through the real config and inspecting the envelope: the
+  // SDK's LocalVariablesAsync integration attaches the locals of a crashed frame, and
+  // nothing in beforeSend reached them. Unit-testing scrubSentryEvent in isolation had
+  // missed this entirely.
+  it('redacts local variables captured in stack frames', () => {
+    const out = scrubSentryEvent({
+      exception: {
+        values: [
+          {
+            value: 'boom',
+            stacktrace: {
+              frames: [
+                {
+                  function: 'createBooking',
+                  vars: {
+                    bookingId: 'keep-me',
+                    address: '14 Upper Street',
+                    customer: { phone: '07700900001' },
+                    clientSecret: 'pi_1A_secret_9Z',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    const vars: any = out.exception.values[0].stacktrace.frames[0].vars;
+    expect(vars.bookingId).toBe('keep-me');
+    expect(vars.address).toBe('[redacted]');
+    expect(vars.customer.phone).toBe('[redacted]');
+    expect(vars.clientSecret).toBe('[redacted]');
+  });
+
+  it('scrubs secrets out of source context lines', () => {
+    const out = scrubSentryEvent({
+      exception: {
+        values: [
+          {
+            value: 'boom',
+            stacktrace: {
+              frames: [
+                {
+                  context_line: "  const key = 'sk_live_aaaaaaaaaaaa';",
+                  pre_context: ['  // ring 07700900123'],
+                  post_context: ['  done();'],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    const f: any = out.exception.values[0].stacktrace.frames[0];
+    expect(f.context_line).toContain('[stripe-key]');
+    expect(f.pre_context[0]).toContain('[phone]');
+    expect(f.post_context[0]).toBe('  done();');
+  });
+
+  it('drops server_name', () => {
+    const out = scrubSentryEvent({ server_name: 'someones-laptop', message: 'x' });
+    expect(out.server_name).toBeUndefined();
+  });
+
+  it('scrubs thread frames too', () => {
+    const out = scrubSentryEvent({
+      threads: {
+        values: [{ stacktrace: { frames: [{ vars: { postcode: 'N1 0PQ', id: 'ok' } }] } }],
+      },
+    });
+    const vars: any = out.threads.values[0].stacktrace.frames[0].vars;
+    expect(vars.postcode).toBe('[redacted]');
+    expect(vars.id).toBe('ok');
+  });
+
   it('survives a cyclic object without hanging', () => {
     const cyclic: any = { name: 'root' };
     cyclic.self = cyclic;

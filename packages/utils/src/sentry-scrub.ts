@@ -108,14 +108,57 @@ export function scrubSentryEvent<T extends Record<string, any>>(event: T): T {
   if (e.tags) e.tags = scrubValue(e.tags, 0);
 
   if (e.message) e.message = scrubString(e.message);
+  if (e.logentry) e.logentry = scrubValue(e.logentry, 0);
+
+  // The host machine's name. Useful on a fleet, but on a laptop it is often a person's
+  // name, and Vercel gives no useful value here anyway.
+  delete e.server_name;
+
   if (e.exception?.values) {
-    e.exception.values = e.exception.values.map((v: any) => ({
-      ...v,
-      value: typeof v?.value === 'string' ? scrubString(v.value) : v?.value,
-    }));
+    e.exception.values = e.exception.values.map(scrubExceptionValue);
+  }
+  // Same frame shape, reached on Node crashes.
+  if (e.threads?.values) {
+    e.threads.values = e.threads.values.map(scrubExceptionValue);
   }
 
   return event;
+}
+
+function scrubExceptionValue(v: any): any {
+  const out = {
+    ...v,
+    value: typeof v?.value === 'string' ? scrubString(v.value) : v?.value,
+  };
+  if (out.stacktrace?.frames) {
+    out.stacktrace = { ...out.stacktrace, frames: out.stacktrace.frames.map(scrubFrame) };
+  }
+  return out;
+}
+
+// Stack frames are the one place runtime *values* travel, via the LocalVariablesAsync
+// integration — enabled by default in @sentry/node, and confirmed present in a real
+// envelope. `vars` holds the locals of a crashed frame, which in this codebase means
+// things like the booking object, an address, or a Stripe client secret. Nothing else in
+// beforeSend reached them.
+function scrubFrame(frame: any): any {
+  const out = { ...frame };
+
+  if (out.vars) out.vars = scrubValue(out.vars, 0);
+
+  // Source context from the ContextLines integration. This is our own source code, which
+  // Sentry already receives via source maps, so it is kept rather than dropped — but run
+  // through the value patterns so a secret or phone number written as a literal in source
+  // does not travel with it.
+  if (typeof out.context_line === 'string') out.context_line = scrubString(out.context_line);
+  if (Array.isArray(out.pre_context)) out.pre_context = out.pre_context.map(scrubStringish);
+  if (Array.isArray(out.post_context)) out.post_context = out.post_context.map(scrubStringish);
+
+  return out;
+}
+
+function scrubStringish(v: unknown): unknown {
+  return typeof v === 'string' ? scrubString(v) : v;
 }
 
 // Noise that is not actionable: browser extensions, cancelled navigations, and the

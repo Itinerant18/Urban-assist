@@ -88,3 +88,6 @@ check*.js
 supabase/.branches/
 __pycache__/
 {*.png
+
+# Sentry Config File
+.env.sentry-build-plugin
