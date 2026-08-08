@@ -113,12 +113,20 @@ describe.skipIf(!reachable)('RLS / grants (local Supabase)', () => {
   // statement stays blocked while three of the four are still revoked — it only goes
   // red once all four are re-granted. That hides exactly the realistic regression:
   // one column accidentally added back to the grant list.
-  // The attempted value is derived from the CURRENT value so it is always different.
-  // A fixed payload ({rating_avg: 1}) makes this test unfalsifiable: once a run has
-  // actually written that value — which happens the moment the grant regresses — every
-  // later run writes the same number, before === after, and it passes forever while
-  // the escalation is wide open. Asking "did it change" only works if the write would
-  // genuinely change something.
+  //
+  // Asserts on the REJECTION, not on a before/after re-read of the row. The earlier version
+  // compared the two reads and was flaky: acceptance-rate.db.test.ts drives offer inserts that
+  // recompute profiles.acceptance_rate for this same seeded provider, so under file
+  // parallelism the value legitimately moved between the reads and this suite failed for a
+  // reason that had nothing to do with RLS.
+  //
+  // The read below still runs, and its error is asserted — that is what stops a vacuous pass.
+  // Without it a typo'd column name would 42703 and "the update errored" would be satisfied by
+  // a test that never exercised the grant at all.
+  //
+  // The attempted value is derived from the CURRENT value so it is always different, which
+  // keeps the write a real write: a fixed payload ({rating_avg: 1}) re-sends the value a
+  // regressed run already stored, and PostgREST would report success on a no-op.
   const mutate = (column: string, current: unknown): unknown => {
     if (column === 'is_blocked') return !current;
     if (column === 'stripe_account_id') return `acct_hacked_${Date.now()}`;
@@ -128,29 +136,31 @@ describe.skipIf(!reachable)('RLS / grants (local Supabase)', () => {
   it.each(['rating_avg', 'acceptance_rate', 'is_blocked', 'stripe_account_id'])(
     'provider CANNOT update %s',
     async (column) => {
-      const { data: before } = await authed
+      const { data: before, error: readErr } = await authed
         .from('profiles')
         .select(column)
         .eq('id', PROVIDER_APPROVED)
         .single();
 
-      const attempted = mutate(column, (before as any)?.[column]);
-      expect(attempted).not.toBe((before as any)?.[column]);
+      // The column exists and the provider can read it. Everything below is about the WRITE.
+      expect(readErr).toBeNull();
+      expect(before).not.toBeNull();
 
-      await authed
+      const attempted = mutate(column, (before as any)[column]);
+      expect(attempted).not.toBe((before as any)[column]);
+
+      const { data: written, error: writeErr } = await authed
         .from('profiles')
         .update({ [column]: attempted } as Record<string, unknown>)
-        .eq('id', PROVIDER_APPROVED);
-
-      // Re-read with a fresh privileged view of the row. The value must be untouched.
-      const { data: after } = await authed
-        .from('profiles')
-        .select(column)
         .eq('id', PROVIDER_APPROVED)
-        .single();
+        .select(column);
 
-      expect((after as any)?.[column]).toStrictEqual((before as any)?.[column]);
-      expect((after as any)?.[column]).not.toStrictEqual(attempted);
+      // 42501 = permission denied, i.e. the column-level grant. Pinned deliberately rather
+      // than "some error": if protection ever moves to a trigger or a policy the code changes
+      // and this goes red, which is the correct outcome — the mechanism under test moved.
+      expect(writeErr?.code).toBe('42501');
+      // Returning rows would mean the UPDATE matched and applied.
+      expect(written).toBeNull();
     },
   );
 
