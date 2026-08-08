@@ -28,7 +28,7 @@ jobs:
       # pnpm specified" when the version is given here AND in package.json's packageManager
       # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
       # read it.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v4
         with:
@@ -56,7 +56,7 @@ jobs:
       # pnpm specified" when the version is given here AND in package.json's packageManager
       # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
       # read it.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       # 22, not 20, and this is load-bearing. @supabase/supabase-js constructs a
       # RealtimeClient inside createClient, which throws "Node.js 20 detected without native
@@ -131,7 +131,7 @@ jobs:
       # pnpm specified" when the version is given here AND in package.json's packageManager
       # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
       # read it.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v4
         with:
