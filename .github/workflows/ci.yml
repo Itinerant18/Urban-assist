@@ -24,9 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` input on purpose — pnpm/action-setup errors with "Multiple versions of
+      # pnpm specified" when the version is given here AND in package.json's packageManager
+      # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
+      # read it.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -50,9 +52,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` input on purpose — pnpm/action-setup errors with "Multiple versions of
+      # pnpm specified" when the version is given here AND in package.json's packageManager
+      # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
+      # read it.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -119,9 +123,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` input on purpose — pnpm/action-setup errors with "Multiple versions of
+      # pnpm specified" when the version is given here AND in package.json's packageManager
+      # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
+      # read it.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
