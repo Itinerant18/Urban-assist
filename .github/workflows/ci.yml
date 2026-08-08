@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # No `version:` input on purpose — pnpm/action-setup errors with "Multiple versions of
       # pnpm specified" when the version is given here AND in package.json's packageManager
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # No `version:` input on purpose — pnpm/action-setup errors with "Multiple versions of
       # pnpm specified" when the version is given here AND in package.json's packageManager
@@ -125,7 +125,7 @@ jobs:
       matrix:
         app: [customer, provider, admin]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # No `version:` input on purpose — pnpm/action-setup errors with "Multiple versions of
       # pnpm specified" when the version is given here AND in package.json's packageManager
