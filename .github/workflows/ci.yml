@@ -28,9 +28,9 @@ jobs:
       # pnpm specified" when the version is given here AND in package.json's packageManager
       # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
       # read it.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -56,20 +56,20 @@ jobs:
       # pnpm specified" when the version is given here AND in package.json's packageManager
       # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
       # read it.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       # 22, not 20, and this is load-bearing. @supabase/supabase-js constructs a
       # RealtimeClient inside createClient, which throws "Node.js 20 detected without native
       # WebSocket support" — global WebSocket only landed unflagged in 22.4. Every *.db.test.ts
       # beforeAll died on that line under 20 while passing locally on 25.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
 
@@ -131,9 +131,9 @@ jobs:
       # pnpm specified" when the version is given here AND in package.json's packageManager
       # field. The lockfile-authoritative one is packageManager (pnpm@9.0.0), so let the action
       # read it.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
