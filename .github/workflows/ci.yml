@@ -32,7 +32,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       # --frozen-lockfile is the point: a lockfile out of step with package.json fails here
@@ -58,9 +58,13 @@ jobs:
       # read it.
       - uses: pnpm/action-setup@v4
 
+      # 22, not 20, and this is load-bearing. @supabase/supabase-js constructs a
+      # RealtimeClient inside createClient, which throws "Node.js 20 detected without native
+      # WebSocket support" — global WebSocket only landed unflagged in 22.4. Every *.db.test.ts
+      # beforeAll died on that line under 20 while passing locally on 25.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -131,7 +135,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile

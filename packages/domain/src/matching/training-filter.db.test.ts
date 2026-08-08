@@ -164,6 +164,10 @@ describe.skipIf(!up)('training gating in findCandidates (local Supabase)', () =>
   });
 
   afterAll(async () => {
+    // beforeAll can die before `admin` is assigned (it did in CI: supabase-js throws on
+    // construction under Node 20, which has no global WebSocket). Cleanup then threw a
+    // TypeError that replaced the real error in the report and cost an hour of diagnosis.
+    if (!admin) return;
     if (bookingId) await admin.from('bookings').delete().eq('id', bookingId);
     if (serviceId) await admin.from('provider_services').delete().eq('id', serviceId);
     await admin
