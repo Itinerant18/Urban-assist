@@ -21,7 +21,11 @@ export const runtime = 'nodejs';
 //     /api keeps that off the edge, and /api is already excluded from every app's middleware
 //     matcher, so the tunnel is reachable without a session without any matcher surgery.
 
-const CONFIGURED_DSN = process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN;
+// NEXT_PUBLIC first: the only legitimate caller is the browser, which is configured with the
+// public DSN. SENTRY_DSN is documented as a SEPARATE server/edge DSN, so preferring it would
+// 403 every client envelope whenever the two point at different projects — and the SDK drops
+// them without a console error, so client error reporting would go dark silently.
+const CONFIGURED_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN ?? process.env.SENTRY_DSN;
 
 // Envelopes are small; a page load sends a handful. Anything much larger is not a real
 // report.
@@ -35,16 +39,22 @@ export async function POST(req: NextRequest) {
   }
 
   const limiter = sentryTunnelRateLimit();
-  if (limiter) {
-    // Trusted proxy headers only — keying on X-Forwarded-For would let a caller mint a
-    // fresh bucket per request.
-    const { success } = await limiter.limit(rateLimitKey(req.headers));
-    if (!success) {
-      return new NextResponse(null, { status: 429, headers: { 'Retry-After': '60' } });
-    }
+  // Fail closed when Upstash is not configured. The limiter is the ONLY control on this
+  // endpoint, and a preview deployment with a DSN but no Upstash would otherwise be an
+  // unmetered relay into the production Sentry quota.
+  if (!limiter) return new NextResponse(null, { status: 503, headers: { 'Retry-After': '300' } });
+
+  // Trusted proxy headers only — keying on X-Forwarded-For would let a caller mint a fresh
+  // bucket per request.
+  const { success } = await limiter.limit(rateLimitKey(req.headers));
+  if (!success) {
+    return new NextResponse(null, { status: 429, headers: { 'Retry-After': '60' } });
   }
 
   const body = await req.text();
+  // content-length is absent on chunked requests and NaN when malformed, so the pre-read
+  // check above cannot be the only cap.
+  if (body.length > MAX_BODY_BYTES) return new NextResponse(null, { status: 413 });
 
   // An envelope is newline-delimited JSON; the first line is a header carrying the DSN the
   // SDK is configured with.
@@ -61,12 +71,16 @@ export async function POST(req: NextRequest) {
   try {
     const sent = new URL(envelopeDsn);
     const expected = new URL(CONFIGURED_DSN);
+    // A trailing slash on the env value would make pathname '/456/' while the SDK sends
+    // '/456', permanently 403-ing every report and producing '/api/456//envelope/'.
+    const sentPath = sent.pathname.replace(/\/+$/, '');
+    const expectedPath = expected.pathname.replace(/\/+$/, '');
     // Pin to our own project. Without this the route relays into whatever tenant the caller
     // names, on our bandwidth and reputation.
-    if (sent.host !== expected.host || sent.pathname !== expected.pathname) {
+    if (sent.host !== expected.host || sentPath !== expectedPath) {
       return new NextResponse(null, { status: 403 });
     }
-    const projectId = expected.pathname.replace(/^\//, '');
+    const projectId = expectedPath.replace(/^\//, '');
     upstream = `https://${expected.host}/api/${projectId}/envelope/`;
   } catch {
     return new NextResponse(null, { status: 400 });

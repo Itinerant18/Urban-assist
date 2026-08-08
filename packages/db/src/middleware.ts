@@ -48,7 +48,9 @@ export function markPrivate<T extends { headers: Headers }>(response: T): T {
   response.headers.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
   // Honoured by Cloudflare even when a page rule overrides Cache-Control.
   response.headers.set('CDN-Cache-Control', 'private, no-store');
-  response.headers.set('Vary', 'Cookie');
+  // Appended, not set: Next's App Router emits Vary: RSC, Next-Router-State-Tree, ... and
+  // overwriting those could break router-cache correctness.
+  response.headers.append('Vary', 'Cookie');
   return response;
 }
 

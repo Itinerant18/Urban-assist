@@ -30,6 +30,14 @@ describe('markPrivate', () => {
     expect(res.headers.get('Vary')).toBe('Cookie');
   });
 
+  it('appends Vary rather than replacing existing values', () => {
+    // Next emits Vary: RSC, Next-Router-State-Tree, ... — clobbering those risks
+    // router-cache correctness.
+    const res = markPrivate(new Response(null, { headers: { Vary: 'RSC' } }));
+    expect(res.headers.get('Vary')).toContain('RSC');
+    expect(res.headers.get('Vary')).toContain('Cookie');
+  });
+
   it('overrides a cacheable value already present', () => {
     const res = markPrivate(new Response(null, { headers: { 'Cache-Control': 's-maxage=31536000' } }));
     expect(res.headers.get('Cache-Control')).toContain('no-store');

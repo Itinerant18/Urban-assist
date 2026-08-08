@@ -2,26 +2,42 @@
 import type { NextRequest} from 'next/server';
 import { NextResponse } from 'next/server';
 import { createServiceRole, getSupabaseServer } from '@urban-assist/db/server';
-import { otpRateLimit } from '@urban-assist/integrations/redis';
-import { inPhoneE164, normaliseMobile, rateLimitKey, ukPhoneE164 } from '@urban-assist/utils';
+import { otpIpRateLimit, otpPhoneRateLimit } from '@urban-assist/integrations/redis';
+import { getClientIp, inPhoneE164, normaliseMobile, ukPhoneE164 } from '@urban-assist/utils';
 import { z } from 'zod';
 import { isCustomerRoleAllowed } from '../../../../lib/auth-login';
 
-const TOO_MANY = NextResponse.json(
-  { error: 'Too many attempts — try again in a few minutes.' },
-  { status: 429 },
-);
+// Built per call rather than cloned from a module-scope response: clone() tees the original's
+// body stream and the original lives for the whole function instance, so a flood of 429s
+// leaks memory.
+function tooManyAttempts() {
+  return NextResponse.json(
+    { error: 'Too many attempts — try again in a few minutes.' },
+    { status: 429 },
+  );
+}
 
 export async function POST(req: NextRequest) {
-  const limiter = otpRateLimit();
-
-  // Was keyed on the raw X-Forwarded-For header, which a client sets freely — so a different
-  // value per request meant a different Redis bucket and the 5-per-15-minutes cap did
-  // nothing. That is unmetered SMS spend and phone enumeration. rateLimitKey only accepts
-  // proxy headers we trust.
-  if (limiter) {
-    const { success } = await limiter.limit(rateLimitKey(req.headers));
-    if (!success) return TOO_MANY.clone();
+  // Keyed on trusted proxy headers only. This was the raw X-Forwarded-For header, which a
+  // client sets freely, so a different value per request meant a different Redis bucket and
+  // the cap did nothing: unmetered SMS spend and phone enumeration.
+  //
+  // 30 per 15 minutes, not 5: this bucket has to tolerate a real person mistyping their
+  // number and carrier CGNAT, where thousands of mobile subscribers share one egress address.
+  // Per-number cost abuse is bounded by the phone bucket further down instead.
+  // Only applied when a trusted IP is actually available. rateLimitKey's shared-bucket
+  // fallback is right for telemetry but wrong here: if the platform headers were ever absent
+  // in production, every signup in the world would contend for one allowance and the flow
+  // would break for everyone. Cost abuse is bounded by the per-number bucket below, which
+  // always applies, so skipping this one degrades enumeration protection rather than
+  // availability.
+  const ip = getClientIp(req.headers);
+  if (ip) {
+    const ipLimiter = otpIpRateLimit();
+    if (ipLimiter) {
+      const { success } = await ipLimiter.limit(`ip:${ip}`);
+      if (!success) return tooManyAttempts();
+    }
   }
 
   const { mode, value, referralCode: rawReferralCode } = (await req.json()) as {
@@ -70,13 +86,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'wrong_app' }, { status: 403 });
   }
 
-  // Second bucket, keyed on the target number. The IP limit above bounds enumeration across
-  // many numbers; this one bounds cost and nuisance against a single number even when the
-  // caller rotates addresses. Checked after validation so an invalid number cannot burn a
-  // real number's allowance.
-  if (limiter) {
-    const { success } = await limiter.limit(`phone:${phone}`);
-    if (!success) return TOO_MANY.clone();
+  // Keyed on the target number, and this is the tight one (5 per 15 minutes): it bounds cost
+  // and nuisance against a single number even when the caller rotates addresses. Checked
+  // after validation, so mistyping a number cannot burn the real number's allowance.
+  // normaliseMobile has already canonicalised to E.164, so formatting cannot split buckets.
+  const phoneLimiter = otpPhoneRateLimit();
+  if (phoneLimiter) {
+    const { success } = await phoneLimiter.limit(`phone:${phone}`);
+    if (!success) return tooManyAttempts();
   }
 
   const db = getSupabaseServer();
