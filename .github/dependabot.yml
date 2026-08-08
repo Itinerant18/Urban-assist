@@ -1,0 +1,32 @@
+version: 2
+
+updates:
+  # One pnpm workspace, so a single npm entry covers every app and package.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Without grouping, a workspace this size produces a wall of single-package PRs that
+      # nobody reads. Patch and minor updates ride together; majors stay separate so they
+      # get looked at individually.
+      minor-and-patch:
+        patterns: ['*']
+        update-types: [minor, patch]
+    ignore:
+      # Next 15 changes the instrumentation hook from experimental to stable and moves
+      # sentry.client.config.ts to instrumentation-client.ts. That is a deliberate migration,
+      # not a dependency bump.
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

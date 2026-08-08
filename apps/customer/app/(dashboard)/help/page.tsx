@@ -5,7 +5,7 @@ import { Card, Badge, Button } from '@urban-assist/ui';
 import { ukDateTime } from '@urban-assist/lib';
 import { SupportForm } from './support-form';
 import Link from 'next/link';
-import { Search, CalendarClock, CreditCard, ShieldAlert, MessageSquare, Mail, Phone, ArrowLeft, ThumbsUp, Settings } from 'lucide-react';
+import { Search, CalendarClock, CreditCard, ShieldAlert, Mail, Phone, ArrowLeft, ThumbsUp, Settings } from 'lucide-react';
 import { CANCELLATION_POLICY } from '@urban-assist/utils';
 
 interface Ticket {

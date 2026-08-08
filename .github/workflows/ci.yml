@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  # A new push supersedes an in-flight run for the same ref.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keeps the Sentry webpack plugin from attempting a source-map upload. It skips silently
+  # without an auth token, but being explicit means a future secret cannot turn CI into a
+  # release-publishing job by accident.
+  SENTRY_AUTH_TOKEN: ''
+
+jobs:
+  static:
+    name: typecheck / lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      # --frozen-lockfile is the point: a lockfile out of step with package.json fails here
+      # rather than on a Vercel deploy.
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -r typecheck
+
+      # Enforced, not advisory. next.config.js sets eslint.ignoreDuringBuilds, so a build
+      # will never catch these.
+      - run: pnpm -r lint
+
+  test:
+    name: tests (with database)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # The DB-backed suites self-skip when no local stack answers, and a skipped suite
+      # reports as a pass — so without this the regression tests for booking overlap, payout
+      # holds, RLS and acceptance rate would silently never run.
+      - name: Start Supabase
+        run: supabase start
+
+      - name: Export local Supabase credentials
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=${API_URL//\"/}"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${ANON_KEY//\"/}"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY//\"/}"
+          } >> "$GITHUB_ENV"
+
+      # A syntactically valid but fake DSN. sentry-pipeline.test.ts skips without one, and
+      # the skip gate below would then fail CI forever. The test intercepts the transport and
+      # deliberately does not forward, so nothing is posted to Sentry — but the scrubbing
+      # assertions, which are the point of that suite, do run.
+      - name: Run tests
+        env:
+          NEXT_PUBLIC_SENTRY_DSN: https://examplepublickey@o0.ingest.de.sentry.io/0
+        run: pnpm vitest run --reporter=default --reporter=json --outputFile=vitest-report.json
+
+      # Guards against the failure mode above: green-with-skips looks identical to green.
+      - name: Fail if any test was skipped
+        run: |
+          node -e '
+            const r = require("./vitest-report.json");
+            const skipped = (r.testResults ?? []).flatMap(f => f.assertionResults ?? [])
+              .filter(t => t.status === "pending" || t.status === "skipped");
+            if (skipped.length) {
+              console.error(`${skipped.length} test(s) skipped — the database suites did not run:`);
+              for (const t of skipped.slice(0, 20)) console.error(`  - ${t.fullName}`);
+              process.exit(1);
+            }
+            console.log("no skipped tests");
+          '
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop
+
+  build:
+    name: build apps
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [customer, provider, admin]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Builds catch things typecheck cannot: edge-runtime violations in middleware, and
+      # invalid-UTF-8 source files (which tsc accepts and webpack rejects).
+      - run: pnpm --filter @urban-assist/${{ matrix.app }} build
+
+      # withSentryConfig forces hidden-source-map on the client and deletes the maps in a
+      # separate hook. If that ever stops running, the whole client source ships publicly.
+      - name: Assert no client source maps were shipped
+        run: |
+          found=$(find apps/${{ matrix.app }}/.next/static -name '*.js.map' | wc -l)
+          echo "client source maps: $found"
+          test "$found" -eq 0

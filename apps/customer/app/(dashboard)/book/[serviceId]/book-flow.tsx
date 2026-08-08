@@ -156,7 +156,10 @@ export function BookFlow({
     } catch {
       /* corrupted saved state — start fresh */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Runs once on mount: it restores saved draft state, and re-running it when the
+    // referenced values change would clobber what the user has since typed. No
+    // eslint-disable directive here — react-hooks is not a registered plugin in this config,
+    // so the directive itself was reported as an error.
   }, []);
 
   const formSnapshot = JSON.stringify(watch());
@@ -335,7 +338,9 @@ export function BookFlow({
       const data = await res.json();
       try {
         sessionStorage.removeItem(storageKey);
-      } catch {}
+      } catch {
+        /* best-effort cleanup; a failure here must not block the booking */
+      }
       if (values.paymentMethod === 'card' && data.payment?.clientSecret) {
         setPaymentSecret(data.payment.clientSecret);
         setCreatedBookingId(data.booking.id);

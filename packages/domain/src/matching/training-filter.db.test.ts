@@ -61,6 +61,9 @@ describe.skipIf(!up)('training gating in findCandidates (local Supabase)', () =>
       .select('id, training_items!inner(id, pass_score)')
       .eq('training_items.gates_category', true)
       .eq('training_items.is_active', true)
+      // Ordered: an unordered limit(1) returns whatever row the heap yields, which shifts as
+      // other suites churn these tables — that nondeterminism is what made this file flaky.
+      .order('id')
       .limit(1)
       .single();
     categoryId = (cat as any).id;
@@ -83,7 +86,12 @@ describe.skipIf(!up)('training gating in findCandidates (local Supabase)', () =>
     if (svcErr) throw svcErr;
     serviceId = svc.id;
 
-    const { data: addr } = await admin.from('addresses').select('id, profile_id').limit(1).single();
+    const { data: addr } = await admin
+      .from('addresses')
+      .select('id, profile_id')
+      .order('id')
+      .limit(1)
+      .single();
 
     // The availability filter runs before the training filter, so the booking must
     // land inside one of the provider's seeded working slots or they are dropped for
@@ -92,15 +100,48 @@ describe.skipIf(!up)('training gating in findCandidates (local Supabase)', () =>
     // sits inside any working-hours slot.
     const { data: slot } = await admin
       .from('availability_slots')
-      .select('weekday')
+      .select('weekday, start_time, end_time')
       .eq('provider_id', PROVIDER)
+      // The root cause of the flake: without an order, this returned a different weekday
+      // between runs, and some of those weekdays put the booking where the provider is not
+      // available at all. They were then excluded for AVAILABILITY rather than training, so
+      // the metric assertion below failed while looking like a training-filter bug.
+      .order('weekday')
       .limit(1)
       .single();
+
+    // Matches findCandidates, which reads availability_slots.weekday as 0=Sunday via
+    // getUTCDay() (matching-engine.ts:55) — the convention the seed documents. Do NOT
+    // "correct" this to isodow-1: get_assignment_candidates in SQL uses Monday=0 for the same
+    // column, so the two production paths genuinely disagree. That is a real bug, tracked
+    // separately; this test must follow the path it actually exercises.
+    const slotWeekday = (d: Date) => d.getUTCDay();
+
     const when = new Date();
     when.setUTCHours(12, 0, 0, 0);
     do {
       when.setUTCDate(when.getUTCDate() + 1);
-    } while (when.getUTCDay() !== (slot as any).weekday);
+    } while (slotWeekday(when) !== (slot as any).weekday);
+
+    // Guards the fixture, not the code under test. If the booking falls outside the
+    // provider's working hours or collides with a seeded busy booking, they are excluded for
+    // availability and BOTH assertions below silently measure the wrong thing — which is
+    // exactly how the flake stayed misdiagnosed. Fail loudly here instead.
+    expect(slotWeekday(when), 'fixture weekday must match the chosen slot').toBe(
+      (slot as any).weekday,
+    );
+    const startsAt = when.toISOString().slice(11, 19);
+    const endsAt = new Date(when.getTime() + 60 * 60_000).toISOString().slice(11, 19);
+    expect(startsAt >= (slot as any).start_time, `booking ${startsAt} starts before slot`).toBe(true);
+    expect(endsAt <= (slot as any).end_time, `booking ends ${endsAt}, after slot`).toBe(true);
+
+    const { data: clash } = await admin.rpc('provider_has_conflicting_booking', {
+      p_provider_id: PROVIDER,
+      p_scheduled_at: when.toISOString(),
+      p_ends_at: new Date(when.getTime() + 60 * 60_000).toISOString(),
+      p_exclude_booking_id: null,
+    });
+    expect(clash, 'fixture slot collides with a seeded busy booking').toBe(false);
 
     const { data: booking, error: bErr } = await admin
       .from('bookings')

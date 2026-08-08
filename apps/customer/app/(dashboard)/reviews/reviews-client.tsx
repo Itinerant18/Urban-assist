@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Card, EmptyState, RatingStars } from '@urban-assist/ui';
-import { ArrowLeft, ChevronDown, ChevronUp, Filter, Star } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Filter } from 'lucide-react';
 
 export interface CustomerReview {
   id: string;

@@ -42,6 +42,24 @@ async function localSupabaseReachable(): Promise<boolean> {
 
 const reachable = await localSupabaseReachable();
 
+// Retries only the throttle, and rethrows anything else immediately — a genuine auth failure
+// must not be hidden behind a wait.
+async function requestOtpWithBackoff(
+  client: SupabaseClient,
+  phone: string,
+  attempts = 4,
+): Promise<void> {
+  for (let i = 0; i < attempts; i++) {
+    const { error } = await client.auth.signInWithOtp({ phone });
+    if (!error) return;
+    const throttled = /only request this after|rate limit|too many requests/i.test(error.message);
+    if (!throttled || i === attempts - 1) throw error;
+    // GoTrue's interval is short; a second is plenty and keeps the suite fast.
+    await new Promise((r) => setTimeout(r, 1_100 * (i + 1)));
+  }
+}
+
+
 describe.skipIf(!reachable)('RLS / grants (local Supabase)', () => {
   let anon: SupabaseClient;
   let authed: SupabaseClient;
@@ -54,8 +72,13 @@ describe.skipIf(!reachable)('RLS / grants (local Supabase)', () => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { error: otpErr } = await authed.auth.signInWithOtp({ phone: PROVIDER_PHONE });
-    if (otpErr) throw otpErr;
+    // GoTrue enforces a minimum interval between OTP requests for the same phone and rejects
+    // anything sooner with "For security purposes, you can only request this after N seconds."
+    // That is the auth server behaving correctly, not a fault — but this suite requests an OTP
+    // on every run, so back-to-back runs and CI re-runs hit it. Left unhandled it made this
+    // file fail intermittently, and the error surfaced far from its cause: it aborts beforeAll,
+    // so every test in the file fails at once and it reads like an RLS regression.
+    await requestOtpWithBackoff(authed, PROVIDER_PHONE);
 
     const { error: verifyErr } = await authed.auth.verifyOtp({
       phone: PROVIDER_PHONE,
