@@ -1,0 +1,49 @@
+# gitleaks config for CI.
+#
+# Extends the default rule set rather than replacing it, then allowlists the places this
+# repository legitimately contains secret-SHAPED strings.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known non-secrets and historical noise"
+
+paths = [
+  # Documents the shape of every variable with empty values. Committing it is the point.
+  '''^\.env\.example$''',
+  '''\.env\.local\.example$''',
+  # Historical schema snapshot kept for reading only; contains no live credentials but does
+  # contain a project ref in a dashboard URL.
+  '''^docs/reference-combined-schema\.sql$''',
+  '''^pnpm-lock\.yaml$''',
+]
+
+regexes = [
+  # Supabase's local development keys are published in their own documentation and are
+  # identical for every developer. They appear in seed/config and in test fixtures.
+  '''supabase-demo''',
+  # A Sentry DSN is write-only and ships in the client bundle by design; it is not a
+  # credential. The auth token, which IS one, is not matched by this.
+  '''ingest\.[a-z]{2}\.sentry\.io''',
+  # Deliberately fake fixtures in the scrubbing tests. Allowlisted by exact value rather
+  # than by allowlisting the whole file, so a REAL key pasted into a test still fails.
+  '''sk_test_abcdefghijkl''',
+  '''sk_test_abcdef123456''',
+  '''sk_live_aaaaaaaaaaaa''',
+  '''whsec_bbbbbbbbbbbb''',
+  '''pi_1A2b3C_secret_9Z8y7X''',
+  '''pi_1A_secret_9Z''',
+  '''examplepublickey''',
+]
+
+[[rules]]
+# The specific thing that already leaked here once, so it can never be reintroduced quietly.
+#
+# Matched on the FILE PATH, not a key=value shape: the file that leaked was a plain .txt
+# holding bare codes with no assignment syntax, which is exactly why the first version of
+# this rule (regex on `recovery_code = ...`) did not detect it when tested against history.
+id = "mfa-recovery-codes-file"
+description = "MFA/2FA recovery codes committed as a file"
+regex = '''[A-Z0-9]{16,}'''
+path = '''(?i)(recovery[_-]?code|2fa|mfa[_-]?backup)'''
+tags = ["twilio", "mfa"]

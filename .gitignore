@@ -91,3 +91,6 @@ __pycache__/
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# vitest JSON report (CI artefact)
+vitest-report.json

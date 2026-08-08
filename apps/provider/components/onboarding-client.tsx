@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Card, Button, Badge, toast, useConfirm } from '@urban-assist/ui';
+import { Card, Button, Badge, useConfirm } from '@urban-assist/ui';
 import { getSupabaseBrowser as supabase } from '@urban-assist/db/browser';
 import { UploadCloud, Camera, X } from 'lucide-react';
 

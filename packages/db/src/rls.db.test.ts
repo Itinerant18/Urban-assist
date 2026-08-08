@@ -42,6 +42,24 @@ async function localSupabaseReachable(): Promise<boolean> {
 
 const reachable = await localSupabaseReachable();
 
+// Retries only the throttle, and rethrows anything else immediately — a genuine auth failure
+// must not be hidden behind a wait.
+async function requestOtpWithBackoff(
+  client: SupabaseClient,
+  phone: string,
+  attempts = 4,
+): Promise<void> {
+  for (let i = 0; i < attempts; i++) {
+    const { error } = await client.auth.signInWithOtp({ phone });
+    if (!error) return;
+    const throttled = /only request this after|rate limit|too many requests/i.test(error.message);
+    if (!throttled || i === attempts - 1) throw error;
+    // GoTrue's interval is short; a second is plenty and keeps the suite fast.
+    await new Promise((r) => setTimeout(r, 1_100 * (i + 1)));
+  }
+}
+
+
 describe.skipIf(!reachable)('RLS / grants (local Supabase)', () => {
   let anon: SupabaseClient;
   let authed: SupabaseClient;
@@ -54,8 +72,13 @@ describe.skipIf(!reachable)('RLS / grants (local Supabase)', () => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { error: otpErr } = await authed.auth.signInWithOtp({ phone: PROVIDER_PHONE });
-    if (otpErr) throw otpErr;
+    // GoTrue enforces a minimum interval between OTP requests for the same phone and rejects
+    // anything sooner with "For security purposes, you can only request this after N seconds."
+    // That is the auth server behaving correctly, not a fault — but this suite requests an OTP
+    // on every run, so back-to-back runs and CI re-runs hit it. Left unhandled it made this
+    // file fail intermittently, and the error surfaced far from its cause: it aborts beforeAll,
+    // so every test in the file fails at once and it reads like an RLS regression.
+    await requestOtpWithBackoff(authed, PROVIDER_PHONE);
 
     const { error: verifyErr } = await authed.auth.verifyOtp({
       phone: PROVIDER_PHONE,
@@ -90,12 +113,20 @@ describe.skipIf(!reachable)('RLS / grants (local Supabase)', () => {
   // statement stays blocked while three of the four are still revoked — it only goes
   // red once all four are re-granted. That hides exactly the realistic regression:
   // one column accidentally added back to the grant list.
-  // The attempted value is derived from the CURRENT value so it is always different.
-  // A fixed payload ({rating_avg: 1}) makes this test unfalsifiable: once a run has
-  // actually written that value — which happens the moment the grant regresses — every
-  // later run writes the same number, before === after, and it passes forever while
-  // the escalation is wide open. Asking "did it change" only works if the write would
-  // genuinely change something.
+  //
+  // Asserts on the REJECTION, not on a before/after re-read of the row. The earlier version
+  // compared the two reads and was flaky: acceptance-rate.db.test.ts drives offer inserts that
+  // recompute profiles.acceptance_rate for this same seeded provider, so under file
+  // parallelism the value legitimately moved between the reads and this suite failed for a
+  // reason that had nothing to do with RLS.
+  //
+  // The read below still runs, and its error is asserted — that is what stops a vacuous pass.
+  // Without it a typo'd column name would 42703 and "the update errored" would be satisfied by
+  // a test that never exercised the grant at all.
+  //
+  // The attempted value is derived from the CURRENT value so it is always different, which
+  // keeps the write a real write: a fixed payload ({rating_avg: 1}) re-sends the value a
+  // regressed run already stored, and PostgREST would report success on a no-op.
   const mutate = (column: string, current: unknown): unknown => {
     if (column === 'is_blocked') return !current;
     if (column === 'stripe_account_id') return `acct_hacked_${Date.now()}`;
@@ -105,29 +136,31 @@ describe.skipIf(!reachable)('RLS / grants (local Supabase)', () => {
   it.each(['rating_avg', 'acceptance_rate', 'is_blocked', 'stripe_account_id'])(
     'provider CANNOT update %s',
     async (column) => {
-      const { data: before } = await authed
+      const { data: before, error: readErr } = await authed
         .from('profiles')
         .select(column)
         .eq('id', PROVIDER_APPROVED)
         .single();
 
-      const attempted = mutate(column, (before as any)?.[column]);
-      expect(attempted).not.toBe((before as any)?.[column]);
+      // The column exists and the provider can read it. Everything below is about the WRITE.
+      expect(readErr).toBeNull();
+      expect(before).not.toBeNull();
 
-      await authed
+      const attempted = mutate(column, (before as any)[column]);
+      expect(attempted).not.toBe((before as any)[column]);
+
+      const { data: written, error: writeErr } = await authed
         .from('profiles')
         .update({ [column]: attempted } as Record<string, unknown>)
-        .eq('id', PROVIDER_APPROVED);
-
-      // Re-read with a fresh privileged view of the row. The value must be untouched.
-      const { data: after } = await authed
-        .from('profiles')
-        .select(column)
         .eq('id', PROVIDER_APPROVED)
-        .single();
+        .select(column);
 
-      expect((after as any)?.[column]).toStrictEqual((before as any)?.[column]);
-      expect((after as any)?.[column]).not.toStrictEqual(attempted);
+      // 42501 = permission denied, i.e. the column-level grant. Pinned deliberately rather
+      // than "some error": if protection ever moves to a trigger or a policy the code changes
+      // and this goes red, which is the correct outcome — the mechanism under test moved.
+      expect(writeErr?.code).toBe('42501');
+      // Returning rows would mean the UPDATE matched and applied.
+      expect(written).toBeNull();
     },
   );
 

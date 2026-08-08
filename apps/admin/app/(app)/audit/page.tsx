@@ -1,4 +1,3 @@
-import { getSupabaseServer } from '@urban-assist/db/server';
 import { ScrollText } from 'lucide-react';
 import Link from 'next/link';
 import { Button, Input } from '@urban-assist/ui';
