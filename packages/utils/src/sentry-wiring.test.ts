@@ -50,11 +50,21 @@ describe('Sentry wiring', () => {
       expect(src).not.toMatch(/replaysSessionSampleRate|replaysOnErrorSampleRate|replayIntegration/);
     });
 
-    it(`${app}: middleware does not gate the Sentry tunnel`, () => {
-      // tunnelRoute is '/monitoring'. The provider and admin middleware protect everything
-      // except /login, so without this exclusion the tunnel is redirected and client-side
-      // errors silently never arrive.
-      expect(read(`apps/${app}/middleware.ts`)).toContain('(?!api|monitoring');
+    it(`${app}: the Sentry tunnel is reachable without a session and pinned`, () => {
+      // The browser posts envelopes to /api/monitoring. The provider and admin middleware
+      // protect everything except /login, so a tunnel outside /api would be redirected and
+      // client-side errors would silently never arrive - /api is already excluded.
+      expect(read(`apps/${app}/sentry.client.config.ts`)).toContain("tunnel: '/api/monitoring'");
+      expect(read(`apps/${app}/middleware.ts`)).toContain('(?!api|');
+
+      // The SDK's own tunnelRoute takes org/project from the request's query params, making
+      // the origin a relay into any Sentry tenant. Our route pins the destination instead,
+      // and rate-limits on a trusted IP.
+      expect(read(`apps/${app}/next.config.js`)).not.toMatch(/^\s*tunnelRoute:/m);
+      const route = read(`apps/${app}/app/api/monitoring/route.ts`);
+      expect(route).toContain('CONFIGURED_DSN');
+      expect(route, 'tunnel must be rate limited').toContain('sentryTunnelRateLimit');
+      expect(route, 'tunnel must key on a trusted IP').toContain('rateLimitKey');
     });
 
     it(`${app}: error boundary reports to Sentry`, () => {

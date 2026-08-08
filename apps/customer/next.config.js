@@ -1,12 +1,16 @@
 const path = require('path');
 const { withSentryConfig } = require('@sentry/nextjs');
-const { securityHeaders } = require('../../tooling/security-headers');
+const { securityHeaders, noStoreHeaders } = require('../../tooling/security-headers');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   async headers() {
-    return [{ source: '/(.*)', headers: securityHeaders() }];
+    return [
+      { source: '/(.*)', headers: securityHeaders() },
+      // API responses are per-user or mutations; never cacheable at the edge.
+      { source: '/api/(.*)', headers: noStoreHeaders() },
+    ];
   },
   transpilePackages: ['@urban-assist/ui', '@urban-assist/db', '@urban-assist/lib'],
   // ponytail: Next 14 still nests this under experimental; top-level key is ignored
@@ -38,10 +42,10 @@ module.exports = withSentryConfig(nextConfig, {
   widenClientFileUpload: true,
   sourcemaps: { deleteSourcemapsAfterUpload: true },
 
-  // Route browser events through our own origin. Ad blockers block requests to
-  // sentry.io outright, which silently loses a large share of client-side errors.
-  // This also means the CSP does not need a Sentry ingest origin in connect-src.
-  tunnelRoute: '/monitoring',
+  // tunnelRoute is deliberately NOT used. It generates a rewrite whose org and project come
+  // from the request's own query params, making the origin a free relay into any Sentry
+  // tenant and an unmetered sink for our quota. app/api/monitoring/route.ts does the same job
+  // with the destination pinned to this deployment's DSN, plus a rate limit.
 
   // Strip the SDK's own logger statements from production bundles. `disableLogger: true`
   // does the same thing but is deprecated in v10 in favour of this.

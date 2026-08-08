@@ -11,4 +11,5 @@ export {
   bookingCreateRateLimit,
   offerRespondRateLimit,
   paymentIntentRateLimit,
+  sentryTunnelRateLimit,
 } from './rate-limit';
