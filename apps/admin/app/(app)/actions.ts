@@ -1,5 +1,6 @@
 'use server';
 
+import * as Sentry from '@sentry/nextjs';
 import { createServiceRole } from '@urban-assist/db/server';
 import { requireAdminPermission } from '@/lib/admin-auth';
 import { aggregateDashboardStats } from '@/lib/aggregate-dashboard-stats';
@@ -20,6 +21,9 @@ export async function syncDashboardStats(): Promise<{ ok: true } | { ok: false; 
   try {
     await aggregateDashboardStats(createServiceRole());
   } catch (e: any) {
+    // Server Action bodies are not wrapped by withSentryConfig's instrumentation and
+    // Next 14 has no onRequestError, so an unreported throw here would be invisible.
+    Sentry.captureException(e);
     console.error('[admin] dashboard sync failed', e);
     return { ok: false, reason: 'sync_failed' };
   }

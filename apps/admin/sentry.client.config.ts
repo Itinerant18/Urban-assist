@@ -4,6 +4,7 @@
 import * as Sentry from '@sentry/nextjs';
 import {
   scrubSentryEvent,
+  scrubSentrySpan,
   sentrySampleRate,
   SENTRY_DENY_URLS,
   SENTRY_IGNORE_ERRORS,
@@ -31,6 +32,8 @@ if (dsn) {
 
     beforeSend: (event) => scrubSentryEvent(event),
     beforeSendTransaction: (event) => scrubSentryEvent(event),
+    // Standalone spans (web vitals) never pass through beforeSend.
+    beforeSendSpan: (span) => scrubSentrySpan(span),
 
     // Session Replay is deliberately not enabled. It records the DOM, which on these apps
     // means addresses, phone numbers and KYC documents — the scrubber cannot reach into a

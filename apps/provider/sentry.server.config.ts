@@ -2,6 +2,7 @@
 import * as Sentry from '@sentry/nextjs';
 import {
   scrubSentryEvent,
+  scrubSentrySpan,
   sentrySampleRate,
   SENTRY_IGNORE_ERRORS,
 } from '@urban-assist/utils/sentry-scrub';
@@ -24,6 +25,7 @@ if (dsn) {
 
     beforeSend: (event) => scrubSentryEvent(event),
     beforeSendTransaction: (event) => scrubSentryEvent(event),
+    beforeSendSpan: (span) => scrubSentrySpan(span),
   });
 
   Sentry.setTag('app', 'provider');

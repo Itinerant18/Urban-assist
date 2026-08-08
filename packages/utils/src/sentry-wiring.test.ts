@@ -30,6 +30,11 @@ describe('Sentry wiring', () => {
           /beforeSendTransaction:\s*\(event\)\s*=>\s*scrubSentryEvent/,
         );
         expect(src, `${file} must not let the SDK volunteer PII`).toContain('sendDefaultPii: false');
+        // Standalone spans (web vitals) never pass through beforeSend, so they need their
+        // own hook or they bypass scrubbing entirely.
+        expect(src, `${file} must scrub standalone spans`).toMatch(
+          /beforeSendSpan:\s*\(span\)\s*=>\s*scrubSentrySpan/,
+        );
       });
 
       it(`${app}/${runtime}: stays inert without a DSN`, () => {

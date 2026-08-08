@@ -58,6 +58,16 @@ describe.skipIf(!HAS_DSN)('sentry pipeline', () => {
         start_code: code,
       });
       scope.addBreadcrumb({ message: `called ${ph}`, data: { token: jwtish } });
+      // The two CRITICALs from review: navigation/fetch breadcrumb URLs and span data both
+      // carry raw query strings, and neither went through the request.url handling.
+      scope.addBreadcrumb({
+        category: 'navigation',
+        data: { from: `/browse?q=${encodeURIComponent(name)}`, to: `/x?postcode=${encodeURIComponent(pc)}` },
+      });
+      scope.addBreadcrumb({
+        category: 'fetch',
+        data: { url: `https://x.test/rest/v1/profiles?email=eq.${j}`, 'http.query': `?email=eq.${j}` },
+      });
       Sentry.captureException(new Error(`checkout failed for ${cs} with ${sk} and ${ph2}`));
     });
 
