@@ -23,7 +23,7 @@
     "images:webp": "python scripts/export-webp.py"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.0"
+    "@supabase/supabase-js": "^2.112.1"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",

@@ -31,7 +31,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@supabase/supabase-js": "^2.112.0",
+    "@supabase/supabase-js": "^2.112.1",
     "typescript": "^5.4.5"
   }
 }
