@@ -30,7 +30,7 @@ jobs:
       # read it.
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -62,7 +62,7 @@ jobs:
       # RealtimeClient inside createClient, which throws "Node.js 20 detected without native
       # WebSocket support" — global WebSocket only landed unflagged in 22.4. Every *.db.test.ts
       # beforeAll died on that line under 20 while passing locally on 25.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -133,7 +133,7 @@ jobs:
       # read it.
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
