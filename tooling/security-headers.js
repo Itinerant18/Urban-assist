@@ -89,4 +89,20 @@ function securityHeaders() {
   ];
 }
 
-module.exports = { securityHeaders, contentSecurityPolicy };
+// Applied to /api/* only, not site-wide: every API response here is either
+// per-user or a mutation, and none of it should ever sit in a shared cache.
+// Kept separate from securityHeaders() so static assets under /_next keep their
+// long-lived caching.
+//
+// Authenticated HTML gets the same treatment from the middleware
+// (packages/db/src/middleware.ts) rather than from here, because "authenticated"
+// is a session property that a path pattern cannot express.
+function noStoreHeaders() {
+  return [
+    { key: 'Cache-Control', value: 'private, no-store, max-age=0, must-revalidate' },
+    // Honoured by Cloudflare even when a page rule overrides Cache-Control.
+    { key: 'CDN-Cache-Control', value: 'private, no-store' },
+  ];
+}
+
+module.exports = { securityHeaders, contentSecurityPolicy, noStoreHeaders };

@@ -20,6 +20,11 @@ if (dsn) {
     environment: process.env.NEXT_PUBLIC_SENTRY_ENV ?? process.env.NODE_ENV,
     release: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
 
+    // Same-origin tunnel so ad blockers cannot drop reports. Points at our own pinned,
+    // rate-limited route rather than the SDK's tunnelRoute rewrite. Under /api, which every
+    // middleware matcher already excludes, so it needs no session.
+    tunnel: '/api/monitoring',
+
     // Sampled rather than 1.0: this is a customer-facing app and traces are billed.
     tracesSampleRate: sentrySampleRate(process.env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE, 0.1),
 

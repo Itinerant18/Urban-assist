@@ -31,6 +31,29 @@ export function getProtectedRedirectParams(
   };
 }
 
+
+/**
+ * Marks a response as never-cacheable by a shared cache.
+ *
+ * Belt-and-braces ahead of putting a CDN in front of these apps. A cache rule scoped
+ * slightly too broadly at the edge would serve one signed-in customer's page to the next
+ * visitor, which is the worst thing that can go wrong in this stack. An explicit
+ * private/no-store on every authenticated response means a mis-scoped rule cannot do it --
+ * the origin has said not to.
+ *
+ * Applied to redirects too, not just the pass-through response: a cached 307 to /login
+ * would be served to users who are in fact signed in.
+ */
+export function markPrivate<T extends { headers: Headers }>(response: T): T {
+  response.headers.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+  // Honoured by Cloudflare even when a page rule overrides Cache-Control.
+  response.headers.set('CDN-Cache-Control', 'private, no-store');
+  // Appended, not set: Next's App Router emits Vary: RSC, Next-Router-State-Tree, ... and
+  // overwriting those could break router-cache correctness.
+  response.headers.append('Vary', 'Cookie');
+  return response;
+}
+
 export async function updateSupabaseSession(
   request: NextRequest,
   options: SessionMiddlewareOptions,
@@ -77,7 +100,7 @@ export async function updateSupabaseSession(
     loginUrl.search = '';
     loginUrl.searchParams.set('redirect', requestedPath);
     if (flightMarker) loginUrl.searchParams.set('_rsc', flightMarker);
-    return copySessionCookies(response, NextResponse.redirect(loginUrl));
+    return markPrivate(copySessionCookies(response, NextResponse.redirect(loginUrl)));
   }
 
   if (user && options.isProtectedRoute && options.requireAdmin) {
@@ -89,7 +112,7 @@ export async function updateSupabaseSession(
       loginUrl.pathname = options.loginPath ?? '/login';
       loginUrl.search = '';
       loginUrl.searchParams.set('error', 'admin_access_required');
-      return copySessionCookies(response, NextResponse.redirect(loginUrl));
+      return markPrivate(copySessionCookies(response, NextResponse.redirect(loginUrl)));
     }
   }
 
@@ -100,9 +123,9 @@ export async function updateSupabaseSession(
       loginUrl.pathname = options.loginPath ?? '/login';
       loginUrl.search = '';
       loginUrl.searchParams.set('error', 'mfa_required');
-      return copySessionCookies(response, NextResponse.redirect(loginUrl));
+      return markPrivate(copySessionCookies(response, NextResponse.redirect(loginUrl)));
     }
   }
 
-  return response;
+  return options.isProtectedRoute ? markPrivate(response) : response;
 }
